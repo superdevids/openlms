@@ -55,6 +55,12 @@ function expectDisabled(promise: Promise<boolean>): void {
 describe("FeatureFlagGuard (F1-T13, prd04 §5.N)", () => {
   const reflector = new Reflector();
 
+  // Cache flag bersifat static (module-level) — bersihkan antar test agar
+  // urutan test tidak memengaruhi hasil (flag dari test sebelumnya bocor).
+  beforeEach(() => {
+    FeatureFlagGuard.invalidateAll();
+  });
+
   it("tanpa metadata @Feature → diizinkan tanpa query DB", async () => {
     const prismaMock = makePrismaMock({ flag: null });
     const guard = new FeatureFlagGuard(reflector, prismaMock as unknown as PrismaClient);

@@ -2,6 +2,8 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@openlms/database";
+import { readCacheTtlMs } from "../../common/cache.util";
+import { FeatureFlagGuard } from "../../common/feature-flag.guard";
 import { UpdateFeatureFlagDto } from "./dto/update-feature-flag.dto";
 
 export interface FeatureFlagView {
@@ -23,12 +25,27 @@ export interface FeatureFlagView {
  * FeatureFlagsService — F1-T13, prd04 §5.N.
  * Daftar flag + nilai efektif; update oleh SUPERADMIN tercatat di AuditLog.
  * Flag locked tidak bisa diubah; flag sistem (is_system) tidak bisa dimatikan.
+ * `list()` di-cache in-memory (TTL env CACHE_TTL_MS, default 30s) dan
+ * di-invalidate saat `update()`; cache FeatureFlagGuard juga di-invalidate.
  */
 @Injectable()
 export class FeatureFlagsService {
+  private readonly ttlMs = readCacheTtlMs(30_000);
+  private listCache: { value: FeatureFlagView[]; expiresAt: number } | null = null;
+
   constructor(private readonly prisma: PrismaClient) {}
 
   async list(): Promise<FeatureFlagView[]> {
+    const now = Date.now();
+    if (this.listCache && this.listCache.expiresAt > now) {
+      return this.listCache.value;
+    }
+    const value = await this.loadList();
+    this.listCache = { value, expiresAt: now + this.ttlMs };
+    return value;
+  }
+
+  private async loadList(): Promise<FeatureFlagView[]> {
     const [flags, settings] = await Promise.all([
       this.prisma.featureFlag.findMany({ orderBy: [{ kategori: "asc" }, { key: "asc" }] }),
       this.prisma.appFeatureSetting.findMany()
@@ -51,6 +68,12 @@ export class FeatureFlagsService {
         updated_at: setting?.updated_at ?? null
       };
     });
+  }
+
+  /** Flag berubah → cache list() dan cache FeatureFlagGuard dibuang. */
+  private invalidateCache(key: string): void {
+    this.listCache = null;
+    FeatureFlagGuard.invalidate(key);
   }
 
   async update(
@@ -105,6 +128,8 @@ export class FeatureFlagsService {
         ip_address: ip
       }
     });
+
+    this.invalidateCache(key);
 
     return {
       key: flag.key,

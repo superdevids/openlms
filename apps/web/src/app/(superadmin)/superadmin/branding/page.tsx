@@ -8,14 +8,25 @@ import {
   uploadBrandingAsset,
   type BrandingView
 } from "@/lib/api-client";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button, Input, Label } from "@/components/ui";
-import { toast } from "@/components/ui/toast";
-import { IconUpload, IconCheck } from "@/components/ui/icons";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Button,
+  Input,
+  Label,
+  toast,
+  IconUpload,
+  IconCheck
+} from "@openlms/ui";
+import { DEFAULT_APP_NAME } from "@/lib/constants";
+
 import { useApi } from "@/lib/use-api";
 
 const DEFAULT_BRANDING: BrandingView = {
-  appName: "openlms",
+  appName: DEFAULT_APP_NAME,
   tagline: "LMS & SIS Sekolah",
   logoUrl: null,
   faviconUrl: null,
@@ -154,7 +165,7 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
                 id="brand-app-name"
                 value={appName}
                 onChange={(e) => setAppName(e.target.value)}
-                placeholder="openlms"
+                placeholder={DEFAULT_APP_NAME}
                 maxLength={80}
               />
             </div>
@@ -207,7 +218,7 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
                   color: "#ffffff"
                 }}
               >
-                <p className="text-lg font-bold">{appName || "openlms"}</p>
+                <p className="text-lg font-bold">{appName || DEFAULT_APP_NAME}</p>
                 <p className="text-sm opacity-90">{tagline || "LMS & SIS Sekolah"}</p>
               </div>
               <div className="flex flex-wrap gap-2">

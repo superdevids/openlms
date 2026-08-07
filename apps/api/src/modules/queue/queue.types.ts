@@ -40,7 +40,9 @@ export const JOB_NAMES = {
   PAYROLL_RUN: "payroll.run",
   ROLLOVER_EXECUTE: "rollover.execute",
   REPORT_GENERATE: "report.generate",
-  SPP_GENERATE: "spp.generate"
+  SPP_GENERATE: "spp.generate",
+  /** Auto-submit attempt ujian & kuis yang waktunya habis (G-05). */
+  AUTO_SUBMIT_EXPIRED: "auto-submit.expired"
 } as const;
 
 /** Redis URL untuk queue; kosong/unset → in-process. */

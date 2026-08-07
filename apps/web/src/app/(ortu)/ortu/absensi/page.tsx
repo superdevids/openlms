@@ -3,18 +3,8 @@
 import * as React from "react";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+
 import { formatDate } from "@/lib/format";
 import { DEMO_ATTENDANCE } from "@/lib/demo";
 

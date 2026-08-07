@@ -1,18 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { Alert } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Alert } from "@openlms/ui";
+
 import { formatPercent, formatRupiah } from "@/lib/format";
 
 const DEMO_PAYROLL = [

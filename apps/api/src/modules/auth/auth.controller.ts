@@ -17,7 +17,8 @@ import {
   ACCESS_COOKIE_NAME,
   COOKIE_OPTIONS,
   REFRESH_COOKIE_MAX_AGE_MS,
-  REFRESH_COOKIE_NAME
+  REFRESH_COOKIE_NAME,
+  SESSION_COOKIE_NAME
 } from "./auth.constants";
 
 /**
@@ -106,8 +107,18 @@ export class AuthController {
   }
 }
 
+/**
+ * Set cookie auth: openlms_access (JWT access) + openlms_refresh + alias
+ * openlms_session (= access token, G-04) yang dibaca proxy web.
+ * Catatan: saat NEXT_PUBLIC_DEMO=1 di apps/web, login tidak memanggil backend
+ * (langsung redirect per role demo) — cookie ini hanya relevan di mode nyata.
+ */
 function setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {
   res.cookie(ACCESS_COOKIE_NAME, accessToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: ACCESS_COOKIE_MAX_AGE_MS
+  });
+  res.cookie(SESSION_COOKIE_NAME, accessToken, {
     ...COOKIE_OPTIONS,
     maxAge: ACCESS_COOKIE_MAX_AGE_MS
   });
@@ -119,5 +130,6 @@ function setAuthCookies(res: Response, accessToken: string, refreshToken: string
 
 function clearAuthCookies(res: Response): void {
   res.clearCookie(ACCESS_COOKIE_NAME, COOKIE_OPTIONS);
+  res.clearCookie(SESSION_COOKIE_NAME, COOKIE_OPTIONS);
   res.clearCookie(REFRESH_COOKIE_NAME, COOKIE_OPTIONS);
 }

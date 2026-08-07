@@ -1,10 +1,11 @@
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
-/** Start attempt kuis. student_id client diabaikan untuk SISWA (dipakai actor.userId). */
+/** Start attempt kuis. student_id client diabaikan untuk SISWA (dipakai actor.userId);
+ *  wajib diisi hanya untuk staf (quiz:attempt:school / quiz:write:class). */
 export class StartQuizAttemptDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  student_id!: string;
+  student_id?: string;
 }
 
 /** Jawaban satu soal kuis; answer = JSON string untuk MENJODOHKAN. */

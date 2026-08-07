@@ -3,9 +3,20 @@
 import * as React from "react";
 import Link from "next/link";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, Input, Label, Alert, Badge } from "@/components/ui";
-import { IconCheck, IconAlert } from "@/components/ui/icons";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Alert,
+  Badge,
+  IconCheck,
+  IconAlert
+} from "@openlms/ui";
+import { APP_NAME } from "@/lib/constants";
 
 type Status =
   | { ok: true; status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED"; next: string }
@@ -53,7 +64,7 @@ export default function PPDBStatusPage(): React.JSX.Element {
           <Link href="/ppdb" className="text-sm font-medium text-primary-600">
             &larr; Halaman PPDB
           </Link>
-          <p className="text-lg font-bold text-primary-700">openlms</p>
+          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
         </div>
       </header>
 

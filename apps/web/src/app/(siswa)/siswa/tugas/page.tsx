@@ -3,16 +3,11 @@
 import * as React from "react";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea, Label, Alert } from "@/components/ui";
-import { Dialog } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, Badge, Button, Textarea, Label, Alert, Dialog, EmptyState, toast } from "@openlms/ui";
+
 import { formatRelative } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
-import { toast } from "@/components/ui/toast";
+
 import { DEMO_TASKS } from "@/lib/demo";
 import { errorMessage, ApiError, isFeatureDisabledError } from "@/lib/api-client";
 

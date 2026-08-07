@@ -5,11 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, EmptyState } from "@openlms/ui";
+
 import { formatPercent } from "@/lib/format";
 import { DEMO_GRADES, DEMO_INVOICES } from "@/lib/demo";
 

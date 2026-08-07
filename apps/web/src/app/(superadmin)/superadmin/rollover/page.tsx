@@ -2,22 +2,9 @@
 
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, Alert, Badge } from "@/components/ui";
-import { Steps } from "@/components/ui/steps";
-import { Progress } from "@/components/ui/progress";
-import { ConfirmDialog } from "@/components/ui/dialog";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { toast } from "@/components/ui/toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Alert, Badge, Steps, Progress, ConfirmDialog, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, toast, IconCheck, IconAlert } from "@openlms/ui";
+
 import { formatNumber } from "@/lib/format";
-import { IconCheck, IconAlert } from "@/components/ui/icons";
 
 /**
  * Rollover wizard — prd04 §5.R (state machine):

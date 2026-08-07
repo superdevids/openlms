@@ -4,6 +4,7 @@ import { prisma } from "@openlms/database";
 import type { RequestContext } from "@openlms/types";
 import { assertHasRole, classIdFilter, MASTER_WRITE_ROLES } from "../lms-scope";
 import { writeAudit } from "../lms-audit";
+import { ScopeResolver } from "../../../common/scope-resolver";
 import {
   CreateClassSubjectDto,
   FindClassSubjectsQueryDto,
@@ -32,6 +33,8 @@ export class ClassSubjectsService {
         entityId: cs.id,
         after: cs
       });
+      // Guru pengampu baru → kelas yang diajar berubah → cache scope guru di-resolve ulang.
+      ScopeResolver.invalidateScope(dto.teacherId);
       return cs;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -110,6 +113,11 @@ export class ClassSubjectsService {
         before: existing,
         after: updated
       });
+      // Guru pengampu bisa berubah → invalidasi scope guru lama & baru.
+      if (updated.teacher_id !== existing.teacher_id) {
+        ScopeResolver.invalidateScope(existing.teacher_id);
+        ScopeResolver.invalidateScope(updated.teacher_id);
+      }
       return updated;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -133,6 +141,8 @@ export class ClassSubjectsService {
       entityId: id,
       before: existing
     });
+    // Guru kehilangan kelas → cache scope guru di-resolve ulang.
+    ScopeResolver.invalidateScope(existing.teacher_id);
     return { deleted: true, id };
   }
 

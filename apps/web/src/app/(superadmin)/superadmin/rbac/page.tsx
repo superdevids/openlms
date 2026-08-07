@@ -10,9 +10,8 @@ import {
   type RbacPermission,
   type RbacRolePermission
 } from "@/lib/api-client";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui";
-import { toast } from "@/components/ui/toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, toast } from "@openlms/ui";
+
 import { useApi } from "@/lib/use-api";
 
 /** Demo fallback (NEXT_PUBLIC_DEMO=1) — RBAC endpoint belum tersedia (stub). */

@@ -3,17 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@openlms/ui";
+
 import { formatPercent } from "@/lib/format";
 
 export default function SuperadminDashboardPage(): React.JSX.Element {

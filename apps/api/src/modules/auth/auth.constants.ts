@@ -7,6 +7,14 @@
 export const ACCESS_COOKIE_NAME = "openlms_access";
 export const REFRESH_COOKIE_NAME = "openlms_refresh";
 
+/**
+ * Cookie sesi alias (G-04): web proxy (apps/web/src/proxy.ts) memeriksa
+ * `openlms_session` untuk proteksi halaman; AuthGuard juga membaca cookie ini
+ * lebih dulu. Backend men-set cookie ini = access token agar kedua jalur
+ * (proxy UX + otorisasi API) konsisten.
+ */
+export const SESSION_COOKIE_NAME = "openlms_session";
+
 export const JWT_ACCESS_TTL_MINUTES = Number(process.env.JWT_ACCESS_TTL_MINUTES ?? 30);
 export const JWT_REFRESH_TTL_DAYS = Number(process.env.JWT_REFRESH_TTL_DAYS ?? 30);
 

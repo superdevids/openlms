@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from "@openlms/ui";
+import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "PPDB — openlms"
+  title: `PPDB — ${APP_NAME}`
 };
 
 export default function PPDBLandingPage(): React.JSX.Element {
@@ -12,7 +12,7 @@ export default function PPDBLandingPage(): React.JSX.Element {
     <main className="min-h-screen bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
-          <p className="text-lg font-bold text-primary-700">openlms</p>
+          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
           <Link href="/login" className="text-sm font-medium text-primary-600">
             Masuk
           </Link>

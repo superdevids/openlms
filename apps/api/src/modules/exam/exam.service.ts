@@ -60,12 +60,86 @@ export class ExamService {
     const exam = await prisma.exam.findUnique({
       where: { id },
       include: {
+        subject: true,
         packages: { include: { _count: { select: { questions: true } } } },
-        sessions: true
+        sessions: { include: { target_class: true } }
       }
     });
     if (!exam) throw new NotFoundException("Ujian tidak ditemukan");
     return exam;
+  }
+
+  /**
+   * Daftar ujian untuk siswa (G-02): semua sesi ujian PUBLISHED/ONGOING/CLOSED
+   * yang menyasar kelas siswa (atau seluruh sekolah, target_class_id null),
+   * dipetakan ke kontrak web: status SCHEDULED/ONGOING/ENDED berdasarkan waktu.
+   * Satu ujian tampil sekali (sesi paling awal yang relevan).
+   */
+  async listForStudent(studentId: string) {
+    const enrollments = await prisma.enrollment.findMany({
+      where: { student_id: studentId, status: "ACTIVE" },
+      select: { class_id: true }
+    });
+    const classIds = enrollments.map((e) => e.class_id);
+    const now = new Date();
+
+    const sessions = await prisma.examSession.findMany({
+      where: {
+        exam: {
+          status: {
+            in: [AssessmentStatus.PUBLISHED, AssessmentStatus.ONGOING, AssessmentStatus.CLOSED]
+          }
+        },
+        OR: [
+          { target_class_id: null },
+          ...(classIds.length > 0 ? [{ target_class_id: { in: classIds } }] : [])
+        ]
+      },
+      include: {
+        exam: { include: { subject: true } },
+        target_class: true
+      },
+      orderBy: { starts_at: "asc" }
+    });
+
+    const byExam = new Map<
+      string,
+      {
+        id: string;
+        title: string;
+        subject: string;
+        className: string;
+        startsAt: Date;
+        endsAt: Date;
+        durationMinutes: number;
+      }
+    >();
+    for (const s of sessions) {
+      if (byExam.has(s.exam.id)) continue;
+      byExam.set(s.exam.id, {
+        id: s.exam.id,
+        title: s.exam.title,
+        subject: s.exam.subject.name,
+        className: s.target_class?.name ?? "",
+        startsAt: s.starts_at,
+        endsAt: s.ends_at,
+        durationMinutes: s.exam.duration_min
+      });
+    }
+
+    return [...byExam.values()].map((e) => {
+      const status = now < e.startsAt ? "SCHEDULED" : now > e.endsAt ? "ENDED" : "ONGOING";
+      return {
+        id: e.id,
+        title: e.title,
+        subject: e.subject,
+        className: e.className,
+        startsAt: e.startsAt.toISOString(),
+        endsAt: e.endsAt.toISOString(),
+        durationMinutes: e.durationMinutes,
+        status
+      };
+    });
   }
 
   async update(id: string, dto: UpdateExamDto) {

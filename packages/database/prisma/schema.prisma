@@ -495,6 +495,8 @@ model User {
   branding_updated            BrandingConfig[]              @relation("BrandingUpdatedBy")
   landing_content_updated     LandingContent[]              @relation("LandingUpdatedBy")
   news_updated                NewsArticle[]                 @relation("NewsUpdatedBy")
+  system_status_updated       SystemStatus[]                @relation("SystemStatusUpdatedBy")
+  onboarding                  UserOnboarding?
 
   @@index([username, is_active])
   @@map("user")
@@ -2526,4 +2528,45 @@ model NewsArticle {
 
   @@index([is_published, published_at])
   @@map("news_article")
+}
+
+// ============================================================
+// SystemStatus — status sistem global (maintenance/dev mode)
+// Dikelola SUPERADMIN via /admin/system/maintenance (permission
+// system:maintenance:write); dibaca publik via /public/system-status.
+// MaintenanceMiddleware membaca cache service (bukan DB per request).
+// ============================================================
+
+model SystemStatus {
+  id                   String   @id @default(cuid())
+  maintenance_enabled  Boolean  @default(false)
+  maintenance_message  String? // pesan tampil di halaman maintenance
+  maintenance_eta      String? // ETA free-form, mis. "14:00 WIB" / ISO string
+  updated_at           DateTime @updatedAt
+  updated_by           String?
+
+  updated_by_user User? @relation("SystemStatusUpdatedBy", fields: [updated_by], references: [id])
+
+  @@map("system_status")
+}
+
+// ============================================================
+// UserOnboarding — tur fitur per user (semua role kecuali guest)
+// Menyimpan progres langkah tour onboarding per user (role disimpan
+// agar langkah role-specific tetap konsisten bila role berubah).
+// ============================================================
+
+model UserOnboarding {
+  id              String    @id @default(cuid())
+  user_id         String    @unique
+  role            String // Role saat tur dimulai (denormalisasi)
+  steps_completed Json? // array kunci langkah yang sudah dilewati
+  is_completed    Boolean   @default(false)
+  completed_at    DateTime?
+  dismissed_at    DateTime?
+  updated_at      DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_onboarding")
 }

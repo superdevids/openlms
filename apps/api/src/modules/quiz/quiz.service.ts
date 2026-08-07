@@ -40,7 +40,10 @@ export class QuizService {
     const [items, total] = await Promise.all([
       prisma.quiz.findMany({
         where,
-        include: { _count: { select: { questions: true, attempts: true } } },
+        include: {
+          _count: { select: { questions: true, attempts: true } },
+          class_subject: { include: { subject: true } }
+        },
         orderBy: { created_at: "desc" },
         skip: (page - 1) * limit,
         take: limit

@@ -2,6 +2,7 @@ import { ConflictException, Injectable, Logger, NotFoundException } from "@nestj
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@openlms/database";
+import { readCacheTtlMs } from "../../common/cache.util";
 import { CreateNewsDto } from "./dto/create-news.dto";
 import { UpdateNewsDto } from "./dto/update-news.dto";
 import { UpsertLandingContentDto } from "./dto/upsert-landing-content.dto";
@@ -86,10 +87,18 @@ export function slugify(input: string): string {
  * LandingService — konten landing page sekolah (single-school).
  * GET publik: hanya baris is_published=true. Mutasi (landing:write:school)
  * mencatat AuditLog dengan entity "landing_content" / "news_article".
+ * GET publik di-cache in-memory (TTL dari env CACHE_TTL_MS, default 30s) dan
+ * di-invalidate otomatis saat ada mutasi konten/berita.
  */
 @Injectable()
 export class LandingService {
   private readonly logger = new Logger(LandingService.name);
+
+  /** TTL cache publik (ms). */
+  private readonly cacheTtlMs = readCacheTtlMs(30_000);
+
+  private landingCache: { value: LandingPageView; expiresAt: number } | null = null;
+  private newsCache: { value: NewsArticlePublic[]; expiresAt: number } | null = null;
 
   constructor(private readonly db: PrismaClient) {}
 
@@ -98,6 +107,16 @@ export class LandingService {
   // ============================================================
 
   async getPublicLanding(): Promise<LandingPageView> {
+    const now = Date.now();
+    if (this.landingCache && this.landingCache.expiresAt > now) {
+      return this.landingCache.value;
+    }
+    const value = await this.loadPublicLanding();
+    this.landingCache = { value, expiresAt: now + this.cacheTtlMs };
+    return value;
+  }
+
+  private async loadPublicLanding(): Promise<LandingPageView> {
     const [sections, berita] = await Promise.all([
       this.db.landingContent.findMany({
         where: { is_published: true },
@@ -117,11 +136,17 @@ export class LandingService {
   }
 
   async getPublicNews(): Promise<NewsArticlePublic[]> {
+    const now = Date.now();
+    if (this.newsCache && this.newsCache.expiresAt > now) {
+      return this.newsCache.value;
+    }
     const rows = await this.db.newsArticle.findMany({
       where: { is_published: true, published_at: { not: null } },
       orderBy: [{ published_at: "desc" }]
     });
-    return rows.map((n) => this.toNewsPublic(n));
+    const value = rows.map((n) => this.toNewsPublic(n));
+    this.newsCache = { value, expiresAt: now + this.cacheTtlMs };
+    return value;
   }
 
   async getPublicNewsBySlug(slug: string): Promise<NewsArticleView> {
@@ -137,6 +162,12 @@ export class LandingService {
   // ============================================================
   // Admin (landing:write:school)
   // ============================================================
+
+  /** Konten/berita berubah → cache publik dibuang (di-fill ulang saat GET berikutnya). */
+  private invalidatePublic(): void {
+    this.landingCache = null;
+    this.newsCache = null;
+  }
 
   async getAdminLanding(): Promise<LandingContentView[]> {
     const rows = await this.db.landingContent.findMany({
@@ -181,6 +212,7 @@ export class LandingService {
         actorId,
         ip
       );
+      this.invalidatePublic();
       return this.toLandingView(updated);
     }
 
@@ -204,6 +236,7 @@ export class LandingService {
       actorId,
       ip
     );
+    this.invalidatePublic();
     return this.toLandingView(created);
   }
 
@@ -235,6 +268,7 @@ export class LandingService {
       actorId,
       ip
     );
+    this.invalidatePublic();
     return this.toNewsView(created);
   }
 
@@ -279,6 +313,7 @@ export class LandingService {
       actorId,
       ip
     );
+    this.invalidatePublic();
     return this.toNewsView(updated);
   }
 
@@ -290,6 +325,7 @@ export class LandingService {
     const before = this.toNewsView(existing);
     await this.db.newsArticle.delete({ where: { id } });
     await this.audit(AuditAction.DELETE, "news_article", id, { before, after: null }, actorId, ip);
+    this.invalidatePublic();
   }
 
   // ============================================================

@@ -1,20 +1,11 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toast";
+import { Toaster } from "@openlms/ui";
 import { BrandingProvider } from "@/components/branding/branding-provider";
+import { MaintenanceGate } from "@/components/maintenance/maintenance-gate";
 import { fetchBrandingServer, type BrandingView } from "@/lib/api-client";
-
-/** Fallback bila fetch branding gagal (offline / API mati) — default openlms. */
-const FALLBACK_BRANDING: BrandingView = {
-  appName: "openlms",
-  tagline: "LMS & SIS Sekolah",
-  logoUrl: null,
-  faviconUrl: null,
-  colors: { primary: "#2563eb", secondary: "#1d4ed8", accent: "#0ea5e9" },
-  radius: null,
-  configVersion: 1
-};
+import { APP_NAME, FALLBACK_BRANDING } from "@/lib/constants";
 
 /** Dedup fetch branding dalam satu request (dipakai generateMetadata + layout). */
 const getBranding = cache(async (): Promise<BrandingView> => {
@@ -39,7 +30,7 @@ function cssVars(b: BrandingView): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const b = await getBranding();
-  const title = b.appName ? `${b.appName} — LMS & SIS Sekolah` : "openlms — LMS & SIS Sekolah";
+  const title = `${b.appName ?? APP_NAME} — LMS & SIS Sekolah`;
   return {
     title,
     description: b.tagline ?? "LMS & SIS Sekolah",
@@ -64,7 +55,9 @@ export default async function RootLayout({
         <a href="#main" className="skip-link">
           Lewati ke konten utama
         </a>
-        <BrandingProvider>{children}</BrandingProvider>
+        <BrandingProvider>
+          <MaintenanceGate>{children}</MaintenanceGate>
+        </BrandingProvider>
         <Toaster />
       </body>
     </html>

@@ -5,11 +5,18 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Button,
+  EmptyState
+} from "@openlms/ui";
+
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { DEMO_EXAMS, DEMO_TASKS, DEMO_CLASSES } from "@/lib/demo";
 
@@ -42,7 +49,9 @@ export default function SiswaDashboardPage(): React.JSX.Element {
   const { user } = useAuth();
   const firstName = user?.fullName.split(" ")[0] ?? "Siswa";
 
-  const exams = useApi<Exam[]>(() => api.get("/exams"), [], { fallbackData: DEMO_EXAMS });
+  const exams = useApi<Exam[]>(() => api.get("/exam/list-for-student"), [], {
+    fallbackData: DEMO_EXAMS
+  });
   const tasks = useApi<Task[]>(() => api.get("/assignments"), [], { fallbackData: DEMO_TASKS });
   const classes = useApi<ClassItem[]>(() => api.get("/classes"), [], {
     fallbackData: DEMO_CLASSES

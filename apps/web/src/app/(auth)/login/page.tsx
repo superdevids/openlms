@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/login-form";
+import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Masuk — openlms"
+  title: `Masuk — ${APP_NAME}`
 };
 
 export default function LoginPage(): React.JSX.Element {
@@ -10,11 +11,11 @@ export default function LoginPage(): React.JSX.Element {
     <main className="flex min-h-screen items-center justify-center bg-neutral-50 p-6">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <p className="text-2xl font-bold text-primary-700">openlms</p>
+          <p className="text-2xl font-bold text-primary-700">{APP_NAME}</p>
           <p className="mt-1 text-sm text-neutral-600">LMS & SIS Sekolah</p>
         </div>
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-semibold text-neutral-900">Masuk ke openlms</h1>
+          <h1 className="text-2xl font-semibold text-neutral-900">Masuk ke {APP_NAME}</h1>
           <p className="mt-1 text-sm text-neutral-600">Masuk dengan akun sekolah Anda</p>
           <LoginForm />
         </div>

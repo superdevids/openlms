@@ -3,14 +3,7 @@
 import * as React from "react";
 import { api, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { Input, Label, Textarea } from "@/components/ui";
-import { Switch } from "@/components/ui/switch";
-import { ConfirmDialog } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/toast";
-import { IconPlus, IconX } from "@/components/ui/icons";
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, Input, Label, Textarea, Switch, ConfirmDialog, toast, IconPlus, IconX } from "@openlms/ui";
 
 /**
  * Editor Landing Page — SUPERADMIN + OPERATOR (permission landing:write:school).

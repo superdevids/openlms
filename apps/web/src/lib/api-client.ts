@@ -1,4 +1,5 @@
 import type { ApiErrorBody, ErrorCode } from "@openlms/types";
+import { API_BASE_FALLBACK, API_TIMEOUT_MS } from "./constants";
 
 /**
  * API client openlms — base /api/v1, credentials include (httpOnly cookie JWT).
@@ -175,7 +176,7 @@ export interface BrandingView {
 
 /** URL absolut /api/v1/app/branding untuk fetch server-side (layout). */
 export function brandingApiUrl(): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001").replace(/\/+$/, "");
+  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
   if (base.endsWith("/api/v1")) return `${base}/app/branding`;
   return `${base}/api/v1/app/branding`;
 }
@@ -183,7 +184,7 @@ export function brandingApiUrl(): string {
 /** Fetch branding dari server (layout.tsx) — timeout agar tidak menggantung. */
 export async function fetchBrandingServer(): Promise<BrandingView> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
     const res = await fetch(brandingApiUrl(), {
       cache: "no-store",

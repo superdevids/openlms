@@ -7,14 +7,14 @@ memasang `APP_PIPE` ValidationPipe global).
 
 ## Module class yang tersedia
 
-| Module              | Isi                                                                                | Endpoint (docs/04 §2.2)                                                  |
-| ------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `LmsModule`         | Agregator semua submodul + `APP_PIPE` (ValidationPipe whitelist+transform)         | —                                                                        |
-| `ClassesModule`     | Class CRUD, Subject CRUD, ClassSubject, Enrollment (bulk), ScheduleEntry + bentrok | `/classes`, `/subjects`, `/class-subjects`, `/schedules`, `/enrollments` |
-| `MaterialsModule`   | Material CRUD + publish/unpublish + signed URL                                     | `/materials`                                                             |
-| `AssignmentsModule` | Assignment CRUD + publish/close, Submission (idempotent, late, grade)              | `/assignments`, `/submissions`                                           |
-| `GradesModule`      | Grade, rekap siswa/kelas/mapel, ekspor CSV/PDF (`DataExportLog`)                   | `/grades`                                                                |
-| `StorageModule`     | Signed URL skeleton (MinIO/lokal placeholder, F2-T4)                               | —                                                                        |
+| Module              | Isi                                                                                  | Endpoint (docs/04 §2.2)                                                  |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `LmsModule`         | Agregator semua submodul + `APP_PIPE` (ValidationPipe whitelist+transform)           | —                                                                        |
+| `ClassesModule`     | Class CRUD, Subject CRUD, ClassSubject, Enrollment (bulk), ScheduleEntry + bentrok   | `/classes`, `/subjects`, `/class-subjects`, `/schedules`, `/enrollments` |
+| `MaterialsModule`   | Material CRUD + publish/unpublish + signed URL                                       | `/materials`                                                             |
+| `AssignmentsModule` | Assignment CRUD + publish/close, Submission (idempotent, late, grade)                | `/assignments`, `/submissions`                                           |
+| `GradesModule`      | Grade, rekap siswa/kelas/mapel, ekspor CSV/PDF (`DataExportLog`)                     | `/grades`                                                                |
+| `StorageModule`     | Penyimpanan file LOKAL (`STORAGE_LOCAL_DIR`, tanpa S3/MinIO) — lihat modul `storage` | —                                                                        |
 
 ## Import yang dibutuhkan (oleh integration)
 
@@ -46,8 +46,9 @@ berfungsi tanpa menyentuh `main.ts`.
 2. **Auth (F1)** harus mengisi header/konteks di atas; tanpa itu, role default
    kosong → endpoint tulis menolak (Forbidden), list dikembalikan kosong
    (default-secure).
-3. **Storage nyata (F2-T4)** — `StorageService` mengembalikan signed URL
-   placeholder lokal/MinIO; kontrak fungsi siap diganti presigned S3/MinIO.
+3. **Storage nyata (F2-T4)** — `StorageService` menulis file ke filesystem lokal
+   (`STORAGE_LOCAL_DIR`) dan URL akses via `GET /api/v1/storage/files/*`
+   (tanpa S3/MinIO).
 4. **Idempotensi distributed** — `SubmissionsService` memakai store in-process
    (`Map`) + unique `(assignment_id, student_id)`. Untuk multi-instance, schema
    Submission perlu kolom `idempotency_key` (migrasi oleh pemilik schema).

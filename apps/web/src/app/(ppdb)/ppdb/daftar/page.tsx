@@ -3,12 +3,23 @@
 import * as React from "react";
 import Link from "next/link";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, Input, Label, Select, Checkbox, Alert } from "@/components/ui";
-import { Steps } from "@/components/ui/steps";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "@/components/ui/toast";
-import { IconCheck } from "@/components/ui/icons";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Select,
+  Checkbox,
+  Alert,
+  Steps,
+  Progress,
+  toast,
+  IconCheck
+} from "@openlms/ui";
+import { APP_NAME } from "@/lib/constants";
 
 /**
  * PPDB — wizard 4 langkah publik (tanpa login) 07-ux §4.8:
@@ -156,7 +167,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
           <Link href="/ppdb" className="text-sm font-medium text-primary-600">
             &larr; Halaman PPDB
           </Link>
-          <p className="text-lg font-bold text-primary-700">openlms</p>
+          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
         </div>
       </header>
 

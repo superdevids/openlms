@@ -5,6 +5,7 @@
 **Status:** Final — dokumen flagship; menggantikan prd01–03 sebagai acuan produk utama
 **Pemilik Produk:** Aditya
 **Dokumen Sumber:**
+
 - prd01.md (v1.0) — fondasi SaaS LMS+SIS, 9 role, 7 modul, arsitektur — disebut **[v1]**
 - prd02.md (v2.0) — Fase 2: ujian online, absensi online, peta modul menyeluruh — disebut **[v2]**
 - prd03.md (v3.0) — audit 24 gap G1–G24 + prioritisasi — disebut **[v3]**
@@ -50,25 +51,25 @@ Satu platform terpadu yang mencakup **seluruh siklus operasional sekolah** — d
 ### 2.2 Positioning (keputusan — menjawab gap A2-2)
 
 - **openlms = Super-App pendidikan jenjang menengah Indonesia.** "Super-app" berarti: satu titik masuk bagi semua peran (siswa, guru, wali kelas/homeroom, operator, keuangan, wakepsek, kepsek, wali murid, calon siswa, mitra industri, admin sistem sekolah) untuk menyelesaikan pekerjaan harian tanpa pindah aplikasi.
-- **Fokus inti LMS.** Pernyataan posisi resmi: *"openlms adalah LMS terbaik untuk sekolah Indonesia, yang kebetulan juga menangani administrasi sekolah."* Setiap keputusan scope, roadmap, dan alokasi sumber daya memakai tes ini: *"apakah fitur ini mempercepat/memperkuat belajar-mengajar?"* Jika tidak, fitur penunjang harus ditunda atau dibuat minimal sampai inti LMS stabil (menjawab gap A2-1).
+- **Fokus inti LMS.** Pernyataan posisi resmi: _"openlms adalah LMS terbaik untuk sekolah Indonesia, yang kebetulan juga menangani administrasi sekolah."_ Setiap keputusan scope, roadmap, dan alokasi sumber daya memakai tes ini: _"apakah fitur ini mempercepat/memperkuat belajar-mengajar?"_ Jika tidak, fitur penunjang harus ditunda atau dibuat minimal sampai inti LMS stabil (menjawab gap A2-1).
 - **Konteks Indonesia sebagai diferensiasi.** Berbeda dari Google Classroom/Moodle, openlms menyatukan LMS dengan modul yang selaras regulasi & operasional lokal: Dapodik (ekspor file), e-Rapor Kurikulum Merdeka dua-track, P5, UU PDP untuk data anak, pembayaran SPP/iuran, payroll guru dengan PPh 21 TER & BPJS, dan aset sekolah [riset-06 Topik 5 — kelemahan kompetitor: tidak ada modul SIS/keuangan/e-Rapor/Dapodik selaras regulasi].
 - **Ringan, cepat, hemat kuota.** Dirancang untuk koneksi 4G/sinyal lemah dan kuota terbatas siswa (§7, §8).
 
 ### 2.3 Diferensiasi terhadap kompetitor
 
-| Aspek | Google Classroom | Moodle | openlms (prd04) |
-|-------|------------------|--------|----------------|
-| LMS inti (materi/tugas/kuis/ujian) | Ada | Ada | Ada (inti) |
-| SIS (nilai, absensi, rapor, jadwal) | Tidak | Parsial | Ada, terpadu |
-| e-Rapor Kurikulum Merdeka dua-track (mapel + P5) | Tidak | Tidak | Ada [riset-06 Topik 3] |
-| Keuangan sekolah (SPP/iuran, denda, rekonsiliasi) | Tidak | Tidak | Ada (gelombang 2) |
-| Payroll guru (PPh 21 TER, BPJS) | Tidak | Tidak | Ada (gelombang 2) |
-| Aset & depresiasi | Tidak | Tidak | Ada (gelombang 2) |
-| PPDB + consent data anak | Tidak | Tidak | Ada [v1 §5.6][riset-06 Topik 1] |
-| Ekspor Dapodik/ANBK (file) | Tidak | Tidak | Ada [v3 G4][riset-06 Topik 2] |
-| Aksesibilitas | Tidak ada klaim WCAG eksplisit | WCAG 2.1 AA | WCAG AA bertahap seluruh halaman [riset-06 Topik 5] |
-| Hemat kuota (data-saver) | Parsial | Tidak | Ada [v3 G16][ux-07 §8] |
-| Model layanan | Gratis/berbayar per edisi | Self-host (beban sekolah) | **Aplikasi 1 sekolah (single-school)** [owner-v4.2] |
+| Aspek                                             | Google Classroom               | Moodle                    | openlms (prd04)                                     |
+| ------------------------------------------------- | ------------------------------ | ------------------------- | --------------------------------------------------- |
+| LMS inti (materi/tugas/kuis/ujian)                | Ada                            | Ada                       | Ada (inti)                                          |
+| SIS (nilai, absensi, rapor, jadwal)               | Tidak                          | Parsial                   | Ada, terpadu                                        |
+| e-Rapor Kurikulum Merdeka dua-track (mapel + P5)  | Tidak                          | Tidak                     | Ada [riset-06 Topik 3]                              |
+| Keuangan sekolah (SPP/iuran, denda, rekonsiliasi) | Tidak                          | Tidak                     | Ada (gelombang 2)                                   |
+| Payroll guru (PPh 21 TER, BPJS)                   | Tidak                          | Tidak                     | Ada (gelombang 2)                                   |
+| Aset & depresiasi                                 | Tidak                          | Tidak                     | Ada (gelombang 2)                                   |
+| PPDB + consent data anak                          | Tidak                          | Tidak                     | Ada [v1 §5.6][riset-06 Topik 1]                     |
+| Ekspor Dapodik/ANBK (file)                        | Tidak                          | Tidak                     | Ada [v3 G4][riset-06 Topik 2]                       |
+| Aksesibilitas                                     | Tidak ada klaim WCAG eksplisit | WCAG 2.1 AA               | WCAG AA bertahap seluruh halaman [riset-06 Topik 5] |
+| Hemat kuota (data-saver)                          | Parsial                        | Tidak                     | Ada [v3 G16][ux-07 §8]                              |
+| Model layanan                                     | Gratis/berbayar per edisi      | Self-host (beban sekolah) | **Aplikasi 1 sekolah (single-school)** [owner-v4.2] |
 
 Diferensiasi dikemas sebagai narasi tunggal: **"LMS + SIS + regulasi lokal dalam SATU aplikasi sekolah"** [riset-06 §4].
 
@@ -85,38 +86,38 @@ Diferensiasi dikemas sebagai narasi tunggal: **"LMS + SIS + regulasi lokal dalam
 
 Role adalah **kumpulan permission** (bukan sekadar label); wali kelas bukan role tersendiri melainkan **scope override** lewat `Class.homeroom_teacher_id` (keputusan RBAC — menjawab gap A3-4).
 
-| # | Role (kode) | Deskripsi | Kebutuhan utama | Scope default utama |
-|---|-------------|-----------|-----------------|---------------------|
-| 1 | **SUPERADMIN** | Admin sistem aplikasi sekolah (bukan penyedia SaaS) — pengaturan aplikasi, feature flags, manajemen user, audit, backup [owner-v4.2] | Konfigurasi aplikasi, feature flags, manajemen user, audit, backup | SEKOLAH |
-| 2 | **KEPSEK** | Kepala sekolah | Dashboard eksekutif, laporan, rekap payroll, akses BK terbatas [v1 §3][v2 §4.2] | SEKOLAH |
-| 3 | **WAKEPSEK** | Wakil kepala sekolah (kurikulum/kesiswaan) | Pengawasan akademik & ujian, jadwal, kedisiplinan [v1 §3][v2 §2.2b] | SEKOLAH |
-| 4 | **OPERATOR** | Staf administrasi/TU | Data induk siswa/guru/staf, impor, undangan, verifikasi PPDB, surat [v1 §3][v3 G9] | SEKOLAH |
-| 5 | **KEUANGAN** | Staf keuangan | Tagihan & pembayaran, denda, refund, rekonsiliasi, arus kas, payroll run & slip [v1 §3] | SEKOLAH |
-| 6 | **GURU** | Pengajar mata pelajaran | Materi, tugas, kuis, ujian, absensi, penilaian; menjadi homeroom (wali kelas) via scope [v1 §3][v2 §3] | KELAS (kelas yang diajar) |
-| 7 | **GURU_BK** | Guru bimbingan konseling | Catatan konseling (field-level), kedisiplinan, izin/sakit [v2 §4.2][v3 G14] | SEKOLAH (konseling: KELAS terkait) |
-| 8 | **SISWA** | Peserta didik aktif | Materi, tugas, kuis, ujian, absensi, nilai, jadwal, kalender [v1 §3][v2 §2] | SENDIRI + KELAS (kelasnya) |
-| 9 | **WALI_MURID** | Orang tua/wali siswa aktif | Portal read-only: nilai, absensi, tagihan anak (tampil saat modul keuangan live); izin anak [v1 §9][v2 §4.9][master §5.2] | SENDIRI (data anak terhubung) |
-| 10 | **CALON_SISWA** | Pendaftar PPDB | Formulir, upload dokumen, cek status [v1 §3][v1 §5.6] | SENDIRI (data pendaftaran) |
-| 11 | **PEMBIMBING_INDUSTRI** | Pembimbing PKL dari DUDI | Jurnal PKL siswa bimbingan, penilaian [v3 §4.3][03-database-erd §4.1–4.4] | SENDIRI (siswa bimbingannya) |
-| 12 | **PENGUJI_EKSTERNAL** | Penguji UKK dari industri | Penilaian rubrik kompetensi [v3 §4.3] | SENDIRI (ujian ditugaskan) |
+| #   | Role (kode)             | Deskripsi                                                                                                                            | Kebutuhan utama                                                                                                           | Scope default utama                |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 1   | **SUPERADMIN**          | Admin sistem aplikasi sekolah (bukan penyedia SaaS) — pengaturan aplikasi, feature flags, manajemen user, audit, backup [owner-v4.2] | Konfigurasi aplikasi, feature flags, manajemen user, audit, backup                                                        | SEKOLAH                            |
+| 2   | **KEPSEK**              | Kepala sekolah                                                                                                                       | Dashboard eksekutif, laporan, rekap payroll, akses BK terbatas [v1 §3][v2 §4.2]                                           | SEKOLAH                            |
+| 3   | **WAKEPSEK**            | Wakil kepala sekolah (kurikulum/kesiswaan)                                                                                           | Pengawasan akademik & ujian, jadwal, kedisiplinan [v1 §3][v2 §2.2b]                                                       | SEKOLAH                            |
+| 4   | **OPERATOR**            | Staf administrasi/TU                                                                                                                 | Data induk siswa/guru/staf, impor, undangan, verifikasi PPDB, surat [v1 §3][v3 G9]                                        | SEKOLAH                            |
+| 5   | **KEUANGAN**            | Staf keuangan                                                                                                                        | Tagihan & pembayaran, denda, refund, rekonsiliasi, arus kas, payroll run & slip [v1 §3]                                   | SEKOLAH                            |
+| 6   | **GURU**                | Pengajar mata pelajaran                                                                                                              | Materi, tugas, kuis, ujian, absensi, penilaian; menjadi homeroom (wali kelas) via scope [v1 §3][v2 §3]                    | KELAS (kelas yang diajar)          |
+| 7   | **GURU_BK**             | Guru bimbingan konseling                                                                                                             | Catatan konseling (field-level), kedisiplinan, izin/sakit [v2 §4.2][v3 G14]                                               | SEKOLAH (konseling: KELAS terkait) |
+| 8   | **SISWA**               | Peserta didik aktif                                                                                                                  | Materi, tugas, kuis, ujian, absensi, nilai, jadwal, kalender [v1 §3][v2 §2]                                               | SENDIRI + KELAS (kelasnya)         |
+| 9   | **WALI_MURID**          | Orang tua/wali siswa aktif                                                                                                           | Portal read-only: nilai, absensi, tagihan anak (tampil saat modul keuangan live); izin anak [v1 §9][v2 §4.9][master §5.2] | SENDIRI (data anak terhubung)      |
+| 10  | **CALON_SISWA**         | Pendaftar PPDB                                                                                                                       | Formulir, upload dokumen, cek status [v1 §3][v1 §5.6]                                                                     | SENDIRI (data pendaftaran)         |
+| 11  | **PEMBIMBING_INDUSTRI** | Pembimbing PKL dari DUDI                                                                                                             | Jurnal PKL siswa bimbingan, penilaian [v3 §4.3][03-database-erd §4.1–4.4]                                                 | SENDIRI (siswa bimbingannya)       |
+| 12  | **PENGUJI_EKSTERNAL**   | Penguji UKK dari industri                                                                                                            | Penilaian rubrik kompetensi [v3 §4.3]                                                                                     | SENDIRI (ujian ditugaskan)         |
 
 ### 3.2 Mapping role lama → baru (migrasi eksplisit — menjawab gap A3-4)
 
-| Role lama (prd01/02/03 & ERD 03) | Role baru (prd04) | Catatan migrasi |
-|----------------------------------|-------------------|-----------------|
-| SUPERADMIN | SUPERADMIN | Tanpa perubahan |
-| KEPALA_SEKOLAH | KEPSEK | Rename + permission set |
-| WAKA | WAKEPSEK | Rename + permission set |
-| TATA_USAHA | OPERATOR | Rename + permission set (termasuk import G9, verifikasi PPDB) |
-| KEUANGAN | KEUANGAN | Diperluas: denda, refund, rekonsiliasi, payroll |
-| GURU | GURU | Tanpa perubahan; **WALI_KELAS dihapus sebagai role** |
-| WALI_KELAS (role) | — (hapus) | Diganti `Class.homeroom_teacher_id` (scope override) |
-| GURU_BK | GURU_BK | Tanpa perubahan; akses konseling: GURU_BK/WAKEPSEK/KEPSEK (keputusan A3-5) |
-| SISWA | SISWA | Tanpa perubahan |
-| ORANG_TUA | WALI_MURID | Rename; status portal: **FINAL = MVP read-only** (keputusan A3-1) |
-| CALON_SISWA | CALON_SISWA | Tanpa perubahan |
-| PEMBIMBING_INDUSTRI | PEMBIMBING_INDUSTRI | Tanpa perubahan |
-| PENGUJI_EKSTERNAL | PENGUJI_EKSTERNAL | Tanpa perubahan |
+| Role lama (prd01/02/03 & ERD 03) | Role baru (prd04)   | Catatan migrasi                                                            |
+| -------------------------------- | ------------------- | -------------------------------------------------------------------------- |
+| SUPERADMIN                       | SUPERADMIN          | Tanpa perubahan                                                            |
+| KEPALA_SEKOLAH                   | KEPSEK              | Rename + permission set                                                    |
+| WAKA                             | WAKEPSEK            | Rename + permission set                                                    |
+| TATA_USAHA                       | OPERATOR            | Rename + permission set (termasuk import G9, verifikasi PPDB)              |
+| KEUANGAN                         | KEUANGAN            | Diperluas: denda, refund, rekonsiliasi, payroll                            |
+| GURU                             | GURU                | Tanpa perubahan; **WALI_KELAS dihapus sebagai role**                       |
+| WALI_KELAS (role)                | — (hapus)           | Diganti `Class.homeroom_teacher_id` (scope override)                       |
+| GURU_BK                          | GURU_BK             | Tanpa perubahan; akses konseling: GURU_BK/WAKEPSEK/KEPSEK (keputusan A3-5) |
+| SISWA                            | SISWA               | Tanpa perubahan                                                            |
+| ORANG_TUA                        | WALI_MURID          | Rename; status portal: **FINAL = MVP read-only** (keputusan A3-1)          |
+| CALON_SISWA                      | CALON_SISWA         | Tanpa perubahan                                                            |
+| PEMBIMBING_INDUSTRI              | PEMBIMBING_INDUSTRI | Tanpa perubahan                                                            |
+| PENGUJI_EKSTERNAL                | PENGUJI_EKSTERNAL   | Tanpa perubahan                                                            |
 
 Migrasi data: job migrasi eksplisit memetakan `user_role.role` lama → baru di seed (migrasi TU→OPERATOR, WAKA→WAKEPSEK, KEPALA_SEKOLAH→KEPSEK, ORANG_TUA→WALI_MURID); baris role WALI_KELAS dipindah ke `Class.homeroom_teacher_id` lalu role dihapus. Detail di §4.6.
 
@@ -156,37 +157,37 @@ Tiga dimensi kontrol akses, diterapkan di setiap request (menjawab gap A1-4):
 
 Format izin: `resource:action:scope`, contoh konkret:
 
-| Permission | Arti | Scope yang valid |
-|-----------|------|------------------|
-| `grade:write:class` | Menulis nilai di kelas | KELAS, SEKOLAH |
-| `payroll:read:school` | Membaca data payroll sekolah | SEKOLAH |
-| `payslip:read:self` | Membaca slip gaji sendiri | SENDIRI saja |
-| `invoice:write:school` | Membuat/mengubah tagihan sekolah | SEKOLAH |
-| `attendance:scan:self` | Scan absensi diri | SENDIRI |
-| `exam:token:class` | Generate token ujian per kelas (oleh GURU) | KELAS, SEKOLAH |
-| `exam:token:school` | Generate token sesi ujian sekolah PTS/PAS (oleh WAKEPSEK/OPERATOR) | SEKOLAH |
-| `asset:audit:school` | Menjalankan opname aset | SEKOLAH |
-| `system:write:school` | Mengubah pengaturan aplikasi sekolah | SEKOLAH |
+| Permission             | Arti                                                               | Scope yang valid |
+| ---------------------- | ------------------------------------------------------------------ | ---------------- |
+| `grade:write:class`    | Menulis nilai di kelas                                             | KELAS, SEKOLAH   |
+| `payroll:read:school`  | Membaca data payroll sekolah                                       | SEKOLAH          |
+| `payslip:read:self`    | Membaca slip gaji sendiri                                          | SENDIRI saja     |
+| `invoice:write:school` | Membuat/mengubah tagihan sekolah                                   | SEKOLAH          |
+| `attendance:scan:self` | Scan absensi diri                                                  | SENDIRI          |
+| `exam:token:class`     | Generate token ujian per kelas (oleh GURU)                         | KELAS, SEKOLAH   |
+| `exam:token:school`    | Generate token sesi ujian sekolah PTS/PAS (oleh WAKEPSEK/OPERATOR) | SEKOLAH          |
+| `asset:audit:school`   | Menjalankan opname aset                                            | SEKOLAH          |
+| `system:write:school`  | Mengubah pengaturan aplikasi sekolah                               | SEKOLAH          |
 
 Prinsip scope: jika permission tidak menyebut scope, scope default mengikuti konteks request (siswa → SENDIRI/KELAS; guru → KELAS; staf → SEKOLAH). Seluruh data adalah milik SATU sekolah; scope mengontrol akses per data (SENDIRI/KELAS/SEKOLAH) [owner-v4.2].
 
 ### 4.2 Kategori permission (13 kategori, seed)
 
-| # | Kategori | Contoh permission + scope default |
-|---|----------|-----------------------------------|
-| 1 | Identitas | `user:read:self`, `user:write:self`, `auth:login`, `auth:invitation:accept:self` |
-| 2 | Pengaturan & data induk | `app:read:school`, `app:write:school`, `import:run:school`, `invitation:send:school`, `retention:run:school` |
-| 3 | Akademik | `class:read:class`, `class:write:school`, `subject:write:school`, `schedule:write:school`, `report:read:class` |
-| 4 | LMS | `material:write:class`, `material:read:class`, `assignment:write:class`, `submission:submit:self`, `submission:grade:class` |
-| 5 | Ujian | `exam:write:school`, `exam:session:write:school`, `exam:token:class`, `exam:token:school`, `exam:attempt:self`, `exam:grade-esai:class` |
-| 6 | Absensi | `attendance:session:write:class`, `attendance:scan:self`, `attendance:record:class`, `permit:request:self`, `permit:verify:class` |
-| 7 | Kesiswaan | `counseling:read:class`, `counseling:write:school`, `discipline:record:class`, `extracurricular:write:school` |
-| 8 | Keuangan | `invoice:write:school`, `invoice:read:school`, `payment:record:school`, `payment:verify:school`, `refund:approve:school`, `reconciliation:run:school`, `cashflow:read:school` |
-| 9 | Aset | `asset:write:school`, `asset:read:school`, `asset:book:self`, `asset:maintenance:write:school`, `asset:audit:school` |
-| 10 | Payroll | `payroll:read:school`, `payroll:write:school`, `payroll:run:school`, `payroll:approve:school`, `payslip:read:self`, `payroll:component:write:school` |
-| 11 | PPDB | `ppdb:verify:school`, `ppdb:select:school`, `ppdb:enroll:school`, `ppdb:register:public` |
-| 12 | SMK | `internship:write:school`, `internship:journal:self`, `competency:grade:school`, `partner:write:school` |
-| 13 | Sistem | `audit:read:school`, `monitor:read:school`, `featureflag:write:school`, `rollover:preview:school`, `rollover:execute:school`, `rollover:rollback:school`, `rollover:history:read:school` |
+| #   | Kategori                | Contoh permission + scope default                                                                                                                                                        |
+| --- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Identitas               | `user:read:self`, `user:write:self`, `auth:login`, `auth:invitation:accept:self`                                                                                                         |
+| 2   | Pengaturan & data induk | `app:read:school`, `app:write:school`, `import:run:school`, `invitation:send:school`, `retention:run:school`                                                                             |
+| 3   | Akademik                | `class:read:class`, `class:write:school`, `subject:write:school`, `schedule:write:school`, `report:read:class`                                                                           |
+| 4   | LMS                     | `material:write:class`, `material:read:class`, `assignment:write:class`, `submission:submit:self`, `submission:grade:class`                                                              |
+| 5   | Ujian                   | `exam:write:school`, `exam:session:write:school`, `exam:token:class`, `exam:token:school`, `exam:attempt:self`, `exam:grade-esai:class`                                                  |
+| 6   | Absensi                 | `attendance:session:write:class`, `attendance:scan:self`, `attendance:record:class`, `permit:request:self`, `permit:verify:class`                                                        |
+| 7   | Kesiswaan               | `counseling:read:class`, `counseling:write:school`, `discipline:record:class`, `extracurricular:write:school`                                                                            |
+| 8   | Keuangan                | `invoice:write:school`, `invoice:read:school`, `payment:record:school`, `payment:verify:school`, `refund:approve:school`, `reconciliation:run:school`, `cashflow:read:school`            |
+| 9   | Aset                    | `asset:write:school`, `asset:read:school`, `asset:book:self`, `asset:maintenance:write:school`, `asset:audit:school`                                                                     |
+| 10  | Payroll                 | `payroll:read:school`, `payroll:write:school`, `payroll:run:school`, `payroll:approve:school`, `payslip:read:self`, `payroll:component:write:school`                                     |
+| 11  | PPDB                    | `ppdb:verify:school`, `ppdb:select:school`, `ppdb:enroll:school`, `ppdb:register:public`                                                                                                 |
+| 12  | SMK                     | `internship:write:school`, `internship:journal:self`, `competency:grade:school`, `partner:write:school`                                                                                  |
+| 13  | Sistem                  | `audit:read:school`, `monitor:read:school`, `featureflag:write:school`, `rollover:preview:school`, `rollover:execute:school`, `rollover:rollback:school`, `rollover:history:read:school` |
 
 Seed default berisi ~120 permission untuk 12 role (data teknis di 03-database-erd & 04-api-contract §4; prd04 menetapkan model & kategori, angka pasti seed di implementasi).
 
@@ -218,15 +219,15 @@ Request → JWT verify → resolve UserRole (cache Redis TTL 60 s [tek-02 §6.2]
 
 Matrix penuh tetap di 04-api-contract §4 (REST) — prd04 mengadopsinya dengan penyesuaian penamaan role (OPERATOR menggantikan TU, WAKEPSEK menggantikan WAKA, WALI_MURID menggantikan ORANG_TUA) dan penambahan baris payroll/aset/refund/rekonsiliasi. Ringkasan keputusan akses:
 
-| Area | OPERATOR | KEUANGAN | GURU | WALI_MURID | KEPSEK | SUPERADMIN |
-|------|:--------:|:--------:|:----:|:----------:|:------:|:----------:|
-| Data induk & impor | ✓ | ✗ | △ (diri) | ✗ | ✓ (lihat) | ✓ |
-| Keuangan & pembayaran | △ (lihat) | ✓ penuh | ✗ | △ (anak, read-only) | △ (rekap) | △ (audit) |
-| Payroll | ✗ | ✓ penuh | △ (slip sendiri) | ✗ | △ (rekap) | △ (audit-only) |
-| Aset | ✓ kelola | △ (lihat) | △ (booking) | ✗ | ✓ (lihat) | ✓ |
-| BK | ✗ | ✗ | ✗ | ✗ | △ (terbatas, audit) | ✗ |
-| Audit log | ✗ | ✗ | ✗ | ✗ | ✓ (lihat) | ✓ (lihat) |
-| Rollover (tutup tahun ajaran) | △ (preview) | △ (dampak keuangan) | ✗ | ✗ | ✓ | ✓ (execute) |
+| Area                          |  OPERATOR   |      KEUANGAN       |       GURU       |     WALI_MURID      |       KEPSEK        |   SUPERADMIN   |
+| ----------------------------- | :---------: | :-----------------: | :--------------: | :-----------------: | :-----------------: | :------------: |
+| Data induk & impor            |      ✓      |          ✗          |     △ (diri)     |          ✗          |      ✓ (lihat)      |       ✓        |
+| Keuangan & pembayaran         |  △ (lihat)  |       ✓ penuh       |        ✗         | △ (anak, read-only) |      △ (rekap)      |   △ (audit)    |
+| Payroll                       |      ✗      |       ✓ penuh       | △ (slip sendiri) |          ✗          |      △ (rekap)      | △ (audit-only) |
+| Aset                          |  ✓ kelola   |      △ (lihat)      |   △ (booking)    |          ✗          |      ✓ (lihat)      |       ✓        |
+| BK                            |      ✗      |          ✗          |        ✗         |          ✗          | △ (terbatas, audit) |       ✗        |
+| Audit log                     |      ✗      |          ✗          |        ✗         |          ✗          |      ✓ (lihat)      |   ✓ (lihat)    |
+| Rollover (tutup tahun ajaran) | △ (preview) | △ (dampak keuangan) |        ✗         |          ✗          |          ✓          |  ✓ (execute)   |
 
 ✓ penuh, △ terbatas (read/scope), ✗ dilarang — semua tetap diawasi RBAC.
 
@@ -240,32 +241,32 @@ Job migrasi di seed/CLI: (1) `TATA_USAHA → OPERATOR`, `WAKA → WAKEPSEK`, `KE
 
 ### 5.0 Legenda status & prinsip prioritas (menjawab gap A2-1, A2-2)
 
-| Status | Arti |
-|--------|------|
-| **[WAJIB MVP]** | Harus selesai sebelum sekolah pilot memegang data sungguhan |
-| **[SANGAT DIREKOMENDASIKAN]** | Setelah Fase 2 stabil; sangat menambah nilai adopsi |
-| **[DIREKOMENDASIKAN]** | Murah (reuse data) — masuk jika kapasitas tim cukup |
-| **[GELOMBANG 2]** | Pasca-MVP; modul penunjang bernilai tinggi (payroll, aset, pembayaran) |
-| **[GELOMBANG 3]** | Pasca-MVP lanjutan; kondisional/backlog terpandu pilot |
-| **[DITUNDA]** | Definitif ditunda; wajib validasi sebelum dibangun |
+| Status                        | Arti                                                                   |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| **[WAJIB MVP]**               | Harus selesai sebelum sekolah pilot memegang data sungguhan            |
+| **[SANGAT DIREKOMENDASIKAN]** | Setelah Fase 2 stabil; sangat menambah nilai adopsi                    |
+| **[DIREKOMENDASIKAN]**        | Murah (reuse data) — masuk jika kapasitas tim cukup                    |
+| **[GELOMBANG 2]**             | Pasca-MVP; modul penunjang bernilai tinggi (payroll, aset, pembayaran) |
+| **[GELOMBANG 3]**             | Pasca-MVP lanjutan; kondisional/backlog terpandu pilot                 |
+| **[DITUNDA]**                 | Definitif ditunda; wajib validasi sebelum dibangun                     |
 
 Prinsip ringan (dari B-5): satu codebase; **feature flag** per modul (modul penunjang bisa off sesuai kebutuhan sekolah); **reuse data** antar modul (nilai → rapor → portal; absensi → payroll); **bundle frontend di-split per role/route group** agar siswa/guru tidak mengunduh kode modul keuangan [tek-02 §5.1][ux-07 §3]. Tabel ringkasan modul:
 
-| # | Modul | Seksi | Status inti |
-|---|-------|-------|-------------|
-| M1 | INTI LMS (kelas, materi, tugas, penilaian, kuis/bank soal, ujian online, absensi, e-Rapor, kalender dasar, live class — DITUNDA, §5.A.10) | 5.A | WAJIB MVP + SANGAT DIREKOMENDASIKAN (lihat detail) |
-| M2 | Akademik & Kurikulum | 5.B | GELOMBANG 2–3 |
-| M3 | Kesiswaan | 5.C | GELOMBANG 3 |
-| M4 | Data Induk & Operator | 5.D | WAJIB MVP |
-| M5 | Kepegawaian & Penggajian (PAYROLL) | 5.E | GELOMBANG 2 (wajib didesain; prd04 mencabut penundaan) |
-| M6 | Keuangan & Pembayaran | 5.F | GELOMBANG 2 (wajib didesain) |
-| M7 | Manajemen Aset | 5.G | GELOMBANG 2 (wajib didesain) |
-| M8 | Sarpras & Perpustakaan | 5.H | GELOMBANG 3 |
-| M9 | PPDB | 5.I | GELOMBANG 3 (sebelum musim PPDB pilot) |
-| M10 | Komunikasi & Portal Wali Murid | 5.J | Portal: WAJIB MVP; komunikasi: GELOMBANG 3 |
-| M11 | Alumni | 5.K | GELOMBANG 3 |
-| M12 | SMK (PKL, UKK, DUDI) | 5.L | GELOMBANG 3 (kondisional SMK) |
-| M13 | Platform (auth, pengaturan aplikasi, superadmin, notifikasi, integrasi) | 5.M | WAJIB MVP (dasar) |
+| #   | Modul                                                                                                                                     | Seksi | Status inti                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------ |
+| M1  | INTI LMS (kelas, materi, tugas, penilaian, kuis/bank soal, ujian online, absensi, e-Rapor, kalender dasar, live class — DITUNDA, §5.A.10) | 5.A   | WAJIB MVP + SANGAT DIREKOMENDASIKAN (lihat detail)     |
+| M2  | Akademik & Kurikulum                                                                                                                      | 5.B   | GELOMBANG 2–3                                          |
+| M3  | Kesiswaan                                                                                                                                 | 5.C   | GELOMBANG 3                                            |
+| M4  | Data Induk & Operator                                                                                                                     | 5.D   | WAJIB MVP                                              |
+| M5  | Kepegawaian & Penggajian (PAYROLL)                                                                                                        | 5.E   | GELOMBANG 2 (wajib didesain; prd04 mencabut penundaan) |
+| M6  | Keuangan & Pembayaran                                                                                                                     | 5.F   | GELOMBANG 2 (wajib didesain)                           |
+| M7  | Manajemen Aset                                                                                                                            | 5.G   | GELOMBANG 2 (wajib didesain)                           |
+| M8  | Sarpras & Perpustakaan                                                                                                                    | 5.H   | GELOMBANG 3                                            |
+| M9  | PPDB                                                                                                                                      | 5.I   | GELOMBANG 3 (sebelum musim PPDB pilot)                 |
+| M10 | Komunikasi & Portal Wali Murid                                                                                                            | 5.J   | Portal: WAJIB MVP; komunikasi: GELOMBANG 3             |
+| M11 | Alumni                                                                                                                                    | 5.K   | GELOMBANG 3                                            |
+| M12 | SMK (PKL, UKK, DUDI)                                                                                                                      | 5.L   | GELOMBANG 3 (kondisional SMK)                          |
+| M13 | Platform (auth, pengaturan aplikasi, superadmin, notifikasi, integrasi)                                                                   | 5.M   | WAJIB MVP (dasar)                                      |
 
 ### 5.A INTI LMS — BELAJAR & MENGAJAR
 
@@ -357,11 +358,11 @@ Pernyataan posisi: seluruh submodul di bawah adalah **inti produk**. Submodul be
 - **Data induk:** `Staff` (NIP/NUPTK, jabatan, pendidikan, sertifikasi, status) [03-database-erd §3.15]; `JobPosition` (jabatan: GURU, OPERATOR, KEUANGAN, BK, WAKEPSEK, KEPSEK, LAINNYA; definisi tunjangan jabatan default).
 - **PayrollComponent** (master komponen gaji; kategori & kode standar):
 
-| Kategori | Kode standar | Catatan |
-|----------|--------------|---------|
-| Tunjangan tetap | GAJI_POKOK, TUNJANGAN_TETAP, TUNJANGAN_JABATAN, TRANSPORT, MAKAN | Dasar penghitungan BPJS Kesehatan & PPh |
-| Potongan | PPH21-TER, BPJS_KESEHATAN, BPJS_JHT, BPJS_JP, IURAN, PINJAMAN | Dipotong dari pendapatan kotor |
-| Variabel | HONOR_MENGAJAR (per jam/JTM), LEMBUR | Dihitung per bulan dari data kehadiran/kinerja |
+| Kategori        | Kode standar                                                     | Catatan                                        |
+| --------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| Tunjangan tetap | GAJI_POKOK, TUNJANGAN_TETAP, TUNJANGAN_JABATAN, TRANSPORT, MAKAN | Dasar penghitungan BPJS Kesehatan & PPh        |
+| Potongan        | PPH21-TER, BPJS_KESEHATAN, BPJS_JHT, BPJS_JP, IURAN, PINJAMAN    | Dipotong dari pendapatan kotor                 |
+| Variabel        | HONOR_MENGAJAR (per jam/JTM), LEMBUR                             | Dihitung per bulan dari data kehadiran/kinerja |
 
 - **SalaryStructure** per pegawai: komponen + besaran/rumus + `effective_from`; riwayat revisi gaji tercatat.
 
@@ -394,12 +395,12 @@ Semua tarif/ceiling di bawah disimpan sebagai **konfigurasi per periode** (tabel
 
 Struktur slip (contoh per riset-06 Topik 7; **nilai contoh per 2026 — wajib diverifikasi saat build, lihat open items §13**):
 
-| Blok | Isi |
-|------|-----|
-| Pendapatan | Gaji pokok, tunjangan tetap, tunjangan tidak tetap (honor mengajar, lembur) |
-| Potongan | PPh 21 (TER), BPJS Kesehatan 1%, JHT 2%, JP 1%, iuran, pinjaman |
-| Beban pemberi kerja (informatif) | BPJS Kes 4%, JHT 3,7%, JKK, JKM, JP 2% |
-| Total | Kotor, total potongan, **net diterima** |
+| Blok                             | Isi                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| Pendapatan                       | Gaji pokok, tunjangan tetap, tunjangan tidak tetap (honor mengajar, lembur) |
+| Potongan                         | PPh 21 (TER), BPJS Kesehatan 1%, JHT 2%, JP 1%, iuran, pinjaman             |
+| Beban pemberi kerja (informatif) | BPJS Kes 4%, JHT 3,7%, JKK, JKM, JP 2%                                      |
+| Total                            | Kotor, total potongan, **net diterima**                                     |
 
 Slip dapat diunduh PDF (bucket ekspor atau bucket payroll khusus) dan dilihat pegawai (scope `payslip:read:self`).
 
@@ -447,13 +448,13 @@ Slip dapat diunduh PDF (bucket ekspor atau bucket payroll khusus) dan dilihat pe
 
 **Keputusan owner-v4.1:** pembayaran **manual-first** (tunai/transfer/bank + bukti upload + rekonsiliasi file CSV) adalah jalur DEFAULT dan TIDAK bergantung gateway. Payment gateway (QRIS/VA) adalah **fitur opsional (feature flag, OFF default)** yang hanya diaktifkan jika sekolah meminta — bukan dependensi aplikasi. Nama Midtrans/Xendit pada tabel di bawah adalah **penyedia contoh untuk fitur opsional — BUKAN dependensi**; provider final dipilih saat fitur diaktifkan oleh sekolah. [owner-v4.1] (§5.O)
 
-| Item | Nilai terkonfigurasi / keputusan | Sumber |
-|------|----------------------------------|--------|
-| QRIS MDR kategori pendidikan | 0,6% (reguler 0,7%) | riset-06 Topik 8 |
-| VA | Midtrans sekitar Rp4.000/transaksi vs Xendit sekitar Rp13.000/transaksi; keduanya punya recurring/subscription | riset-06 Topik 8 |
-| KYC merchant | Checklist KYC di konsol SUPERADMIN: akta + SK Kemenkumham/AHU + NPWP + NIB + rekening atas nama sekolah/yayasan + URL aplikasi aktif [riset-06 Topik 13] | riset-06 Topik 8, 13 |
-| Model fee | **Open decision §13 Q13**: (a) sekolah tanggung, (b) ditambahkan nominal ke tagihan, (c) hibrida | riset-06 Topik 8 |
-| Timing | GELOMBANG 2 akhir / GELOMBANG 3; pencatatan manual tetap tersedia (tidak wajib gateway) | v1 §4.2, diperbarui |
+| Item                         | Nilai terkonfigurasi / keputusan                                                                                                                         | Sumber               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| QRIS MDR kategori pendidikan | 0,6% (reguler 0,7%)                                                                                                                                      | riset-06 Topik 8     |
+| VA                           | Midtrans sekitar Rp4.000/transaksi vs Xendit sekitar Rp13.000/transaksi; keduanya punya recurring/subscription                                           | riset-06 Topik 8     |
+| KYC merchant                 | Checklist KYC di konsol SUPERADMIN: akta + SK Kemenkumham/AHU + NPWP + NIB + rekening atas nama sekolah/yayasan + URL aplikasi aktif [riset-06 Topik 13] | riset-06 Topik 8, 13 |
+| Model fee                    | **Open decision §13 Q13**: (a) sekolah tanggung, (b) ditambahkan nominal ke tagihan, (c) hibrida                                                         | riset-06 Topik 8     |
+| Timing                       | GELOMBANG 2 akhir / GELOMBANG 3; pencatatan manual tetap tersedia (tidak wajib gateway)                                                                  | v1 §4.2, diperbarui  |
 
 > Nilai di atas adalah **contoh per 2026** — wajib diverifikasi saat build (lihat open items §13). Sumber utama: riset-06 Topik 8.
 
@@ -517,61 +518,61 @@ Slip dapat diunduh PDF (bucket ekspor atau bucket payroll khusus) dan dilihat pe
 - **Data model:** `FeatureFlag` (global: `key`, `kategori`, `deskripsi`, `default_enabled`, `config_schema` Json, `locked` Boolean, `is_system`); **`AppFeatureSetting`** (`feature_key`, `enabled`, `config` Json, `updated_by`, `updated_at`, `AuditLog`) — pengganti toggle per sekolah (tanpa dimensi sekolah). SUPERADMIN dapat **mengunci** fitur (`locked = true` → fitur tidak bisa diubah; berlaku untuk fitur DITUNDA agar tidak diaktifkan sebelum dibangun).
 - **Daftar key fitur (default mengikuti status prd04):**
 
-| Kategori | Key | Default |
-|----------|-----|---------|
-| LMS (inti, system) | LMS_BASE | ON (system, locked) |
-| LMS | LMS_MATERIAL | ON |
-| LMS | LMS_ASSIGNMENT | ON |
-| LMS | LMS_QUIZ | ON |
-| LMS | LMS_BANK_SOAL | ON |
-| LMS | LMS_EXAM | ON |
-| LMS | LMS_EXAM_TOKEN | ON |
-| LMS | LMS_EXAM_RANDOMIZE | ON |
-| LMS | LMS_ABSENSI_MANUAL | ON |
-| LMS | LMS_ABSENSI_QR | ON |
-| LMS | LMS_ABSENSI_GEOFENCE | OFF (config: radius, enabled_by_school) |
-| LMS | LMS_ERAPOR | ON |
-| LMS | LMS_KALENDER | ON |
-| LMS | LMS_LIVE_CLASS | OFF (locked — DITUNDA) |
-| Akademik | ACADEMIC_SCHEDULE | OFF |
-| Akademik | KURIKULUM_MERDEKA | OFF |
-| Akademik | P5 | OFF |
-| Akademik | ASESMEN_DIAGNOSTIK | OFF |
-| Kesiswaan | BK | OFF |
-| Kesiswaan | TATA_TERTIB | OFF |
-| Kesiswaan | EKSKUL | OFF |
-| Kesiswaan | OSIS | OFF |
-| Kepegawaian | STAFF_ABSENSI | OFF |
-| Payroll | PAYROLL | OFF |
-| Keuangan | FINANCE_INVOICE | OFF |
-| Keuangan | FINANCE_PAYMENT | OFF |
-| Keuangan | FINANCE_CICILAN | OFF |
-| Keuangan | FINANCE_DENDA | OFF |
-| Keuangan | FINANCE_REFUND | OFF |
-| Keuangan | FINANCE_REKONSILIASI | OFF |
-| Keuangan | FINANCE_GATEWAY | OFF (opsional; aktif hanya atas permintaan sekolah) |
-| Aset | ASSET_INVENTARIS | OFF |
-| Aset | ASSET_DEPRESIASI | OFF |
-| Aset | ASSET_BOOKING | OFF |
-| Aset | ASSET_MAINTENANCE | OFF |
-| Aset | ASSET_AUDIT | OFF |
-| Sarpras & Perpustakaan | LIBRARY | OFF |
-| PPDB | PPDB | OFF |
-| Komunikasi | ANNOUNCEMENT | OFF |
-| Komunikasi | SURAT | OFF |
-| Komunikasi | PARENT_PORTAL | ON |
-| Platform | NOTIFICATION | ON |
-| Alumni | ALUMNI | OFF |
-| SMK | SMK_PKL | OFF |
-| SMK | SMK_UKK | OFF |
-| SMK | SMK_DUDI | OFF |
-| Platform | DATA_SAVER | ON |
-| Engagement | GAMIFIKASI | OFF (locked — DITUNDA) |
-| LMS (analisis) | PLAGIARISM_CHECK | OFF (locked — DITUNDA) |
-| Analisis | LEARNING_ANALYTICS | OFF (locked — DITUNDA) |
-| Platform | OFFLINE_PWA | OFF (locked — DITUNDA) |
-| Platform | SUPERVISOR_CONSOLE | ON (konsol flag MVP; monitoring/statistik tetap gelombang 2) |
-| Platform | ACADEMIC_ROLLOVER | ON (rollover tahun ajaran; OFF = wizard disembunyikan, API tolak FEATURE_DISABLED) |
+| Kategori               | Key                  | Default                                                                            |
+| ---------------------- | -------------------- | ---------------------------------------------------------------------------------- |
+| LMS (inti, system)     | LMS_BASE             | ON (system, locked)                                                                |
+| LMS                    | LMS_MATERIAL         | ON                                                                                 |
+| LMS                    | LMS_ASSIGNMENT       | ON                                                                                 |
+| LMS                    | LMS_QUIZ             | ON                                                                                 |
+| LMS                    | LMS_BANK_SOAL        | ON                                                                                 |
+| LMS                    | LMS_EXAM             | ON                                                                                 |
+| LMS                    | LMS_EXAM_TOKEN       | ON                                                                                 |
+| LMS                    | LMS_EXAM_RANDOMIZE   | ON                                                                                 |
+| LMS                    | LMS_ABSENSI_MANUAL   | ON                                                                                 |
+| LMS                    | LMS_ABSENSI_QR       | ON                                                                                 |
+| LMS                    | LMS_ABSENSI_GEOFENCE | OFF (config: radius, enabled_by_school)                                            |
+| LMS                    | LMS_ERAPOR           | ON                                                                                 |
+| LMS                    | LMS_KALENDER         | ON                                                                                 |
+| LMS                    | LMS_LIVE_CLASS       | OFF (locked — DITUNDA)                                                             |
+| Akademik               | ACADEMIC_SCHEDULE    | OFF                                                                                |
+| Akademik               | KURIKULUM_MERDEKA    | OFF                                                                                |
+| Akademik               | P5                   | OFF                                                                                |
+| Akademik               | ASESMEN_DIAGNOSTIK   | OFF                                                                                |
+| Kesiswaan              | BK                   | OFF                                                                                |
+| Kesiswaan              | TATA_TERTIB          | OFF                                                                                |
+| Kesiswaan              | EKSKUL               | OFF                                                                                |
+| Kesiswaan              | OSIS                 | OFF                                                                                |
+| Kepegawaian            | STAFF_ABSENSI        | OFF                                                                                |
+| Payroll                | PAYROLL              | OFF                                                                                |
+| Keuangan               | FINANCE_INVOICE      | OFF                                                                                |
+| Keuangan               | FINANCE_PAYMENT      | OFF                                                                                |
+| Keuangan               | FINANCE_CICILAN      | OFF                                                                                |
+| Keuangan               | FINANCE_DENDA        | OFF                                                                                |
+| Keuangan               | FINANCE_REFUND       | OFF                                                                                |
+| Keuangan               | FINANCE_REKONSILIASI | OFF                                                                                |
+| Keuangan               | FINANCE_GATEWAY      | OFF (opsional; aktif hanya atas permintaan sekolah)                                |
+| Aset                   | ASSET_INVENTARIS     | OFF                                                                                |
+| Aset                   | ASSET_DEPRESIASI     | OFF                                                                                |
+| Aset                   | ASSET_BOOKING        | OFF                                                                                |
+| Aset                   | ASSET_MAINTENANCE    | OFF                                                                                |
+| Aset                   | ASSET_AUDIT          | OFF                                                                                |
+| Sarpras & Perpustakaan | LIBRARY              | OFF                                                                                |
+| PPDB                   | PPDB                 | OFF                                                                                |
+| Komunikasi             | ANNOUNCEMENT         | OFF                                                                                |
+| Komunikasi             | SURAT                | OFF                                                                                |
+| Komunikasi             | PARENT_PORTAL        | ON                                                                                 |
+| Platform               | NOTIFICATION         | ON                                                                                 |
+| Alumni                 | ALUMNI               | OFF                                                                                |
+| SMK                    | SMK_PKL              | OFF                                                                                |
+| SMK                    | SMK_UKK              | OFF                                                                                |
+| SMK                    | SMK_DUDI             | OFF                                                                                |
+| Platform               | DATA_SAVER           | ON                                                                                 |
+| Engagement             | GAMIFIKASI           | OFF (locked — DITUNDA)                                                             |
+| LMS (analisis)         | PLAGIARISM_CHECK     | OFF (locked — DITUNDA)                                                             |
+| Analisis               | LEARNING_ANALYTICS   | OFF (locked — DITUNDA)                                                             |
+| Platform               | OFFLINE_PWA          | OFF (locked — DITUNDA)                                                             |
+| Platform               | SUPERVISOR_CONSOLE   | ON (konsol flag MVP; monitoring/statistik tetap gelombang 2)                       |
+| Platform               | ACADEMIC_ROLLOVER    | ON (rollover tahun ajaran; OFF = wizard disembunyikan, API tolak FEATURE_DISABLED) |
 
 > Aturan default: **WAJIB MVP = ON**; **SANGAT DIREKOMENDASIKAN = ON**; **GELOMBANG 2/3 = OFF**; **DITUNDA = OFF locked**. `LMS_BASE` adalah flag system (tidak bisa dimatikan). Pengecualian: flag pengelolaan flag (SUPERVISOR_CONSOLE) dan flag inti platform wajib ON di MVP. Daftar di atas adalah kunci awal; key baru ditambahkan saat fitur dibangun.
 
@@ -585,17 +586,17 @@ Slip dapat diunduh PDF (bucket ekspor atau bucket payroll khusus) dan dilihat pe
 - **Definisi:** aplikasi TIDAK boleh bergantung pada API/layanan pihak ketiga untuk menjalankan fitur. Seluruh logika fitur diimplementasikan **in-house** (auth, storage, live class, payment, email/SMS, maps, search, notifikasi, observability). Keputusan [owner-v4.1].
 - **Implikasi (dihapus vs baru):**
 
-| Domain | Sebelumnya (dihapus) | Baru |
-|--------|----------------------|------|
-| Auth | Google OAuth / Supabase Auth | Email/Username + Password self-hosted (§5.P) |
-| Storage | Supabase Storage | Object storage self-managed (MinIO-compatible / local disk + backup) atau managed infra S3 — akses via signed URL dari API kita |
-| Live class | Jitsi / Zoom / Google Meet | DITUNDA; jika dibangun = WebRTC self-hosted (§5.A.10) |
-| Payment | Midtrans / Xendit | Manual-first + rekonsiliasi file CSV; gateway opsional flag OFF (§5.F.7) |
-| Email/SMS | (tidak pernah ada — konfirmasi) | Tidak digunakan; reset password via OPERATOR |
-| Maps | Google Maps | Native Geolocation API browser + hitung radius in-house |
-| Search | API eksternal | PostgreSQL full-text (`pg_trgm`) |
-| Notifikasi | FCM / WhatsApp API | Socket.IO + notification center in-house |
-| Observability | Sentry (opsional) | Structured log + Prometheus/Grafana self-hosted; Sentry = opsional non-dependensi (hanya jika diaktifkan; default mati; tidak pernah menghalangi fitur) |
+| Domain        | Sebelumnya (dihapus)            | Baru                                                                                                                                                    |
+| ------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth          | Google OAuth / Supabase Auth    | Email/Username + Password self-hosted (§5.P)                                                                                                            |
+| Storage       | Supabase Storage                | Storage file **lokal backend** (`STORAGE_LOCAL_DIR`) — upload multipart via API kita, tanpa S3/MinIO                                                    |
+| Live class    | Jitsi / Zoom / Google Meet      | DITUNDA; jika dibangun = WebRTC self-hosted (§5.A.10)                                                                                                   |
+| Payment       | Midtrans / Xendit               | Manual-first + rekonsiliasi file CSV; gateway opsional flag OFF (§5.F.7)                                                                                |
+| Email/SMS     | (tidak pernah ada — konfirmasi) | Tidak digunakan; reset password via OPERATOR                                                                                                            |
+| Maps          | Google Maps                     | Native Geolocation API browser + hitung radius in-house                                                                                                 |
+| Search        | API eksternal                   | PostgreSQL full-text (`pg_trgm`)                                                                                                                        |
+| Notifikasi    | FCM / WhatsApp API              | Socket.IO + notification center in-house                                                                                                                |
+| Observability | Sentry (opsional)               | Structured log + Prometheus/Grafana self-hosted; Sentry = opsional non-dependensi (hanya jika diaktifkan; default mati; tidak pernah menghalangi fitur) |
 
 - **Yang BOLEH managed (infrastruktur, bukan API fitur; tetap swappable):** managed PostgreSQL, Redis, object storage, CDN. Pemilihan infra harus mendukung fallback self-host agar "ekosistem penuh" tidak terkunci vendor.
 
@@ -627,16 +628,16 @@ Menutup tahun ajaran berjalan dan menyiapkan tahun berikut secara terkendali —
 
 **2. Alur wizard "Tutup Tahun Ajaran" (state machine)**
 
-| Tahap | Status RolloverRun | Keterangan |
-|-------|--------------------|------------|
-| 1 | DRAFT | Wizard dibuat, belum ada aksi |
-| 2 | PRE-CHECK | Pemeriksaan prasyarat (§5.R.3); bloker dilewati hanya SUPERADMIN ber-alasan |
-| 3 | DRY-RUN PREVIEW | Hitung hasil tanpa menulis (§5.R.4); wajib sebelum konfirmasi |
-| 4 | KONFIRMASI | Disetujui SUPERADMIN/KEPSEK |
-| 5 | EKSEKUSI | Job async (BullMQ, idempoten, resume-able, `step_state`) |
-| 6 | DONE | Selesai; jendela rollback default 7 hari |
-| 7 | ROLLED_BACK | Pengembalian dari DONE dalam jendela rollback |
-| 8 | FAILED | Gagal; bisa di-resume dari step terakhir |
+| Tahap | Status RolloverRun | Keterangan                                                                  |
+| ----- | ------------------ | --------------------------------------------------------------------------- |
+| 1     | DRAFT              | Wizard dibuat, belum ada aksi                                               |
+| 2     | PRE-CHECK          | Pemeriksaan prasyarat (§5.R.3); bloker dilewati hanya SUPERADMIN ber-alasan |
+| 3     | DRY-RUN PREVIEW    | Hitung hasil tanpa menulis (§5.R.4); wajib sebelum konfirmasi               |
+| 4     | KONFIRMASI         | Disetujui SUPERADMIN/KEPSEK                                                 |
+| 5     | EKSEKUSI           | Job async (BullMQ, idempoten, resume-able, `step_state`)                    |
+| 6     | DONE               | Selesai; jendela rollback default 7 hari                                    |
+| 7     | ROLLED_BACK        | Pengembalian dari DONE dalam jendela rollback                               |
+| 8     | FAILED             | Gagal; bisa di-resume dari step terakhir                                    |
 
 > **Catatan:** PRE-CHECK dan KONFIRMASI adalah sub-state dari DRAFT (bukan nilai enum RolloverRunStatus); RUNNING dimulai setelah konfirmasi.
 
@@ -645,15 +646,15 @@ Menutup tahun ajaran berjalan dan menyiapkan tahun berikut secara terkendali —
 
 **3. PRE-CHECK (prasyarat; bloker bisa dilewati hanya SUPERADMIN ber-alasan)**
 
-| # | Prasyarat | Sifat |
-|---|-----------|-------|
-| 1 | Nilai final & rapor selesai | Bloker |
-| 2 | Rekap absensi final | Bloker |
-| 3 | Tidak ada attempt/ujian/tugas aktif — attempt IN_PROGRESS = BLOK; submission belum dinilai = PERINGATAN | Bloker/peringatan |
-| 4 | Invoice SPP ditutup/di-roll (bila FINANCE ON) | Bloker |
-| 5 | Payroll periode terakhir selesai (bila PAYROLL ON) | Bloker |
-| 6 | Backup terverifikasi — tidak ada backup segar = tolak | Bloker |
-| 7 | PPDB tahun lama tidak menggantung (bila PPDB ON) | Bloker |
+| #   | Prasyarat                                                                                               | Sifat             |
+| --- | ------------------------------------------------------------------------------------------------------- | ----------------- |
+| 1   | Nilai final & rapor selesai                                                                             | Bloker            |
+| 2   | Rekap absensi final                                                                                     | Bloker            |
+| 3   | Tidak ada attempt/ujian/tugas aktif — attempt IN_PROGRESS = BLOK; submission belum dinilai = PERINGATAN | Bloker/peringatan |
+| 4   | Invoice SPP ditutup/di-roll (bila FINANCE ON)                                                           | Bloker            |
+| 5   | Payroll periode terakhir selesai (bila PAYROLL ON)                                                      | Bloker            |
+| 6   | Backup terverifikasi — tidak ada backup segar = tolak                                                   | Bloker            |
+| 7   | PPDB tahun lama tidak menggantung (bila PPDB ON)                                                        | Bloker            |
 
 **4. DRY-RUN**
 
@@ -666,11 +667,11 @@ Hitung tanpa menulis; hasil wajib ditampilkan sebelum konfirmasi:
 
 **5. Aturan promosi (konfigurasi `settings.rollover`)**
 
-| Kondisi | Hasil default |
-|---------|---------------|
-| ACTIVE, grade 10/11 | Naik (grade+1) |
-| ACTIVE, grade 12 | LULUS |
-| non-ACTIVE | Dikonfirmasi (kandidat) |
+| Kondisi             | Hasil default           |
+| ------------------- | ----------------------- |
+| ACTIVE, grade 10/11 | Naik (grade+1)          |
+| ACTIVE, grade 12    | LULUS                   |
+| non-ACTIVE          | Dikonfirmasi (kandidat) |
 
 - Override per siswa (alasan wajib): TINGGAL_KELAS / LULUS / PINDAH / DROP.
 - Ambang: rapor lengkap + ACTIVE = naik; rapor tidak lengkap = kandidat tinggal (nilai pasti disepakati sekolah).
@@ -709,25 +710,25 @@ Hitung tanpa menulis; hasil wajib ditampilkan sebelum konfirmasi:
 
 **10. Data model (ringkas; detail di 03)**
 
-| Entitas / Enum | Keterangan |
-|----------------|------------|
-| `AcademicYear` | Tahun ajaran; AcademicYearStatus DRAFT/OPEN/CLOSING/CLOSED |
-| `RolloverRun` | Run wizard; RolloverRunStatus DRAFT/PREVIEW/RUNNING/DONE/ROLLED_BACK/FAILED |
-| `RolloverItem` | Opsional — item per siswa |
-| `Alumni` | Minimal: student_id, tahun kelulusan, NISN final, tanggal |
-| `RolloverAction` | PROMOTED/REPEATED/GRADUATED/TRANSFERRED/DROPPED |
-| `EnrollmentStatus` | Diperluas: PROMOTED/REPEATED |
-| `PaymentStatus` | Diperluas: CARRIED_OVER |
-| Kolom `academic_year` | Konsisten di Class/Enrollment/Grade/ScheduleEntry/Invoice |
+| Entitas / Enum        | Keterangan                                                                  |
+| --------------------- | --------------------------------------------------------------------------- |
+| `AcademicYear`        | Tahun ajaran; AcademicYearStatus DRAFT/OPEN/CLOSING/CLOSED                  |
+| `RolloverRun`         | Run wizard; RolloverRunStatus DRAFT/PREVIEW/RUNNING/DONE/ROLLED_BACK/FAILED |
+| `RolloverItem`        | Opsional — item per siswa                                                   |
+| `Alumni`              | Minimal: student_id, tahun kelulusan, NISN final, tanggal                   |
+| `RolloverAction`      | PROMOTED/REPEATED/GRADUATED/TRANSFERRED/DROPPED                             |
+| `EnrollmentStatus`    | Diperluas: PROMOTED/REPEATED                                                |
+| `PaymentStatus`       | Diperluas: CARRIED_OVER                                                     |
+| Kolom `academic_year` | Konsisten di Class/Enrollment/Grade/ScheduleEntry/Invoice                   |
 
 **11. RBAC & keamanan**
 
-| Permission | Role |
-|------------|------|
-| `rollover:preview:school` | SUPERADMIN, KEPSEK; OPERATOR preview tanpa override |
-| `rollover:execute:school` | SUPERADMIN, KEPSEK |
-| `rollover:rollback:school` | SUPERADMIN, KEPSEK |
-| `rollover:history:read:school` | Sesuai kebijakan sekolah |
+| Permission                     | Role                                                |
+| ------------------------------ | --------------------------------------------------- |
+| `rollover:preview:school`      | SUPERADMIN, KEPSEK; OPERATOR preview tanpa override |
+| `rollover:execute:school`      | SUPERADMIN, KEPSEK                                  |
+| `rollover:rollback:school`     | SUPERADMIN, KEPSEK                                  |
+| `rollover:history:read:school` | Sesuai kebijakan sekolah                            |
 
 - Dry-run wajib sebelum eksekusi.
 - Semua aksi dicatat AuditLog.
@@ -747,24 +748,24 @@ Hitung tanpa menulis; hasil wajib ditampilkan sebelum konfirmasi:
 
 Konsolidasi [v1 §7], [v2 §6], [v3 §6], [master §7] + penambahan prd04 (menjawab gap A4). Semua SLO/angka di bawah adalah target produk; nilai teknis final ditetapkan di implementasi [master §10 Q4].
 
-| Aspek | Kebutuhan / Target | Sumber / Keputusan |
-|-------|---------------------|--------------------|
-| **Keamanan Data (single-school)** | Data milik SATU sekolah; tidak ada isolasi antar-sekolah; RLS opsional untuk defense-in-depth RBAC; otorisasi akses dikontrol permission + scope di aplikasi [owner-v4.2] | [tek-02 §2 P1][tek-03 §7][riset-06 Topik 4] |
-| **Skalabilitas** | Kapasitas **500–3.000 user dalam satu sekolah**; arsitektur monolith modular; penambahan user tanpa perubahan skema [owner-v4.2][riset-06 Topik 10] | [riset-06 Topik 10] |
-| **Keamanan** | **Argon2id; JWT httpOnly cookie; refresh rotation; login throttle & lockout.** Password/token tidak pernah di-log; PII dienkripsi at-rest; rate limiting per endpoint (login 5 gagal/15 mnt per akun + throttle IP 20/mnt tanpa lockout permanen IP — OWASP; submit ujian 30/mnt; scan QR 30/mnt; global 1000/mnt/IP kalibrasi NAT sekolah; WebSocket 60/mnt — **nilai awal DITETAPKAN §13 Q4 [riset-06 Topik 16]; dikalibrasi ulang via load test**); brute-force lockout; CSRF; CSP; helmet; dependency scan (npm audit fail on high); SQL injection aman via Prisma | [v1 §7][v3 G11][tek-02 §13][master §7][owner-v4.1] |
-| **Ketersediaan / SLO** | **Uptime ≥ 99%** (bulanan); **p95 < 3 detik** saat jam ujian; **error rate < 1%** (5 menit) → alert; SLO kuantitatif dipantau Prometheus/Grafana (menjawab A4-4) | [v1 §7][v3 G7][tek-02 §11][B-7] |
-| **Performa (CWV)** | **LCP ≤ 2,5 s, INP ≤ 200 ms, CLS ≤ 0,1** pada p75 mobile+desktop; dashboard utama < 2 detik di 4G rata-rata Indonesia (perkuat [v1 §7]) | [B-6][web.dev][riset-06 Topik 10][v1 §7] |
-| **Aksesibilitas** | **WCAG AA bertahap seluruh halaman** (bukan hanya PPDB) — keputusan A4-1: halaman publik & inti LMS/portal di MVP; penuh di gelombang 2–3; ikuti ux-07 §7 | [v3 G15][riset-06 Topik 5][ux-07 §7] |
-| **Offline-first** | **MVP = queue absensi QR + cache materi dasar** (IndexedDB + background sync); **PWA penuh ditunda** — keputusan A4-2; validasi waktu di server, bukan client; kompresi upload server-side (data-saver) | [v3 G10/G16][master §5.2 Grup C][tek-02 §10][riset-06 Topik 10] |
-| **Kepatuhan UU PDP** | **Jadwal retensi per kategori data** (entity → bulan → ARCHIVE/DELETE/ANONYMIZE; `DataRetentionPolicy`; default 60 bulan, konfigurasi aplikasi — bukan klaim UU) [riset-06 Topik 1]; **bukti consent data anak** (timestamp, versi dokumen, salinan — bukan checkbox saja) [Pasal 22/24]; **AuditLog penuh** semua pemrosesan data sensitif [Pasal 31]; notifikasi pelanggaran data ≤ 3×24 jam [Pasal 46]; DPIA untuk pemrosesan berisiko tinggi (mis. data spesifik skala besar) [Pasal 34] | [v3 G12–G14][riset-06 Topik 1][03-database-erd §4.8/4.9/4.12] |
-| **Privasi data sensitif** | Catatan BK & payroll: field-level access; role terbatas (BK: GURU_BK/WAKEPSEK/KEPSEK; payroll: §5.E.5); audit log akses | [v2 §6][v3 G14][A3-5] |
-| **RPO / RTO** | **RPO ≤ 24 jam (target operasional 15 menit), RTO ≤ 4 jam**; backup harian + PITR; backup off-region; restore drill bulanan; backup dengan `row_security=off` | [v3 G8][tek-02 §12][riset-06 Topik 4] |
-| **Beban puncak ujian** | Tahan ratusan siswa submit dalam window 5 menit terakhir; autosave idempotent; rate limit & caching khusus; load test k6 wajib sebelum ujian sungguhan (target p95 < 3 s) | [v2 §2.3][v2 §7][tek-02 §14] |
-| **Keandalan data** | Decimal(12,2) untuk uang (hindari float); transaksi untuk operasi multi-langkah; idempotency key untuk alur kritis (autosave, scan QR, pembayaran, submission, payroll run) | [tek-03 §9][tek-02 §2 P6] |
-| **Auditability** | `AuditLog` generik (actor, entity, before/after, timestamp, IP); jejak jawaban ujian append-only; ekspor tercatat `DataExportLog` | [v2 §2.3][v3 G14][03-database-erd §4.12] |
-| **Bahasa & budaya** | Bahasa Indonesia sebagai bahasa utama UI; terminologi sekolah Indonesia; target sentuh ≥ 44×44 px [ux-07 §6] | [master §10 Q11][ux-07] |
-| **Usability semua kalangan** | Bahasa Indonesia sederhana, font ≥16px, target sentuh ≥44px, satu aksi utama per layar, panduan pemula, cetak kredensial, responsif mobile-first | [owner-v4.1][ux-07] |
-| **Model pengelolaan** | Aplikasi SATU sekolah; deployment tunggal; tanpa mekanisme billing lintas sekolah | [owner-v4.2] |
+| Aspek                             | Kebutuhan / Target                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Sumber / Keputusan                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Keamanan Data (single-school)** | Data milik SATU sekolah; tidak ada isolasi antar-sekolah; RLS opsional untuk defense-in-depth RBAC; otorisasi akses dikontrol permission + scope di aplikasi [owner-v4.2]                                                                                                                                                                                                                                                                                                                                                                                              | [tek-02 §2 P1][tek-03 §7][riset-06 Topik 4]                     |
+| **Skalabilitas**                  | Kapasitas **500–3.000 user dalam satu sekolah**; arsitektur monolith modular; penambahan user tanpa perubahan skema [owner-v4.2][riset-06 Topik 10]                                                                                                                                                                                                                                                                                                                                                                                                                    | [riset-06 Topik 10]                                             |
+| **Keamanan**                      | **Argon2id; JWT httpOnly cookie; refresh rotation; login throttle & lockout.** Password/token tidak pernah di-log; PII dienkripsi at-rest; rate limiting per endpoint (login 5 gagal/15 mnt per akun + throttle IP 20/mnt tanpa lockout permanen IP — OWASP; submit ujian 30/mnt; scan QR 30/mnt; global 1000/mnt/IP kalibrasi NAT sekolah; WebSocket 60/mnt — **nilai awal DITETAPKAN §13 Q4 [riset-06 Topik 16]; dikalibrasi ulang via load test**); brute-force lockout; CSRF; CSP; helmet; dependency scan (npm audit fail on high); SQL injection aman via Prisma | [v1 §7][v3 G11][tek-02 §13][master §7][owner-v4.1]              |
+| **Ketersediaan / SLO**            | **Uptime ≥ 99%** (bulanan); **p95 < 3 detik** saat jam ujian; **error rate < 1%** (5 menit) → alert; SLO kuantitatif dipantau Prometheus/Grafana (menjawab A4-4)                                                                                                                                                                                                                                                                                                                                                                                                       | [v1 §7][v3 G7][tek-02 §11][B-7]                                 |
+| **Performa (CWV)**                | **LCP ≤ 2,5 s, INP ≤ 200 ms, CLS ≤ 0,1** pada p75 mobile+desktop; dashboard utama < 2 detik di 4G rata-rata Indonesia (perkuat [v1 §7])                                                                                                                                                                                                                                                                                                                                                                                                                                | [B-6][web.dev][riset-06 Topik 10][v1 §7]                        |
+| **Aksesibilitas**                 | **WCAG AA bertahap seluruh halaman** (bukan hanya PPDB) — keputusan A4-1: halaman publik & inti LMS/portal di MVP; penuh di gelombang 2–3; ikuti ux-07 §7                                                                                                                                                                                                                                                                                                                                                                                                              | [v3 G15][riset-06 Topik 5][ux-07 §7]                            |
+| **Offline-first**                 | **MVP = queue absensi QR + cache materi dasar** (IndexedDB + background sync); **PWA penuh ditunda** — keputusan A4-2; validasi waktu di server, bukan client; kompresi upload server-side (data-saver)                                                                                                                                                                                                                                                                                                                                                                | [v3 G10/G16][master §5.2 Grup C][tek-02 §10][riset-06 Topik 10] |
+| **Kepatuhan UU PDP**              | **Jadwal retensi per kategori data** (entity → bulan → ARCHIVE/DELETE/ANONYMIZE; `DataRetentionPolicy`; default 60 bulan, konfigurasi aplikasi — bukan klaim UU) [riset-06 Topik 1]; **bukti consent data anak** (timestamp, versi dokumen, salinan — bukan checkbox saja) [Pasal 22/24]; **AuditLog penuh** semua pemrosesan data sensitif [Pasal 31]; notifikasi pelanggaran data ≤ 3×24 jam [Pasal 46]; DPIA untuk pemrosesan berisiko tinggi (mis. data spesifik skala besar) [Pasal 34]                                                                           | [v3 G12–G14][riset-06 Topik 1][03-database-erd §4.8/4.9/4.12]   |
+| **Privasi data sensitif**         | Catatan BK & payroll: field-level access; role terbatas (BK: GURU_BK/WAKEPSEK/KEPSEK; payroll: §5.E.5); audit log akses                                                                                                                                                                                                                                                                                                                                                                                                                                                | [v2 §6][v3 G14][A3-5]                                           |
+| **RPO / RTO**                     | **RPO ≤ 24 jam (target operasional 15 menit), RTO ≤ 4 jam**; backup harian + PITR; backup off-region; restore drill bulanan; backup dengan `row_security=off`                                                                                                                                                                                                                                                                                                                                                                                                          | [v3 G8][tek-02 §12][riset-06 Topik 4]                           |
+| **Beban puncak ujian**            | Tahan ratusan siswa submit dalam window 5 menit terakhir; autosave idempotent; rate limit & caching khusus; load test k6 wajib sebelum ujian sungguhan (target p95 < 3 s)                                                                                                                                                                                                                                                                                                                                                                                              | [v2 §2.3][v2 §7][tek-02 §14]                                    |
+| **Keandalan data**                | Decimal(12,2) untuk uang (hindari float); transaksi untuk operasi multi-langkah; idempotency key untuk alur kritis (autosave, scan QR, pembayaran, submission, payroll run)                                                                                                                                                                                                                                                                                                                                                                                            | [tek-03 §9][tek-02 §2 P6]                                       |
+| **Auditability**                  | `AuditLog` generik (actor, entity, before/after, timestamp, IP); jejak jawaban ujian append-only; ekspor tercatat `DataExportLog`                                                                                                                                                                                                                                                                                                                                                                                                                                      | [v2 §2.3][v3 G14][03-database-erd §4.12]                        |
+| **Bahasa & budaya**               | Bahasa Indonesia sebagai bahasa utama UI; terminologi sekolah Indonesia; target sentuh ≥ 44×44 px [ux-07 §6]                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [master §10 Q11][ux-07]                                         |
+| **Usability semua kalangan**      | Bahasa Indonesia sederhana, font ≥16px, target sentuh ≥44px, satu aksi utama per layar, panduan pemula, cetak kredensial, responsif mobile-first                                                                                                                                                                                                                                                                                                                                                                                                                       | [owner-v4.1][ux-07]                                             |
+| **Model pengelolaan**             | Aplikasi SATU sekolah; deployment tunggal; tanpa mekanisme billing lintas sekolah                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | [owner-v4.2]                                                    |
 
 ---
 
@@ -772,14 +773,14 @@ Konsolidasi [v1 §7], [v2 §6], [v3 §6], [master §7] + penambahan prd04 (menja
 
 ### 7.1 Target performa (menjawab gap A2-3; keputusan B-6)
 
-| Metrik | Target (p75) | Konteks |
-|--------|--------------|---------|
-| LCP | ≤ 2,5 detik | mobile + desktop, 4G |
-| INP | ≤ 200 ms | mobile + desktop |
-| CLS | ≤ 0,1 | mobile + desktop |
-| Dashboard utama | < 2 detik | 4G rata-rata Indonesia [v1 §7] |
-| API p95 jam ujian | < 3 detik | SLO §6 |
-| Gambar materi (terkompresi) | ≤ 200 KB | data-saver [ux-07 §8] |
+| Metrik                      | Target (p75) | Konteks                        |
+| --------------------------- | ------------ | ------------------------------ |
+| LCP                         | ≤ 2,5 detik  | mobile + desktop, 4G           |
+| INP                         | ≤ 200 ms     | mobile + desktop               |
+| CLS                         | ≤ 0,1        | mobile + desktop               |
+| Dashboard utama             | < 2 detik    | 4G rata-rata Indonesia [v1 §7] |
+| API p95 jam ujian           | < 3 detik    | SLO §6                         |
+| Gambar materi (terkompresi) | ≤ 200 KB     | data-saver [ux-07 §8]          |
 
 ### 7.2 Pola performa & efisiensi (keputusan B-6)
 
@@ -794,18 +795,18 @@ Konsolidasi [v1 §7], [v2 §6], [v3 §6], [master §7] + penambahan prd04 (menja
 
 ### 7.3 Strategi algoritma per domain (menjawab kebutuhan pemilik #7; keputusan A2-4)
 
-| Domain | Algoritma / pendekatan | Efisiensi & kemudahan debug |
-|--------|------------------------|-----------------------------|
-| Penilaian & rapor | Konsolidasi dari `Grade` (TUGAS/KUIS/UJIAN) dengan bobot; rekap inkremental di cache; dua-track rapor (mapel + P5) | Tidak menghitung ulang semua nilai per request; hasil deterministik & teruji unit |
-| Depresiasi aset | Garis lurus dihitung **saat laporan**: `nilai_buku = harga − (harga/masa_manfaat × bulan)` | Tanpa job bulanan; satu fungsi murni mudah di-unit-test [B-3] |
-| Payroll run | Tarik kehadiran → hitung variabel → potongan (TER/BPJS) → validasi → approval → PAID; seluruh tarif dari konfigurasi | Async queue; setiap tahap loggable; kalkulator pajak terisolasi & teruji [B-2] |
-| Denda keterlambatan | Rule-based per hari keterlambatan; invoice DENDA terpisah; bisa dihapus manual | Deterministik; AuditLog tiap perubahan |
-| Penjadwalan SPP | Job idempotent per periode (bulan-tahun) | Tidak dobel bila retry; mudah diverifikasi |
-| Rekonsiliasi bank | Cocokkan (referensi, nominal, tanggal) → MATCHED/UNMATCHED | Skor kecocokan + daftar unresolved eksplisit |
-| Ujian online | Autosave idempotent (15 s) + auto-submit server-side; randomisasi deterministik per attempt; log append-only | State machine attempt di service; sengketa bisa diinvestigasi dari log |
-| Absensi QR anti-titip | Single-use token + expiry (5–10 mnt) + validasi waktu server; geofencing opsional | Token stateless, hash di DB; test reuse mudah |
-| RBAC | Permission set per role di-cache; scope resolver deterministik | Matriks permission × scope teruji di CI |
-| Ekspor Dapodik | Generate file di async queue; `DataExportLog` | Tidak memblokir request; riwayat ekspor tercatat |
+| Domain                | Algoritma / pendekatan                                                                                               | Efisiensi & kemudahan debug                                                       |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Penilaian & rapor     | Konsolidasi dari `Grade` (TUGAS/KUIS/UJIAN) dengan bobot; rekap inkremental di cache; dua-track rapor (mapel + P5)   | Tidak menghitung ulang semua nilai per request; hasil deterministik & teruji unit |
+| Depresiasi aset       | Garis lurus dihitung **saat laporan**: `nilai_buku = harga − (harga/masa_manfaat × bulan)`                           | Tanpa job bulanan; satu fungsi murni mudah di-unit-test [B-3]                     |
+| Payroll run           | Tarik kehadiran → hitung variabel → potongan (TER/BPJS) → validasi → approval → PAID; seluruh tarif dari konfigurasi | Async queue; setiap tahap loggable; kalkulator pajak terisolasi & teruji [B-2]    |
+| Denda keterlambatan   | Rule-based per hari keterlambatan; invoice DENDA terpisah; bisa dihapus manual                                       | Deterministik; AuditLog tiap perubahan                                            |
+| Penjadwalan SPP       | Job idempotent per periode (bulan-tahun)                                                                             | Tidak dobel bila retry; mudah diverifikasi                                        |
+| Rekonsiliasi bank     | Cocokkan (referensi, nominal, tanggal) → MATCHED/UNMATCHED                                                           | Skor kecocokan + daftar unresolved eksplisit                                      |
+| Ujian online          | Autosave idempotent (15 s) + auto-submit server-side; randomisasi deterministik per attempt; log append-only         | State machine attempt di service; sengketa bisa diinvestigasi dari log            |
+| Absensi QR anti-titip | Single-use token + expiry (5–10 mnt) + validasi waktu server; geofencing opsional                                    | Token stateless, hash di DB; test reuse mudah                                     |
+| RBAC                  | Permission set per role di-cache; scope resolver deterministik                                                       | Matriks permission × scope teruji di CI                                           |
+| Ekspor Dapodik        | Generate file di async queue; `DataExportLog`                                                                        | Tidak memblokir request; riwayat ekspor tercatat                                  |
 
 ### 7.4 Mudah di-develop & di-debug (keputusan B-6)
 
@@ -825,14 +826,14 @@ Keputusan B-7 — infrastruktur ringan untuk MVP, jalur skala jelas, tanpa over-
 
 ### 8.1 Komponen inti
 
-| Lapisan | Pilihan | Detail |
-|---------|---------|--------|
-| Database | **Managed PostgreSQL** (mis. RDS/Neon) — **hanya sebagai database**, tanpa fitur Auth/Storage pihak ketiga (§5.O) | Backup harian + **PITR** (RPO ≤ 24 jam, target 15 menit; RTO ≤ 4 jam), backup **off-region** [tek-02 §12]; skema tunggal; RLS opsional [tek-03 §7] |
-| Object storage + CDN | Self-managed object storage (MinIO-compatible) atau managed S3 — signed URL via API kita [§5.O] | Bucket per jenis dokumen + policy RLS + CDN untuk materi/gambar |
-| Auth | Auth in-house (Email/Username + Password, Argon2id, JWT cookie) [§5.P] | Satu metode login; JWT hanya identitas |
-| Cache & queue | Redis | Cache RBAC, rate-limit, session; BullMQ async queue [tek-02 §11][B-6] |
-| Observability | Structured log + Prometheus/Grafana self-hosted; Sentry opsional non-dependensi (hanya jika diaktifkan; default mati; tidak pernah menghalangi fitur) [§5.O] | Error tracking, metrik, alerting; SLO §6 |
-| Real-time | Socket.IO + adapter Redis | Namespace tunggal (siap multi-instance) [tek-02 §7] |
+| Lapisan       | Pilihan                                                                                                                                                      | Detail                                                                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database      | **Managed PostgreSQL** (mis. RDS/Neon) — **hanya sebagai database**, tanpa fitur Auth/Storage pihak ketiga (§5.O)                                            | Backup harian + **PITR** (RPO ≤ 24 jam, target 15 menit; RTO ≤ 4 jam), backup **off-region** [tek-02 §12]; skema tunggal; RLS opsional [tek-03 §7] |
+| Storage file  | Filesystem lokal backend (`STORAGE_LOCAL_DIR`) — upload multipart via API kita [§5.O]                                                                        | Bucket per jenis dokumen + validasi akses scope RBAC; CDN opsional untuk materi/gambar                                                             |
+| Auth          | Auth in-house (Email/Username + Password, Argon2id, JWT cookie) [§5.P]                                                                                       | Satu metode login; JWT hanya identitas                                                                                                             |
+| Cache & queue | Redis                                                                                                                                                        | Cache RBAC, rate-limit, session; BullMQ async queue [tek-02 §11][B-6]                                                                              |
+| Observability | Structured log + Prometheus/Grafana self-hosted; Sentry opsional non-dependensi (hanya jika diaktifkan; default mati; tidak pernah menghalangi fitur) [§5.O] | Error tracking, metrik, alerting; SLO §6                                                                                                           |
+| Real-time     | Socket.IO + adapter Redis                                                                                                                                    | Namespace tunggal (siap multi-instance) [tek-02 §7]                                                                                                |
 
 > Kebijakan Ekosistem Penuh [owner-v4.1] §5.O — infrastruktur boleh managed, fitur selalu in-house.
 
@@ -867,23 +868,23 @@ Keputusan B-8 (menjawab gap A2-5, G19, G9).
 
 ### 9.1 Wizard onboarding 5 langkah
 
-| Langkah | Isi | Pintu keluar |
-|---------|-----|--------------|
-| 1. Profil sekolah | Nama, NPSN (validasi 8 digit), jenjang (SMA/SMK), alamat, tahun ajaran, timezone | NPSN valid (8 digit) — tanpa cek lintas sekolah; ini aplikasi milik sekolah itu sendiri [owner-v4.2] |
-| 2. Data dasar | Semester, ambang alpa (default 3/bulan), toggle fitur (data-saver ON, gamifikasi OFF), template tagihan dasar | Tersimpan ke `SchoolProfile.settings` [03-database-erd §2.1] |
-| 3. Impor data | Unduh template Excel → upload → validasi → **preview tabel + baris error** (NISN duplikat, kolom kosong) → impor parsial aman + laporan [ux-07 §4.1][03-database-erd §4.10/4.11] | Import idempoten; hasil n berhasil / m gagal + unduh daftar error |
-| 4. Undang | Kirim undangan email/link ke guru, OPERATOR, KEUANGAN, WAKEPSEK (role sudah ditentukan); bisa "Selesai nanti" | Undangan terkirim; status terkirim/terpakai/kedaluwarsa [tek-04 §2.1] |
-| 5. Selesai & tur | Ringkasan setup, tautan dokumentasi & FAQ, kontak support WhatsApp/email | Dashboard sekolah terbuka; sekolah baru impor data & login ≤ 1 hari kerja [v1 §1.2][master §9.2] |
+| Langkah           | Isi                                                                                                                                                                              | Pintu keluar                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1. Profil sekolah | Nama, NPSN (validasi 8 digit), jenjang (SMA/SMK), alamat, tahun ajaran, timezone                                                                                                 | NPSN valid (8 digit) — tanpa cek lintas sekolah; ini aplikasi milik sekolah itu sendiri [owner-v4.2] |
+| 2. Data dasar     | Semester, ambang alpa (default 3/bulan), toggle fitur (data-saver ON, gamifikasi OFF), template tagihan dasar                                                                    | Tersimpan ke `SchoolProfile.settings` [03-database-erd §2.1]                                         |
+| 3. Impor data     | Unduh template Excel → upload → validasi → **preview tabel + baris error** (NISN duplikat, kolom kosong) → impor parsial aman + laporan [ux-07 §4.1][03-database-erd §4.10/4.11] | Import idempoten; hasil n berhasil / m gagal + unduh daftar error                                    |
+| 4. Undang         | Kirim undangan email/link ke guru, OPERATOR, KEUANGAN, WAKEPSEK (role sudah ditentukan); bisa "Selesai nanti"                                                                    | Undangan terkirim; status terkirim/terpakai/kedaluwarsa [tek-04 §2.1]                                |
+| 5. Selesai & tur  | Ringkasan setup, tautan dokumentasi & FAQ, kontak support WhatsApp/email                                                                                                         | Dashboard sekolah terbuka; sekolah baru impor data & login ≤ 1 hari kerja [v1 §1.2][master §9.2]     |
 
 ### 9.2 Template impor Excel
 
-| Template | Kolom wajib kunci | Validasi |
-|----------|-------------------|----------|
-| Siswa | NISN, nama, kelas/rombel, nama ortu + kontak | NISN unik; kelas harus ada; duplikat ditolak |
-| Guru/staf | NUPTK/NIP, nama, mapel (untuk guru), jabatan | NUPTK opsional tapi wajib untuk ekspor Dapodik [riset-06 Topik 2] |
-| Kelas & rombel | nama, grade_level, tahun ajaran, (opsional) homeroom | Grade valid; nama kelas unik per tahun |
-| Mapel | kode, nama, kategori (WAJIB/PILIHAN/KEJURUAN) | Kode unik per sekolah |
-| Jabatan + komponen gaji awal (gelombang 2) | nama pegawai, jabatan, gaji pokok, tunjangan, potongan awal | Komponen harus ada di master; validasi UMP peringatan [§5.E] |
+| Template                                   | Kolom wajib kunci                                           | Validasi                                                          |
+| ------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| Siswa                                      | NISN, nama, kelas/rombel, nama ortu + kontak                | NISN unik; kelas harus ada; duplikat ditolak                      |
+| Guru/staf                                  | NUPTK/NIP, nama, mapel (untuk guru), jabatan                | NUPTK opsional tapi wajib untuk ekspor Dapodik [riset-06 Topik 2] |
+| Kelas & rombel                             | nama, grade_level, tahun ajaran, (opsional) homeroom        | Grade valid; nama kelas unik per tahun                            |
+| Mapel                                      | kode, nama, kategori (WAJIB/PILIHAN/KEJURUAN)               | Kode unik per sekolah                                             |
+| Jabatan + komponen gaji awal (gelombang 2) | nama pegawai, jabatan, gaji pokok, tunjangan, potongan awal | Komponen harus ada di master; validasi UMP peringatan [§5.E]      |
 
 Semua impor lewat `ImportBatch`/`ImportError`; preview wajib sebelum commit; deteksi duplikasi (NISN/NUPTK/kode) [v3 G9][tek-05 F1-T5].
 
@@ -911,26 +912,26 @@ Urutan eksekusi terpadu (berbasis [master §6], [tek-05 §5], ditambah gelombang
 
 > **MVP openlms = fondasi platform & teknis (F0–F2) + LMS inti + absensi manual + portal wali murid read-only + support minimal — plus sangat direkomendasikan: absensi QR, ujian online dasar, e-Rapor dua-track.** Payroll, aset penuh, pembayaran lengkap = **gelombang 2** (desain tuntas di dokumen ini). Kalender terpadu, P5 penuh, asesmen diagnostik, komunikasi penuh, PPDB, SMK = gelombang 3/ditunda (terpandu kebutuhan pilot).
 
-| Fase/Item | Cakupan | Status | Pintu keluar |
-|-----------|---------|--------|--------------|
-| **F0** | Fondasi: skema 61 entitas (56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni) + RLS + logging + CI + backup/DR + security + retensi/consent | WAJIB MVP | Migrasi bersih; restore ≤ 4 jam; tes RBAC & akses per scope [tek-05 §3.1][master §6] |
-| **F1** | Auth in-house (Email/Username + Password, Argon2id, JWT cookie) [§5.P], RBAC penuh (@RequirePermission), onboarding aplikasi sekolah, wizard impor | WAJIB MVP | Sekolah baru impor & login ≤ 1 hari kerja [tek-05 §3.2] |
-| **F2** | LMS inti: kelas, materi, tugas, submission, penilaian, rekap, notifikasi | WAJIB MVP | Guru buat kelas → tugas → nilai end-to-end [tek-05 §3.3] |
-| **M-ABSQR** | Absensi QR + izin online + offline queue | SANGAT DIREKOMENDASIKAN | QR single-use & expired; offline queue tersinkron [tek-05 §3.4] |
-| **M-EXAM** | Ujian online dasar (bank soal, sesi, token, autosave, autosubmit, grade) | SANGAT DIREKOMENDASIKAN | **Load test lulus (p95 < 3 s)**; E2E hijau [tek-05 §3.5] |
-| **M-RAPOR** | e-Rapor dua-track (mapel + P5 wadah) | SANGAT DIREKOMENDASIKAN | Validasi format dengan pilot [tek-05 §3.6][riset-06 Topik 3] |
-| **M-PORTAL** | Portal wali murid read-only (nilai, absensi, tagihan — tampil saat modul keuangan live) | WAJIB MVP | Wali murid login & lihat data anak [tek-05 §3.7][A3-1] |
-| **M-SUPPORT** | FAQ + kontak WhatsApp/email | WAJIB MVP | FAQ live; triase tercatat [tek-05 §3.8] |
-| **M-ROLLOVER** | Siklus tahun ajaran: AcademicYear, wizard pre-check + dry-run, promosi/kelulusan, arsip historis read-only, rollback + carry-over keuangan | DIREKOMENDASIKAN (setelah Fase 2 stabil; wajib sebelum gelombang 2) | Satu siklus rollover sukses di data uji; dry-run benar; tahun lama read-only; tahun baru normal |
-| **W2-PAYROLL** | Master gaji, payroll run bulanan, slip, PPh21 TER/BPJS (konfigurasi), laporan | GELOMBANG 2 | Run PAID bulanan; slip digital; validasi regulasi (open items §13) |
-| **W2-ASSET** | Inventaris penuh, depresiasi garis lurus, maintenance, audit/opname | GELOMBANG 2 | Opname selesai; nilai buku & rekap depresiasi benar |
-| **W2-PAYMENT** | Tagihan multi-jenis + jadwal otomatis, cicilan, denda, refund, rekonsiliasi, arus kas, gateway roadmap | GELOMBANG 2 | Siklus tagihan→bayar→rekonsiliasi MATCHED; gateway setelah KYC |
-| **W2-ADMIN** | Konsol admin sistem sekolah (pengaturan, feature flags, audit, statistik) + ekspor Dapodik file | GELOMBANG 2 | Konsol admin terisi; ekspor file terformat |
-| **W2-KALENDER** | Kalender terpadu lintas modul (G24) | GELOMBANG 2 (setelah data modul penunjang live) | Satu kalender per siswa lintas domain [A1-6] |
-| **W3** | Akademik lanjut (jadwal otomatis, CP/ATP), PPDB, komunikasi, kesiswaan, perpustakaan, alumni, BK | GELOMBANG 3 (terpandu pilot) | Dipilih bersama sekolah pilot [v2 §8 #6][master §5.3] |
-| **W3-SMK** | PKL, UKK, DUDI | GELOMBANG 3 — kondisional SMK | Validasi ke SMK riil dulu [v3 §8 #3] |
-| **W3-KURIKULUM** | P5 penuh, asesmen diagnostik, bimbingan karir | GELOMBANG 3 | Setelah e-Rapor dua-track jalan [riset-06 Topik 3] |
-| **DEFER** | Live class, lock-browser penuh, proctoring webcam, gamifikasi, plagiarism, learning analytics, mobile native, RFID | DITUNDA | Bukti kebutuhan pilot / pertimbangan privasi [master §5.3][riset-06] |
+| Fase/Item        | Cakupan                                                                                                                                                          | Status                                                              | Pintu keluar                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **F0**           | Fondasi: skema 61 entitas (56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni) + RLS + logging + CI + backup/DR + security + retensi/consent | WAJIB MVP                                                           | Migrasi bersih; restore ≤ 4 jam; tes RBAC & akses per scope [tek-05 §3.1][master §6]            |
+| **F1**           | Auth in-house (Email/Username + Password, Argon2id, JWT cookie) [§5.P], RBAC penuh (@RequirePermission), onboarding aplikasi sekolah, wizard impor               | WAJIB MVP                                                           | Sekolah baru impor & login ≤ 1 hari kerja [tek-05 §3.2]                                         |
+| **F2**           | LMS inti: kelas, materi, tugas, submission, penilaian, rekap, notifikasi                                                                                         | WAJIB MVP                                                           | Guru buat kelas → tugas → nilai end-to-end [tek-05 §3.3]                                        |
+| **M-ABSQR**      | Absensi QR + izin online + offline queue                                                                                                                         | SANGAT DIREKOMENDASIKAN                                             | QR single-use & expired; offline queue tersinkron [tek-05 §3.4]                                 |
+| **M-EXAM**       | Ujian online dasar (bank soal, sesi, token, autosave, autosubmit, grade)                                                                                         | SANGAT DIREKOMENDASIKAN                                             | **Load test lulus (p95 < 3 s)**; E2E hijau [tek-05 §3.5]                                        |
+| **M-RAPOR**      | e-Rapor dua-track (mapel + P5 wadah)                                                                                                                             | SANGAT DIREKOMENDASIKAN                                             | Validasi format dengan pilot [tek-05 §3.6][riset-06 Topik 3]                                    |
+| **M-PORTAL**     | Portal wali murid read-only (nilai, absensi, tagihan — tampil saat modul keuangan live)                                                                          | WAJIB MVP                                                           | Wali murid login & lihat data anak [tek-05 §3.7][A3-1]                                          |
+| **M-SUPPORT**    | FAQ + kontak WhatsApp/email                                                                                                                                      | WAJIB MVP                                                           | FAQ live; triase tercatat [tek-05 §3.8]                                                         |
+| **M-ROLLOVER**   | Siklus tahun ajaran: AcademicYear, wizard pre-check + dry-run, promosi/kelulusan, arsip historis read-only, rollback + carry-over keuangan                       | DIREKOMENDASIKAN (setelah Fase 2 stabil; wajib sebelum gelombang 2) | Satu siklus rollover sukses di data uji; dry-run benar; tahun lama read-only; tahun baru normal |
+| **W2-PAYROLL**   | Master gaji, payroll run bulanan, slip, PPh21 TER/BPJS (konfigurasi), laporan                                                                                    | GELOMBANG 2                                                         | Run PAID bulanan; slip digital; validasi regulasi (open items §13)                              |
+| **W2-ASSET**     | Inventaris penuh, depresiasi garis lurus, maintenance, audit/opname                                                                                              | GELOMBANG 2                                                         | Opname selesai; nilai buku & rekap depresiasi benar                                             |
+| **W2-PAYMENT**   | Tagihan multi-jenis + jadwal otomatis, cicilan, denda, refund, rekonsiliasi, arus kas, gateway roadmap                                                           | GELOMBANG 2                                                         | Siklus tagihan→bayar→rekonsiliasi MATCHED; gateway setelah KYC                                  |
+| **W2-ADMIN**     | Konsol admin sistem sekolah (pengaturan, feature flags, audit, statistik) + ekspor Dapodik file                                                                  | GELOMBANG 2                                                         | Konsol admin terisi; ekspor file terformat                                                      |
+| **W2-KALENDER**  | Kalender terpadu lintas modul (G24)                                                                                                                              | GELOMBANG 2 (setelah data modul penunjang live)                     | Satu kalender per siswa lintas domain [A1-6]                                                    |
+| **W3**           | Akademik lanjut (jadwal otomatis, CP/ATP), PPDB, komunikasi, kesiswaan, perpustakaan, alumni, BK                                                                 | GELOMBANG 3 (terpandu pilot)                                        | Dipilih bersama sekolah pilot [v2 §8 #6][master §5.3]                                           |
+| **W3-SMK**       | PKL, UKK, DUDI                                                                                                                                                   | GELOMBANG 3 — kondisional SMK                                       | Validasi ke SMK riil dulu [v3 §8 #3]                                                            |
+| **W3-KURIKULUM** | P5 penuh, asesmen diagnostik, bimbingan karir                                                                                                                    | GELOMBANG 3                                                         | Setelah e-Rapor dua-track jalan [riset-06 Topik 3]                                              |
+| **DEFER**        | Live class, lock-browser penuh, proctoring webcam, gamifikasi, plagiarism, learning analytics, mobile native, RFID                                               | DITUNDA                                                             | Bukti kebutuhan pilot / pertimbangan privasi [master §5.3][riset-06]                            |
 
 Cut-line jika kapasitas tidak cukup: ikuti [master §5.4] — yang TIDAK BOLEH dipangkas: G6, G7, G8, G11, G12, G13, G9, RBAC & keamanan (RLS opsional). Tambahan prd04: desain payroll/aset/pembayaran **tidak boleh** menunda inti LMS (aturan fokus §2.2).
 
@@ -940,21 +941,21 @@ Cut-line jika kapasitas tidak cukup: ikuti [master §5.4] — yang TIDAK BOLEH d
 
 Konsolidasi [v1 §10], [v2 §7], [v3 §7], [master §8] + risiko baru prd04 (payroll/regulasi, gateway, negeri vs swasta, scope).
 
-| # | Risiko | Dampak | Mitigasi |
-|---|--------|--------|----------|
-| 1 | Scope membengkak (super-app) | Proyek tidak pernah rilis | Fokus LMS §2.2; roadmap §10 ketat; modul gelombang 2/3 tidak boleh masuk sebelum go/no-go; cut-line [master §5.4] |
-| 2 | Payroll: regulasi berubah (tabel TER, honor non-ASN) | Slip/pajak salah, masalah hukum | Semua angka terkonfigurasi per periode; validasi open items §13 sebelum build; kalkulator pajak terisolasi & teruji [§5.E][riset-06 Topik 7] |
-| 3 | Payment gateway: KYC & fee | Aktivasi tertunda / biaya tak terduga | Verifikasi KYC merchant sebelum janji; model fee diputuskan di §13; pencatatan manual tetap jalan tanpa gateway [§5.F.7] |
-| 4 | Sekolah negeri vs swasta (Permen 44/2012, 75/2016) | Janji "SPP" bermasalah untuk negeri | Posisi "pencatatan iuran komite/transparansi" untuk negeri; isi Permen belum diverifikasi → open item §13 Q14 [riset-06 Topik 8] |
-| 5 | RBAC permission-based kompleks | Bug akses lintas role | Test matrix permission×scope×aksi di CI; RLS lapis kedua; UserPermissionOverride diaudit [§4][G6] |
-| 6 | Ujian online gagal saat beban puncak | Kepercayaan sekolah pilot hilang | Load test k6 wajib; autosave idempotent; rate limit & caching khusus [v2 §7][tek-02 §14] |
-| 7 | Absensi QR disalahgunakan (titip via screenshot) | Data kehadiran tidak akurat | Token sekali pakai + expired 5–10 mnt + validasi waktu server; geofencing sebagai sinyal [v2 §7][riset-06 Topik 6] |
-| 8 | Data BK/payroll bocor lintas role | Masalah hukum UU PDP | Field-level access; audit log akses; role terbatas (GURU_BK/WAKEPSEK/KEPSEK; KEUANGAN/KEPSEK) [v2 §7][A3-5] |
-| 9 | Regulasi aset/pajak berubah (penyusutan fiskal) | Nilai buku tidak sesuai ketentuan fiskal | Umur manfaat & rumus = konfigurasi; konsultasi fiskal sebelum laporan resmi (open item §13 Q17) [riset-06 Topik 9] |
-| 10 | Janji Dapodik/ANBK API langsung tidak terpenuhi | Ekspektasi sekolah tidak terpenuhi | Mulai ekspor file terformat; API hanya jika akses resmi terverifikasi [v3 §7][riset-06 Topik 2] |
-| 11 | Adopsi rendah (WhatsApp/Excel sudah nyaman) | Sekolah pilot tidak rutin pakai | Fokus fitur hemat waktu guru; wizard migrasi G9; support WhatsApp/email [v1 §10][master §8] |
-| 12 | Data akademik hilang | Data legal tidak bisa dipulihkan | Backup harian + PITR; RPO ≤ 24 jam (target 15 mnt); RTO ≤ 4 jam; off-region [v3 G8][tek-02 §12] |
-| 13 | Kepatuhan data anak tidak dikelola | Pelanggaran UU PDP (denda 2% pendapatan tahunan) | Retensi per kategori, consent dengan bukti, AuditLog penuh, DPIA bila perlu [riset-06 Topik 1] |
+| #   | Risiko                                               | Dampak                                           | Mitigasi                                                                                                                                     |
+| --- | ---------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Scope membengkak (super-app)                         | Proyek tidak pernah rilis                        | Fokus LMS §2.2; roadmap §10 ketat; modul gelombang 2/3 tidak boleh masuk sebelum go/no-go; cut-line [master §5.4]                            |
+| 2   | Payroll: regulasi berubah (tabel TER, honor non-ASN) | Slip/pajak salah, masalah hukum                  | Semua angka terkonfigurasi per periode; validasi open items §13 sebelum build; kalkulator pajak terisolasi & teruji [§5.E][riset-06 Topik 7] |
+| 3   | Payment gateway: KYC & fee                           | Aktivasi tertunda / biaya tak terduga            | Verifikasi KYC merchant sebelum janji; model fee diputuskan di §13; pencatatan manual tetap jalan tanpa gateway [§5.F.7]                     |
+| 4   | Sekolah negeri vs swasta (Permen 44/2012, 75/2016)   | Janji "SPP" bermasalah untuk negeri              | Posisi "pencatatan iuran komite/transparansi" untuk negeri; isi Permen belum diverifikasi → open item §13 Q14 [riset-06 Topik 8]             |
+| 5   | RBAC permission-based kompleks                       | Bug akses lintas role                            | Test matrix permission×scope×aksi di CI; RLS lapis kedua; UserPermissionOverride diaudit [§4][G6]                                            |
+| 6   | Ujian online gagal saat beban puncak                 | Kepercayaan sekolah pilot hilang                 | Load test k6 wajib; autosave idempotent; rate limit & caching khusus [v2 §7][tek-02 §14]                                                     |
+| 7   | Absensi QR disalahgunakan (titip via screenshot)     | Data kehadiran tidak akurat                      | Token sekali pakai + expired 5–10 mnt + validasi waktu server; geofencing sebagai sinyal [v2 §7][riset-06 Topik 6]                           |
+| 8   | Data BK/payroll bocor lintas role                    | Masalah hukum UU PDP                             | Field-level access; audit log akses; role terbatas (GURU_BK/WAKEPSEK/KEPSEK; KEUANGAN/KEPSEK) [v2 §7][A3-5]                                  |
+| 9   | Regulasi aset/pajak berubah (penyusutan fiskal)      | Nilai buku tidak sesuai ketentuan fiskal         | Umur manfaat & rumus = konfigurasi; konsultasi fiskal sebelum laporan resmi (open item §13 Q17) [riset-06 Topik 9]                           |
+| 10  | Janji Dapodik/ANBK API langsung tidak terpenuhi      | Ekspektasi sekolah tidak terpenuhi               | Mulai ekspor file terformat; API hanya jika akses resmi terverifikasi [v3 §7][riset-06 Topik 2]                                              |
+| 11  | Adopsi rendah (WhatsApp/Excel sudah nyaman)          | Sekolah pilot tidak rutin pakai                  | Fokus fitur hemat waktu guru; wizard migrasi G9; support WhatsApp/email [v1 §10][master §8]                                                  |
+| 12  | Data akademik hilang                                 | Data legal tidak bisa dipulihkan                 | Backup harian + PITR; RPO ≤ 24 jam (target 15 mnt); RTO ≤ 4 jam; off-region [v3 G8][tek-02 §12]                                              |
+| 13  | Kepatuhan data anak tidak dikelola                   | Pelanggaran UU PDP (denda 2% pendapatan tahunan) | Retensi per kategori, consent dengan bukti, AuditLog penuh, DPIA bila perlu [riset-06 Topik 1]                                               |
 
 ---
 
@@ -962,20 +963,20 @@ Konsolidasi [v1 §10], [v2 §7], [v3 §7], [master §8] + risiko baru prd04 (pay
 
 Perluasan [v1 §11] & [master §9] — metrik per pemangku kepentingan (menjawab gap A2-7).
 
-| Pemangku | Metrik | Target |
-|----------|--------|--------|
-| **Sekolah (pilot)** | Sekolah pilot aktif memakai inti (LMS + absensi + ujian + e-Rapor) | Minimal 1 sekolah, 1 semester penuh [v1 §11] |
-| **Guru** | Guru rutin memakai platform untuk tugas/nilai | ≥ 70% guru (bukan hanya login sekali) [v1 §11] |
-| **Guru (efisiensi)** | Waktu rekap nilai wali kelas berkurang vs manual | Signifikan (survei kualitatif) [v1 §11] |
-| **Siswa** | Siswa aktif mengerjakan tugas/kuis per minggu | ≥ 50% [master §9.2] |
-| **Wali murid** | Wali murid aktif login melihat data anak | ≥ 40% per bulan (baru — prd04) |
-| **Keandalan ujian** | Nol kegagalan sistem pada sesi ujian sungguhan (PTS/PAS) | 100% sesi sukses [master §9.2] |
-| **Onboarding** | Sekolah baru impor data & login | ≤ 1 hari kerja [v1 §1.2][master §9.2] |
-| **Ketersediaan** | Uptime | ≥ 99% [master §9.2] |
-| **Pemulihan data** | Restore backup berhasil | ≤ 4 jam (RTO) [master §9.2] |
-| **Admin sistem** | Konsol admin terisi; statistik adopsi fitur sekolah terpantau | Per bulan |
-| **Sekolah** | Payroll: run bulanan PAID tepat waktu di pilot (saat W2 live) | 100% periode berjalan; slip terunduh pegawai |
-| **Sekolah** | Pembayaran: outstanding menurun; rekonsiliasi MATCHED ≥ 90% (saat W2 live) | Per periode |
+| Pemangku             | Metrik                                                                     | Target                                         |
+| -------------------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Sekolah (pilot)**  | Sekolah pilot aktif memakai inti (LMS + absensi + ujian + e-Rapor)         | Minimal 1 sekolah, 1 semester penuh [v1 §11]   |
+| **Guru**             | Guru rutin memakai platform untuk tugas/nilai                              | ≥ 70% guru (bukan hanya login sekali) [v1 §11] |
+| **Guru (efisiensi)** | Waktu rekap nilai wali kelas berkurang vs manual                           | Signifikan (survei kualitatif) [v1 §11]        |
+| **Siswa**            | Siswa aktif mengerjakan tugas/kuis per minggu                              | ≥ 50% [master §9.2]                            |
+| **Wali murid**       | Wali murid aktif login melihat data anak                                   | ≥ 40% per bulan (baru — prd04)                 |
+| **Keandalan ujian**  | Nol kegagalan sistem pada sesi ujian sungguhan (PTS/PAS)                   | 100% sesi sukses [master §9.2]                 |
+| **Onboarding**       | Sekolah baru impor data & login                                            | ≤ 1 hari kerja [v1 §1.2][master §9.2]          |
+| **Ketersediaan**     | Uptime                                                                     | ≥ 99% [master §9.2]                            |
+| **Pemulihan data**   | Restore backup berhasil                                                    | ≤ 4 jam (RTO) [master §9.2]                    |
+| **Admin sistem**     | Konsol admin terisi; statistik adopsi fitur sekolah terpantau              | Per bulan                                      |
+| **Sekolah**          | Payroll: run bulanan PAID tepat waktu di pilot (saat W2 live)              | 100% periode berjalan; slip terunduh pegawai   |
+| **Sekolah**          | Pembayaran: outstanding menurun; rekonsiliasi MATCHED ≥ 90% (saat W2 live) | Per periode                                    |
 
 ---
 
@@ -983,34 +984,34 @@ Perluasan [v1 §11] & [master §9] — metrik per pemangku kepentingan (menjawab
 
 Perluasan [master §10] + pertanyaan baru prd04. Setiap item: pertanyaan → opsi → rekomendasi/status.
 
-| # | Pertanyaan | Opsi | Rekomendasi / Status |
-|---|------------|------|----------------------|
-| 1 | **Model pengelolaan/deployment aplikasi (single-school):** (a) dikelola penyedia (Aditya) — 1 instance; (b) on-premise/server sekolah; (c) hybrid. G18 TIDAK RELEVAN (single-school) [owner-v4.2] | — (keputusan single-school; tanpa model harga SaaS) | **DITETAPKAN [owner]: (a) dikelola penyedia untuk MVP** — 1 instance; opsi (b) on-premise tetap didukung desain (VPS + Docker Compose §8.4) sebagai cadangan; kontrak pemrosesan data (UU PDP Pasal 51) disiapkan |
-| 2 | Target pasar: SMA saja atau SMA+SMK? | (a) SMA dulu; (b) paralel; (c) SMA dulu, SMK kondisional | **SMA dulu, SMK kondisional**; validasi 1–2 SMK riil sebelum modul SMK [master §10 Q2][v3 §8 #3] |
-| 3 | Validasi akses Dapodik/ANBK (G4) | (a) ekspor file; (b) API real-time | **(a) ekspor file terformat**; API hanya bila akses resmi terverifikasi [master §10 Q3][riset-06 Topik 2] |
-| 4 | Nilai rate-limit & lockout (G11) | Beragam kombinasi | **DITETAPKAN (nilai awal, dikalibrasi load test):** login 5 gagal/15 mnt per akun + throttle IP 20/mnt (tanpa lockout permanen IP — OWASP); submit ujian 30/mnt; scan QR 30/mnt; global 1.000/mnt/IP (kalibrasi NAT sekolah); WebSocket 60/mnt [riset-06 Topik 16] |
-| 5 | Lock-browser & proctoring (v2 §2.2c–d) | (a) tanpa; (b) log-only; (c) diskualifikasi otomatis; (d) webcam | **(b) log-only di MVP; (d) tidak** — data biometrik spesifik UU PDP [master §10 Q5][riset-06 Topik 6] |
-| 6 | Kapan PPDB dibangun? | (a) MVP; (b) sebelum musim PPDB pilot | **(b)** — musiman [master §10 Q6] |
-| 7 | Konkurensi target ujian | Mis. 200/500/1000 siswa serentak | **DITETAPKAN (baseline): 500 siswa serentak/shift**; puncak submit ±100–200 req/detik; dasar load test k6 [riset-06 Topik 16] |
-| 8 | Cakupan portal wali murid di MVP | (a) nilai+absensi; (b) + tagihan; (c) + izin/sakit | **(a) nilai+absensi read-only; tagihan tampil saat modul keuangan live; izin anak opsional** — keputusan FINAL (A3-1) [master §10 Q8] |
-| 9 | Channel support pilot (G20) | (a) WhatsApp+email; (b) helpdesk tiket | **(a) WhatsApp/email** — support langsung untuk 1 sekolah [owner-v4.2] |
-| 10 | Payroll/gaji guru | (a) modul internal; (b) pihak ketiga; (c) di luar cakupan | **(a) modul internal, gelombang 2** — prd04 mencabut pilihan (c) [keputusan A3-2][§5.E] |
-| 11 | Bahasa & mata uang UI | Indonesia vs bilingual | **Bahasa Indonesia**; Rupiah [master §10 Q11] |
-| 12 | Siapa memverifikasi sekolah saat onboarding (G19) | — (keputusan single-school) | **N/A (single-school):** setup awal aplikasi dilakukan SUPERADMIN (admin sistem); tanpa verifikasi antar-sekolah [owner-v4.2] |
-| 13 | Model fee payment gateway | (a) sekolah tanggung MDR; (b) ditambahkan nominal ke tagihan; (c) hibrida | **Open — diputuskan sebelum aktivasi gateway pertama**; default sementara (a) dengan transparansi ke sekolah [riset-06 Topik 8] |
-| 14 | Validasi isi Permendikbud 44/2012 & 75/2016 | — | **TERTUTUP:** isi Permen 44/2012 & 75/2016 mendukung posisi 'negeri = iuran komite/transparansi, SPP swasta' (nuansa: 44/2012 tekstual untuk dikdas; prinsip lintas jenjang) [riset-06 Topik 11] |
-| 15 | Tabel TER resmi PMK 168/2023 & regulasi honor guru non-ASN | — | **SEBAGIAN TERTUTUP:** struktur TER A/B/C + TER harian + DPP 50% honorarium + PNS final 15% terkonfirmasi [riset-06 Topik 12]; tabel penuh ambil PDF PMK 168/2023 saat build; juknis BOS/APBD per tahun ajaran tetap open item |
-| 16 | KYC gateway untuk sekolah/yayasan | — | **TERTUTUP (dokumen):** KYC = akta + SK Kemenkumham/AHU + NPWP + NIB + rekening atas nama yayasan + web aktif [riset-06 Topik 13]; waktu aktivasi konfirmasi vendor saat fitur diaktifkan |
-| 17 | Ketentuan fiskal penyusutan (kelompok harta) | — | **TERTUTUP:** PMK 72/2023 — Kelompok 1–4 (4/8/16/20 th) + bangunan (20/10 th); default Kelompok 3 [riset-06 Topik 14] |
-| 18 | Jadwal retensi data per kategori | Default 60 bulan (5 tahun) | **Konfigurasi aplikasi**; disepakati dengan sekolah pilot; bukan klaim UU [riset-06 Topik 1] |
-| 19 | Ambang alpa dashboard kedisiplinan | Default 3/bulan | Konfigurasi per sekolah [v2 §3.2][ux-07] |
-| 20 | Cakupan "sederajat" — apakah termasuk MA (Madrasah Aliyah/Kemenag)? | (a) hanya SMA/SMK; (b) + MA | **DITETAPKAN [owner]: (a) hanya SMA/SMK di MVP**; MA = kondisional/ekspansi (ekosistem Kemenag: EMIS/KMA/RDM — riset-06 Topik 15); validasi 1–2 madrasah riil sebelum berjanji |
-| 21 | Rollover tahun ajaran (naik kelas, kelulusan, re-enrollment, arsip nilai) | (a) dirancang sebelum gelombang 2; (b) nanti | **SELESAI — didesain di §5.R** (menutup gap; task M-ROLLOVER-T1..T6) |
-| 22 | Multi-kampus/beberapa NPSN dalam satu akun sekolah | (a) 1 sekolah = 1 NPSN; (b) multi-NPSN | **Open**; desain awal: 1 sekolah = 1 NPSN (perluasan nanti) [owner-v4.1] |
-| 23 | Skala total SaaS (lintas sekolah) | — (keputusan single-school) | **TIDAK RELEVAN:** skala = 500–3.000 user dalam 1 sekolah [owner-v4.2] |
-| 24 | e-Rapor P5 di MVP seberapa dalam | (a) wadah manual; (b) penilaian penuh | **"Wadah manual dulu; penilaian penuh gelombang 3"** (rekomendasi) [owner-v4.1] |
-| 25 | Reset password tanpa email/SMS | (a) via OPERATOR; (b) tautan email | **SELESAI: oleh OPERATOR** (§5.P) [owner-v4.1] |
-| 26 | Apakah gateway payment tetap direncanakan sebagai opsional? | (a) ya, opsional; (b) wajib | **Ya, opsional flag OFF default** (§5.F.7, §5.O) [owner-v4.1] |
+| #   | Pertanyaan                                                                                                                                                                                        | Opsi                                                                      | Rekomendasi / Status                                                                                                                                                                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Model pengelolaan/deployment aplikasi (single-school):** (a) dikelola penyedia (Aditya) — 1 instance; (b) on-premise/server sekolah; (c) hybrid. G18 TIDAK RELEVAN (single-school) [owner-v4.2] | — (keputusan single-school; tanpa model harga SaaS)                       | **DITETAPKAN [owner]: (a) dikelola penyedia untuk MVP** — 1 instance; opsi (b) on-premise tetap didukung desain (VPS + Docker Compose §8.4) sebagai cadangan; kontrak pemrosesan data (UU PDP Pasal 51) disiapkan                                                  |
+| 2   | Target pasar: SMA saja atau SMA+SMK?                                                                                                                                                              | (a) SMA dulu; (b) paralel; (c) SMA dulu, SMK kondisional                  | **SMA dulu, SMK kondisional**; validasi 1–2 SMK riil sebelum modul SMK [master §10 Q2][v3 §8 #3]                                                                                                                                                                   |
+| 3   | Validasi akses Dapodik/ANBK (G4)                                                                                                                                                                  | (a) ekspor file; (b) API real-time                                        | **(a) ekspor file terformat**; API hanya bila akses resmi terverifikasi [master §10 Q3][riset-06 Topik 2]                                                                                                                                                          |
+| 4   | Nilai rate-limit & lockout (G11)                                                                                                                                                                  | Beragam kombinasi                                                         | **DITETAPKAN (nilai awal, dikalibrasi load test):** login 5 gagal/15 mnt per akun + throttle IP 20/mnt (tanpa lockout permanen IP — OWASP); submit ujian 30/mnt; scan QR 30/mnt; global 1.000/mnt/IP (kalibrasi NAT sekolah); WebSocket 60/mnt [riset-06 Topik 16] |
+| 5   | Lock-browser & proctoring (v2 §2.2c–d)                                                                                                                                                            | (a) tanpa; (b) log-only; (c) diskualifikasi otomatis; (d) webcam          | **(b) log-only di MVP; (d) tidak** — data biometrik spesifik UU PDP [master §10 Q5][riset-06 Topik 6]                                                                                                                                                              |
+| 6   | Kapan PPDB dibangun?                                                                                                                                                                              | (a) MVP; (b) sebelum musim PPDB pilot                                     | **(b)** — musiman [master §10 Q6]                                                                                                                                                                                                                                  |
+| 7   | Konkurensi target ujian                                                                                                                                                                           | Mis. 200/500/1000 siswa serentak                                          | **DITETAPKAN (baseline): 500 siswa serentak/shift**; puncak submit ±100–200 req/detik; dasar load test k6 [riset-06 Topik 16]                                                                                                                                      |
+| 8   | Cakupan portal wali murid di MVP                                                                                                                                                                  | (a) nilai+absensi; (b) + tagihan; (c) + izin/sakit                        | **(a) nilai+absensi read-only; tagihan tampil saat modul keuangan live; izin anak opsional** — keputusan FINAL (A3-1) [master §10 Q8]                                                                                                                              |
+| 9   | Channel support pilot (G20)                                                                                                                                                                       | (a) WhatsApp+email; (b) helpdesk tiket                                    | **(a) WhatsApp/email** — support langsung untuk 1 sekolah [owner-v4.2]                                                                                                                                                                                             |
+| 10  | Payroll/gaji guru                                                                                                                                                                                 | (a) modul internal; (b) pihak ketiga; (c) di luar cakupan                 | **(a) modul internal, gelombang 2** — prd04 mencabut pilihan (c) [keputusan A3-2][§5.E]                                                                                                                                                                            |
+| 11  | Bahasa & mata uang UI                                                                                                                                                                             | Indonesia vs bilingual                                                    | **Bahasa Indonesia**; Rupiah [master §10 Q11]                                                                                                                                                                                                                      |
+| 12  | Siapa memverifikasi sekolah saat onboarding (G19)                                                                                                                                                 | — (keputusan single-school)                                               | **N/A (single-school):** setup awal aplikasi dilakukan SUPERADMIN (admin sistem); tanpa verifikasi antar-sekolah [owner-v4.2]                                                                                                                                      |
+| 13  | Model fee payment gateway                                                                                                                                                                         | (a) sekolah tanggung MDR; (b) ditambahkan nominal ke tagihan; (c) hibrida | **Open — diputuskan sebelum aktivasi gateway pertama**; default sementara (a) dengan transparansi ke sekolah [riset-06 Topik 8]                                                                                                                                    |
+| 14  | Validasi isi Permendikbud 44/2012 & 75/2016                                                                                                                                                       | —                                                                         | **TERTUTUP:** isi Permen 44/2012 & 75/2016 mendukung posisi 'negeri = iuran komite/transparansi, SPP swasta' (nuansa: 44/2012 tekstual untuk dikdas; prinsip lintas jenjang) [riset-06 Topik 11]                                                                   |
+| 15  | Tabel TER resmi PMK 168/2023 & regulasi honor guru non-ASN                                                                                                                                        | —                                                                         | **SEBAGIAN TERTUTUP:** struktur TER A/B/C + TER harian + DPP 50% honorarium + PNS final 15% terkonfirmasi [riset-06 Topik 12]; tabel penuh ambil PDF PMK 168/2023 saat build; juknis BOS/APBD per tahun ajaran tetap open item                                     |
+| 16  | KYC gateway untuk sekolah/yayasan                                                                                                                                                                 | —                                                                         | **TERTUTUP (dokumen):** KYC = akta + SK Kemenkumham/AHU + NPWP + NIB + rekening atas nama yayasan + web aktif [riset-06 Topik 13]; waktu aktivasi konfirmasi vendor saat fitur diaktifkan                                                                          |
+| 17  | Ketentuan fiskal penyusutan (kelompok harta)                                                                                                                                                      | —                                                                         | **TERTUTUP:** PMK 72/2023 — Kelompok 1–4 (4/8/16/20 th) + bangunan (20/10 th); default Kelompok 3 [riset-06 Topik 14]                                                                                                                                              |
+| 18  | Jadwal retensi data per kategori                                                                                                                                                                  | Default 60 bulan (5 tahun)                                                | **Konfigurasi aplikasi**; disepakati dengan sekolah pilot; bukan klaim UU [riset-06 Topik 1]                                                                                                                                                                       |
+| 19  | Ambang alpa dashboard kedisiplinan                                                                                                                                                                | Default 3/bulan                                                           | Konfigurasi per sekolah [v2 §3.2][ux-07]                                                                                                                                                                                                                           |
+| 20  | Cakupan "sederajat" — apakah termasuk MA (Madrasah Aliyah/Kemenag)?                                                                                                                               | (a) hanya SMA/SMK; (b) + MA                                               | **DITETAPKAN [owner]: (a) hanya SMA/SMK di MVP**; MA = kondisional/ekspansi (ekosistem Kemenag: EMIS/KMA/RDM — riset-06 Topik 15); validasi 1–2 madrasah riil sebelum berjanji                                                                                     |
+| 21  | Rollover tahun ajaran (naik kelas, kelulusan, re-enrollment, arsip nilai)                                                                                                                         | (a) dirancang sebelum gelombang 2; (b) nanti                              | **SELESAI — didesain di §5.R** (menutup gap; task M-ROLLOVER-T1..T6)                                                                                                                                                                                               |
+| 22  | Multi-kampus/beberapa NPSN dalam satu akun sekolah                                                                                                                                                | (a) 1 sekolah = 1 NPSN; (b) multi-NPSN                                    | **Open**; desain awal: 1 sekolah = 1 NPSN (perluasan nanti) [owner-v4.1]                                                                                                                                                                                           |
+| 23  | Skala total SaaS (lintas sekolah)                                                                                                                                                                 | — (keputusan single-school)                                               | **TIDAK RELEVAN:** skala = 500–3.000 user dalam 1 sekolah [owner-v4.2]                                                                                                                                                                                             |
+| 24  | e-Rapor P5 di MVP seberapa dalam                                                                                                                                                                  | (a) wadah manual; (b) penilaian penuh                                     | **"Wadah manual dulu; penilaian penuh gelombang 3"** (rekomendasi) [owner-v4.1]                                                                                                                                                                                    |
+| 25  | Reset password tanpa email/SMS                                                                                                                                                                    | (a) via OPERATOR; (b) tautan email                                        | **SELESAI: oleh OPERATOR** (§5.P) [owner-v4.1]                                                                                                                                                                                                                     |
+| 26  | Apakah gateway payment tetap direncanakan sebagai opsional?                                                                                                                                       | (a) ya, opsional; (b) wajib                                               | **Ya, opsional flag OFF default** (§5.F.7, §5.O) [owner-v4.1]                                                                                                                                                                                                      |
 
 ---
 
@@ -1018,185 +1019,185 @@ Perluasan [master §10] + pertanyaan baru prd04. Setiap item: pertanyaan → ops
 
 ### 14.1 Tabel Gap Register (30 gap dari audit prd01–03 → penanganan di prd04)
 
-| # | Kategori | Gap (ringkasan audit) | Sumber | Penanganan di prd04 |
-|---|----------|-----------------------|--------|---------------------|
-| A1-1 | A1 belum ada | Payroll ditunda (prd02 §4.4; [master] §4 "di luar cakupan") | prd02:130 | **DICABUT** — modul penuh didesain di §5.E, gelombang 2 |
-| A1-2 | A1 belum ada | Manajemen aset hanya inventaris+booking; tanpa depresiasi/maintenance/audit | prd02 §4.5 | §5.G — depresiasi garis lurus, maintenance, opname |
-| A1-3 | A1 belum ada | Pembayaran belum lengkap (gateway, cicilan, denda, refund, rekonsiliasi) | v1 §5.5 | §5.F — desain penuh + roadmap gateway |
-| A1-4 | A1 belum ada | RBAC hanya role-based, belum permission-based | prd01 §5.1 | §4 — permission + hierarki + scope |
-| A1-5 | A1 belum ada | Role "operator" (TU) & "wali murid" (ortu aktif) belum konsisten | v1/v2/v3 | §3.1–3.2 — role standar + migrasi |
-| A1-6 | A1 belum ada | Kalender terpadu (G24) belum desain | v3 G24 | §5.A.9 — dasar MVP, terpadu gelombang 2 |
-| A1-7 | A1 belum ada | P5 (G2) & asesmen diagnostik (G3) belum desain | v3 G2/G3 | §5.B + §5.A.8 dua-track; gelombang 3 |
-| A1-8 | A1 belum ada | Model pengelolaan/deployment aplikasi belum konkret (G18) | v3 G18 | §5.M superadmin; §13 Q1; G18 TIDAK RELEVAN (single-school) [owner-v4.2] |
-| A1-9 | A1 belum ada | Helpdesk (G20) belum konkret | v3 G20 | §5.M + M-SUPPORT; §13 Q9 |
-| A2-1 | A2 struktur | Fokus inti LMS tidak ditegaskan | prd01/02 | §2.2 posisi + §5.0 prinsip prioritas |
-| A2-2 | A2 struktur | Positioning super-app tidak eksplisit | prd01/02 | §2.2 + §1 |
-| A2-3 | A2 struktur | Target performa tipis (tanpa p95/CWV/strategi) | v1 §7 | §6 + §7.1 CWV |
-| A2-4 | A2 struktur | Tidak ada strategi algoritma/efisiensi | — | §7.2–7.3 |
-| A2-5 | A2 struktur | Tidak ada model deployment/setup mudah | — | §8.4 + §9 |
-| A2-6 | A2 struktur | Kapasitas/beban tidak terdefinisi | — | §2.4 (500–3.000 user) + §6 |
-| A2-7 | A2 struktur | Metrik hanya fokus guru | v1 §11 | §12 multi-stakeholder |
-| A3-1 | A3 inkonsistensi | Status portal ortu berubah 3× | v1 §9 / v2 §4.9 / [master] | **FINAL: MVP read-only** (§5.J, §13 Q8) |
-| A3-2 | A3 inkonsistensi | Payroll ditunda vs wajib | prd02 vs kebutuhan | **MENCABUT penundaan** (§5.E, §13 Q10) |
-| A3-3 | A3 inkonsistensi | Format rapor tidak konsisten | v2/v3 | **FINAL: dua-track mapel + P5** (§5.A.8) [riset-06 Topik 3] |
-| A3-4 | A3 inkonsistensi | Role naming tidak seragam (TU/operator, Waka/wakepsek, wali kelas/wali murid) | semua PRD | §3.2 mapping + migrasi; WALI_KELAS dihapus |
-| A3-5 | A3 inkonsistensi | Akses BK berbeda antar dokumen | v2 §4.2 / [master] | **FINAL: GURU_BK/WAKEPSEK/KEPSEK** (§5.C) |
-| A3-6 | A3 inkonsistensi | Kategori aset tidak konsisten | prd02 §4.5 / ERD 03 | §5.G.1 — 6 kategori final |
-| A3-7 | A3 inkonsistensi | Target SMA vs SMK belum final | v1 judul / v3 | §2.4 + §13 Q2 — SMA dulu, SMK kondisional |
-| A3-8 | A3 inkonsistensi | Laporan RAB vs arus kas | v2 §4.7 | **FINAL: fokus arus kas** (§5.F.6) |
-| A3-9 | A3 inkonsistensi | Definisi MVP: absensi QR/ujian online/e-Rapor ditetapkan SANGAT DIREKOMENDASIKAN (turun dari WAJIB di 01-master) | 01-master | **Keputusan fokus LMS disetujui pemilik produk** — dicatat agar tidak ada ekspektasi berbeda (§10, §5.0) |
-| A4-1 | A4 NFR | Aksesibilitas hanya PPDB | v1 §7 | **WCAG AA bertahap seluruh halaman** (§6) |
-| A4-2 | A4 NFR | Offline-first belum matang | v3 G10 | **FINAL: queue absensi QR + cache materi = MVP; PWA penuh ditunda** (§6) |
-| A4-3 | A4 NFR | Kepatuhan data anak belum operasional | v3 G12/G13 | §6 — retensi per kategori, consent bukti, AuditLog penuh [riset-06 Topik 1] |
-| A4-4 | A4 NFR | Observability tanpa SLO kuantitatif | v3 G7 | §6 + §8.2 — SLO uptime/p95/error rate |
-| A4-5 | A4 NFR | Proctoring webcam belum diputus | v2 §2.2d | **DITUNDA** — data biometrik spesifik PDP (§5.A.6) [riset-06 Topik 6] |
+| #    | Kategori         | Gap (ringkasan audit)                                                                                            | Sumber                     | Penanganan di prd04                                                                                      |
+| ---- | ---------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| A1-1 | A1 belum ada     | Payroll ditunda (prd02 §4.4; [master] §4 "di luar cakupan")                                                      | prd02:130                  | **DICABUT** — modul penuh didesain di §5.E, gelombang 2                                                  |
+| A1-2 | A1 belum ada     | Manajemen aset hanya inventaris+booking; tanpa depresiasi/maintenance/audit                                      | prd02 §4.5                 | §5.G — depresiasi garis lurus, maintenance, opname                                                       |
+| A1-3 | A1 belum ada     | Pembayaran belum lengkap (gateway, cicilan, denda, refund, rekonsiliasi)                                         | v1 §5.5                    | §5.F — desain penuh + roadmap gateway                                                                    |
+| A1-4 | A1 belum ada     | RBAC hanya role-based, belum permission-based                                                                    | prd01 §5.1                 | §4 — permission + hierarki + scope                                                                       |
+| A1-5 | A1 belum ada     | Role "operator" (TU) & "wali murid" (ortu aktif) belum konsisten                                                 | v1/v2/v3                   | §3.1–3.2 — role standar + migrasi                                                                        |
+| A1-6 | A1 belum ada     | Kalender terpadu (G24) belum desain                                                                              | v3 G24                     | §5.A.9 — dasar MVP, terpadu gelombang 2                                                                  |
+| A1-7 | A1 belum ada     | P5 (G2) & asesmen diagnostik (G3) belum desain                                                                   | v3 G2/G3                   | §5.B + §5.A.8 dua-track; gelombang 3                                                                     |
+| A1-8 | A1 belum ada     | Model pengelolaan/deployment aplikasi belum konkret (G18)                                                        | v3 G18                     | §5.M superadmin; §13 Q1; G18 TIDAK RELEVAN (single-school) [owner-v4.2]                                  |
+| A1-9 | A1 belum ada     | Helpdesk (G20) belum konkret                                                                                     | v3 G20                     | §5.M + M-SUPPORT; §13 Q9                                                                                 |
+| A2-1 | A2 struktur      | Fokus inti LMS tidak ditegaskan                                                                                  | prd01/02                   | §2.2 posisi + §5.0 prinsip prioritas                                                                     |
+| A2-2 | A2 struktur      | Positioning super-app tidak eksplisit                                                                            | prd01/02                   | §2.2 + §1                                                                                                |
+| A2-3 | A2 struktur      | Target performa tipis (tanpa p95/CWV/strategi)                                                                   | v1 §7                      | §6 + §7.1 CWV                                                                                            |
+| A2-4 | A2 struktur      | Tidak ada strategi algoritma/efisiensi                                                                           | —                          | §7.2–7.3                                                                                                 |
+| A2-5 | A2 struktur      | Tidak ada model deployment/setup mudah                                                                           | —                          | §8.4 + §9                                                                                                |
+| A2-6 | A2 struktur      | Kapasitas/beban tidak terdefinisi                                                                                | —                          | §2.4 (500–3.000 user) + §6                                                                               |
+| A2-7 | A2 struktur      | Metrik hanya fokus guru                                                                                          | v1 §11                     | §12 multi-stakeholder                                                                                    |
+| A3-1 | A3 inkonsistensi | Status portal ortu berubah 3×                                                                                    | v1 §9 / v2 §4.9 / [master] | **FINAL: MVP read-only** (§5.J, §13 Q8)                                                                  |
+| A3-2 | A3 inkonsistensi | Payroll ditunda vs wajib                                                                                         | prd02 vs kebutuhan         | **MENCABUT penundaan** (§5.E, §13 Q10)                                                                   |
+| A3-3 | A3 inkonsistensi | Format rapor tidak konsisten                                                                                     | v2/v3                      | **FINAL: dua-track mapel + P5** (§5.A.8) [riset-06 Topik 3]                                              |
+| A3-4 | A3 inkonsistensi | Role naming tidak seragam (TU/operator, Waka/wakepsek, wali kelas/wali murid)                                    | semua PRD                  | §3.2 mapping + migrasi; WALI_KELAS dihapus                                                               |
+| A3-5 | A3 inkonsistensi | Akses BK berbeda antar dokumen                                                                                   | v2 §4.2 / [master]         | **FINAL: GURU_BK/WAKEPSEK/KEPSEK** (§5.C)                                                                |
+| A3-6 | A3 inkonsistensi | Kategori aset tidak konsisten                                                                                    | prd02 §4.5 / ERD 03        | §5.G.1 — 6 kategori final                                                                                |
+| A3-7 | A3 inkonsistensi | Target SMA vs SMK belum final                                                                                    | v1 judul / v3              | §2.4 + §13 Q2 — SMA dulu, SMK kondisional                                                                |
+| A3-8 | A3 inkonsistensi | Laporan RAB vs arus kas                                                                                          | v2 §4.7                    | **FINAL: fokus arus kas** (§5.F.6)                                                                       |
+| A3-9 | A3 inkonsistensi | Definisi MVP: absensi QR/ujian online/e-Rapor ditetapkan SANGAT DIREKOMENDASIKAN (turun dari WAJIB di 01-master) | 01-master                  | **Keputusan fokus LMS disetujui pemilik produk** — dicatat agar tidak ada ekspektasi berbeda (§10, §5.0) |
+| A4-1 | A4 NFR           | Aksesibilitas hanya PPDB                                                                                         | v1 §7                      | **WCAG AA bertahap seluruh halaman** (§6)                                                                |
+| A4-2 | A4 NFR           | Offline-first belum matang                                                                                       | v3 G10                     | **FINAL: queue absensi QR + cache materi = MVP; PWA penuh ditunda** (§6)                                 |
+| A4-3 | A4 NFR           | Kepatuhan data anak belum operasional                                                                            | v3 G12/G13                 | §6 — retensi per kategori, consent bukti, AuditLog penuh [riset-06 Topik 1]                              |
+| A4-4 | A4 NFR           | Observability tanpa SLO kuantitatif                                                                              | v3 G7                      | §6 + §8.2 — SLO uptime/p95/error rate                                                                    |
+| A4-5 | A4 NFR           | Proctoring webcam belum diputus                                                                                  | v2 §2.2d                   | **DITUNDA** — data biometrik spesifik PDP (§5.A.6) [riset-06 Topik 6]                                    |
 
 ### 14.2 Coverage kebutuhan pemilik produk (16 item → seksi prd04)
 
-| # | Kebutuhan pemilik produk | Seksi prd04 yang mencakup |
-|---|--------------------------|---------------------------|
-| 1 | openlms = SUPER-APP untuk SMA/SMK/sederajat | §1, §2.1–2.2, §2.4, §5.0 |
-| 2 | FOKUS INTI = LMS (kelas, materi, tugas, kuis, ujian online, bank soal, penilaian, rapor, absensi, kalender, live class — DITUNDA, §5.A.10); modul lain penunjang | §2.2, §5.A.1–5.A.10, §5.0 prinsip |
-| 3 | RBAC PENUH (role superadmin, operator, kepsek, wakepsek, guru, siswa, wali murid + keuangan, GURU_BK, calon siswa, pembimbing industri, penguji eksternal) — permission-based + hierarki + scope | §3.1–3.3, §4.1–4.6 |
-| 4 | PENGGALIAN (payroll): master komponen gaji, payroll run bulanan berbasis kehadiran, slip digital, PPh 21 (TER), BPJS, laporan, batas akses | §5.E.1–5.E.5, §7.3, §10 W2-PAYROLL, §13 Q10 |
-| 5 | MANAJEMEN ASET: inventaris, kategori, depresiasi garis lurus, peminjaman/booking, pemeliharaan, audit/opname | §5.G.1–5.G.3, §7.3 |
-| 6 | PEMBAYARAN lengkap: SPP & tagihan multi-jenis, jadwal otomatis, cicilan/parsial, denda otomatis, refund, bukti & verifikasi, rekonsiliasi, arus kas, roadmap gateway QRIS/VA | §5.F.1–5.F.7, §7.3, §10 W2-PAYMENT, §13 Q13 |
-| 7 | Analisis sampai titik terkecil; algoritma tercepat/tercanggih/efisien & mudah di-develop/debug | §7.2–7.4, §5.G.2 (depresiasi on-demand), §5.E.2 (payroll async) |
-| 8 | Infrastruktur terbaik; ringan, cepat, efisien (4G, kuota terbatas, 500–3000 user/sekolah) | §2.4, §6, §7, §8.1–8.4 |
-| 9 | Mudah digunakan & mudah setup (wizard onboarding, template impor, dokumentasi non-teknis) | §9.1–9.4, §5.D |
-| 10 | Tanpa kesalahan; profesional; bahasa Indonesia | §1, §6 (bahasa & budaya), §14.1 (30 gap dituntaskan), kualitas dokumen |
-| 11 | Feature flags kustomisasi global oleh SUPERADMIN (1 sekolah) | §5.N |
-| 12 | Satu metode login (Email/Username + Password) | §5.P, §5.M |
-| 13 | No third-party API — full ekosistem | §5.O, §5.A.10, §5.F.7, §8.1 |
-| 14 | Mudah dipakai semua kalangan | §5.Q, §6, §9 |
-| 15 | Fokus keamanan & data | §5.P, §6, §8.3 |
-| 16 | Aplikasi SATU sekolah (tanpa multi-tenant) | §2, §3, §4, §5.M, §5.N, §6, §8 |
+| #   | Kebutuhan pemilik produk                                                                                                                                                                         | Seksi prd04 yang mencakup                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| 1   | openlms = SUPER-APP untuk SMA/SMK/sederajat                                                                                                                                                      | §1, §2.1–2.2, §2.4, §5.0                                               |
+| 2   | FOKUS INTI = LMS (kelas, materi, tugas, kuis, ujian online, bank soal, penilaian, rapor, absensi, kalender, live class — DITUNDA, §5.A.10); modul lain penunjang                                 | §2.2, §5.A.1–5.A.10, §5.0 prinsip                                      |
+| 3   | RBAC PENUH (role superadmin, operator, kepsek, wakepsek, guru, siswa, wali murid + keuangan, GURU_BK, calon siswa, pembimbing industri, penguji eksternal) — permission-based + hierarki + scope | §3.1–3.3, §4.1–4.6                                                     |
+| 4   | PENGGALIAN (payroll): master komponen gaji, payroll run bulanan berbasis kehadiran, slip digital, PPh 21 (TER), BPJS, laporan, batas akses                                                       | §5.E.1–5.E.5, §7.3, §10 W2-PAYROLL, §13 Q10                            |
+| 5   | MANAJEMEN ASET: inventaris, kategori, depresiasi garis lurus, peminjaman/booking, pemeliharaan, audit/opname                                                                                     | §5.G.1–5.G.3, §7.3                                                     |
+| 6   | PEMBAYARAN lengkap: SPP & tagihan multi-jenis, jadwal otomatis, cicilan/parsial, denda otomatis, refund, bukti & verifikasi, rekonsiliasi, arus kas, roadmap gateway QRIS/VA                     | §5.F.1–5.F.7, §7.3, §10 W2-PAYMENT, §13 Q13                            |
+| 7   | Analisis sampai titik terkecil; algoritma tercepat/tercanggih/efisien & mudah di-develop/debug                                                                                                   | §7.2–7.4, §5.G.2 (depresiasi on-demand), §5.E.2 (payroll async)        |
+| 8   | Infrastruktur terbaik; ringan, cepat, efisien (4G, kuota terbatas, 500–3000 user/sekolah)                                                                                                        | §2.4, §6, §7, §8.1–8.4                                                 |
+| 9   | Mudah digunakan & mudah setup (wizard onboarding, template impor, dokumentasi non-teknis)                                                                                                        | §9.1–9.4, §5.D                                                         |
+| 10  | Tanpa kesalahan; profesional; bahasa Indonesia                                                                                                                                                   | §1, §6 (bahasa & budaya), §14.1 (30 gap dituntaskan), kualitas dokumen |
+| 11  | Feature flags kustomisasi global oleh SUPERADMIN (1 sekolah)                                                                                                                                     | §5.N                                                                   |
+| 12  | Satu metode login (Email/Username + Password)                                                                                                                                                    | §5.P, §5.M                                                             |
+| 13  | No third-party API — full ekosistem                                                                                                                                                              | §5.O, §5.A.10, §5.F.7, §8.1                                            |
+| 14  | Mudah dipakai semua kalangan                                                                                                                                                                     | §5.Q, §6, §9                                                           |
+| 15  | Fokus keamanan & data                                                                                                                                                                            | §5.P, §6, §8.3                                                         |
+| 16  | Aplikasi SATU sekolah (tanpa multi-tenant)                                                                                                                                                       | §2, §3, §4, §5.M, §5.N, §6, §8                                         |
 
 ### 14.3 Coverage dokumen prd01–03 & dokumen pendukung → seksi prd04
 
-| Dokumen | Isi kunci | Seksi prd04 yang memuat / status |
-|---------|-----------|----------------------------------|
-| prd01 (v1.0) | 9 role, 7 modul, arsitektur monorepo, NFR, roadmap Fase 0–6, metrik | §3 (role diperluas), §5 (modul diadopsi), §6–8 (NFR/arsitektur dirujuk), §10 (roadmap), §12 (metrik diperluas) |
-| prd02 (v2.0) | Ujian online, absensi online, peta modul menyeluruh, NFR tambahan, roadmap eksekusi | §5.A.6–5.A.7 (ujian/absensi), §5.B–5.M (peta modul), §6 (NFR), §10 (M-ABSQR/M-EXAM) |
-| prd03 (v3.0) | 24 gap G1–G24, fondasi teknis (G6–G13), modul SMK, Dapodik | §6 (NFR G6–G13), §5.L (SMK), §14.1 (gap register), Lampiran A (G1–G24) |
-| 01-master-prd | MVP final, roadmap F0–17, NFR konsolidasi, risiko, metrik, open questions | §10 (roadmap), §6 (NFR), §11 (risiko), §12 (metrik), §13 (open questions) |
-| 02-technical-architecture | Arsitektur, ADR, observability, backup/DR, security | §4.4 (guard), §7 (performa), §8 (infrastruktur) — dirujuk, tidak diubah |
-| 03-database-erd | 61 entitas (56 + 4 platform baru + Alumni), enum, index, RLS | §4.3 (RBAC data), §5 (entitas per modul), §6–7 (index/RLS) — dirujuk; catatan: enum Role diperbarui §3.1 |
-| 04-api-contract | Endpoint, RBAC matrix, contoh payload | §4.5 (RBAC matrix diadopsi + penyesuaian), §5 (alur per modul) — dirujuk |
-| 05-implementation-plan | Task F0–F2, M-*, DEFER | §10 (roadmap + pintu keluar) — dirujuk |
-| 06-research-validations | UU PDP, Dapodik, Kurikulum Merdeka, payroll (PPh 21 TER/BPJS), gateway (QRIS/VA), aset & depresiasi, performa (CWV/PWA), RLS + regulasi Topik 11–16 (Permen 44/2012 & 75/2016, TER PMK 168/2023, KYC gateway, fiskal PMK 72/2023, MA Kemenag, konkurensi/rate-limit OWASP) — Topik 1–16 | §5.E.3 (pajak/BPJS — Topik 7 & 12), §5.F.7 (gateway — Topik 8 & 13), §5.G.2 (aset — Topik 9 & 14), §6 (PDP — Topik 1; performa — Topik 10), §13 (open items — Topik 11–16) |
-| 07-ux-design | Desain UX/UI, wireframe, aksesibilitas, data-saver | §6 (aksesibilitas), §9 (wizard), §7 (data-saver) — dirujuk |
+| Dokumen                   | Isi kunci                                                                                                                                                                                                                                                                               | Seksi prd04 yang memuat / status                                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| prd01 (v1.0)              | 9 role, 7 modul, arsitektur monorepo, NFR, roadmap Fase 0–6, metrik                                                                                                                                                                                                                     | §3 (role diperluas), §5 (modul diadopsi), §6–8 (NFR/arsitektur dirujuk), §10 (roadmap), §12 (metrik diperluas)                                                             |
+| prd02 (v2.0)              | Ujian online, absensi online, peta modul menyeluruh, NFR tambahan, roadmap eksekusi                                                                                                                                                                                                     | §5.A.6–5.A.7 (ujian/absensi), §5.B–5.M (peta modul), §6 (NFR), §10 (M-ABSQR/M-EXAM)                                                                                        |
+| prd03 (v3.0)              | 24 gap G1–G24, fondasi teknis (G6–G13), modul SMK, Dapodik                                                                                                                                                                                                                              | §6 (NFR G6–G13), §5.L (SMK), §14.1 (gap register), Lampiran A (G1–G24)                                                                                                     |
+| 01-master-prd             | MVP final, roadmap F0–17, NFR konsolidasi, risiko, metrik, open questions                                                                                                                                                                                                               | §10 (roadmap), §6 (NFR), §11 (risiko), §12 (metrik), §13 (open questions)                                                                                                  |
+| 02-technical-architecture | Arsitektur, ADR, observability, backup/DR, security                                                                                                                                                                                                                                     | §4.4 (guard), §7 (performa), §8 (infrastruktur) — dirujuk, tidak diubah                                                                                                    |
+| 03-database-erd           | 61 entitas (56 + 4 platform baru + Alumni), enum, index, RLS                                                                                                                                                                                                                            | §4.3 (RBAC data), §5 (entitas per modul), §6–7 (index/RLS) — dirujuk; catatan: enum Role diperbarui §3.1                                                                   |
+| 04-api-contract           | Endpoint, RBAC matrix, contoh payload                                                                                                                                                                                                                                                   | §4.5 (RBAC matrix diadopsi + penyesuaian), §5 (alur per modul) — dirujuk                                                                                                   |
+| 05-implementation-plan    | Task F0–F2, M-*, DEFER                                                                                                                                                                                                                                                                  | §10 (roadmap + pintu keluar) — dirujuk                                                                                                                                     |
+| 06-research-validations   | UU PDP, Dapodik, Kurikulum Merdeka, payroll (PPh 21 TER/BPJS), gateway (QRIS/VA), aset & depresiasi, performa (CWV/PWA), RLS + regulasi Topik 11–16 (Permen 44/2012 & 75/2016, TER PMK 168/2023, KYC gateway, fiskal PMK 72/2023, MA Kemenag, konkurensi/rate-limit OWASP) — Topik 1–16 | §5.E.3 (pajak/BPJS — Topik 7 & 12), §5.F.7 (gateway — Topik 8 & 13), §5.G.2 (aset — Topik 9 & 14), §6 (PDP — Topik 1; performa — Topik 10), §13 (open items — Topik 11–16) |
+| 07-ux-design              | Desain UX/UI, wireframe, aksesibilitas, data-saver                                                                                                                                                                                                                                      | §6 (aksesibilitas), §9 (wizard), §7 (data-saver) — dirujuk                                                                                                                 |
 
 ### 14.4 Lampiran A — Disposisi Gap G1–G24 (dari prd03, dipetakan ke prd04)
 
-| Gap | Ringkasan | Status prd04 | Seksi |
-|-----|-----------|--------------|-------|
-| G1 | Modul SMK: PKL/UKK/DUDI | GELOMBANG 3, kondisional SMK | §5.L |
-| G2 | Projek P5 | GELOMBANG 3; wadah dua-track di MVP | §5.B, §5.A.8 |
-| G3 | Asesmen diagnostik | GELOMBANG 3 | §5.B |
-| G4 | Integrasi Dapodik/ANBK | GELOMBANG 2 (ekspor file) | §5.M |
-| G5 | Penjurusan & bimbingan karir | GELOMBANG 3 | §5.B |
-| G6 | Strategi testing | WAJIB MVP | §6, §10 F0/F2 |
-| G7 | Observability | WAJIB MVP + SLO | §6, §8.2 |
-| G8 | Backup & DR (RPO/RTO) | WAJIB MVP | §6, §8.1 |
-| G9 | Migrasi data onboarding | WAJIB MVP | §5.D, §9.1–9.2 |
-| G10 | Offline-first | MVP minimal (queue QR + cache materi); PWA penuh ditunda | §6, §7.2 |
-| G11 | Rate limiting & hardening | WAJIB MVP | §6, §8.3 |
-| G12 | Retensi & penghapusan data | WAJIB MVP | §6 |
-| G13 | Consent data anak | WAJIB MVP | §5.I, §6 |
-| G14 | Audit trail menyeluruh | WAJIB MVP (AuditLog generik) | §6 |
-| G15 | Aksesibilitas menyeluruh | WCAG AA bertahap seluruh halaman | §6 |
-| G16 | Mode hemat kuota/data-saver | MVP (kompresi server-side) | §6, §7.2 |
-| G17 | Gamifikasi/engagement | DITUNDA | §10 DEFER |
-| G18 | Model pengelolaan aplikasi (single-school) | TIDAK RELEVAN (single-school) [owner-v4.2] | §5.M, §13 Q1 |
-| G19 | Onboarding self-service terstruktur | WAJIB MVP (wizard 5 langkah) | §9.1 |
-| G20 | Support/helpdesk | MVP: WhatsApp/email — support langsung untuk 1 sekolah [owner-v4.2] | §5.M, §10 M-SUPPORT |
-| G21 | Dashboard analitik superadmin | GELOMBANG 2 | §5.M |
-| G22 | Deteksi kemiripan jawaban | DITUNDA | §10 DEFER |
-| G23 | Learning analytics guru | DITUNDA | §10 DEFER |
-| G24 | Kalender terpadu | Dasar per-modul MVP; terpadu gelombang 2 | §5.A.9 |
+| Gap | Ringkasan                                  | Status prd04                                                        | Seksi               |
+| --- | ------------------------------------------ | ------------------------------------------------------------------- | ------------------- |
+| G1  | Modul SMK: PKL/UKK/DUDI                    | GELOMBANG 3, kondisional SMK                                        | §5.L                |
+| G2  | Projek P5                                  | GELOMBANG 3; wadah dua-track di MVP                                 | §5.B, §5.A.8        |
+| G3  | Asesmen diagnostik                         | GELOMBANG 3                                                         | §5.B                |
+| G4  | Integrasi Dapodik/ANBK                     | GELOMBANG 2 (ekspor file)                                           | §5.M                |
+| G5  | Penjurusan & bimbingan karir               | GELOMBANG 3                                                         | §5.B                |
+| G6  | Strategi testing                           | WAJIB MVP                                                           | §6, §10 F0/F2       |
+| G7  | Observability                              | WAJIB MVP + SLO                                                     | §6, §8.2            |
+| G8  | Backup & DR (RPO/RTO)                      | WAJIB MVP                                                           | §6, §8.1            |
+| G9  | Migrasi data onboarding                    | WAJIB MVP                                                           | §5.D, §9.1–9.2      |
+| G10 | Offline-first                              | MVP minimal (queue QR + cache materi); PWA penuh ditunda            | §6, §7.2            |
+| G11 | Rate limiting & hardening                  | WAJIB MVP                                                           | §6, §8.3            |
+| G12 | Retensi & penghapusan data                 | WAJIB MVP                                                           | §6                  |
+| G13 | Consent data anak                          | WAJIB MVP                                                           | §5.I, §6            |
+| G14 | Audit trail menyeluruh                     | WAJIB MVP (AuditLog generik)                                        | §6                  |
+| G15 | Aksesibilitas menyeluruh                   | WCAG AA bertahap seluruh halaman                                    | §6                  |
+| G16 | Mode hemat kuota/data-saver                | MVP (kompresi server-side)                                          | §6, §7.2            |
+| G17 | Gamifikasi/engagement                      | DITUNDA                                                             | §10 DEFER           |
+| G18 | Model pengelolaan aplikasi (single-school) | TIDAK RELEVAN (single-school) [owner-v4.2]                          | §5.M, §13 Q1        |
+| G19 | Onboarding self-service terstruktur        | WAJIB MVP (wizard 5 langkah)                                        | §9.1                |
+| G20 | Support/helpdesk                           | MVP: WhatsApp/email — support langsung untuk 1 sekolah [owner-v4.2] | §5.M, §10 M-SUPPORT |
+| G21 | Dashboard analitik superadmin              | GELOMBANG 2                                                         | §5.M                |
+| G22 | Deteksi kemiripan jawaban                  | DITUNDA                                                             | §10 DEFER           |
+| G23 | Learning analytics guru                    | DITUNDA                                                             | §10 DEFER           |
+| G24 | Kalender terpadu                           | Dasar per-modul MVP; terpadu gelombang 2                            | §5.A.9              |
 
 ### 14.5 Register Keputusan Pemilik Produk v4.1 & v4.2
 
-| # | Keputusan | Seksi prd04 | Status |
-|---|-----------|-------------|--------|
-| 1 | Feature flags global oleh SUPERADMIN (1 sekolah) | §5.N | DITETAPKAN |
-| 2 | Satu metode login (Email/Username + Password) | §5.P | DITETAPKAN |
-| 3 | No third-party feature API (ekosistem penuh) | §5.O | DITETAPKAN |
-| 4 | Usability semua kalangan | §5.Q | DITETAPKAN |
-| 5 | Fokus keamanan | §5.P/§6/§8.3 | DITETAPKAN |
-| 6 | Aplikasi SATU sekolah (tanpa multi-tenant/multi-sekolah/user multi-sekolah) | §2, §3, §4, §5.M, §5.N, §6, §8, §10 | DITETAPKAN [owner-v4.2] |
-| 7 | Model pengelolaan: dikelola penyedia (a), on-premise cadangan | §13 Q1 | DITETAPKAN |
-| 8 | Cakupan pasar: SMA/SMK di MVP; MA kondisional | §13 Q20 | DITETAPKAN |
+| #   | Keputusan                                                                   | Seksi prd04                         | Status                  |
+| --- | --------------------------------------------------------------------------- | ----------------------------------- | ----------------------- |
+| 1   | Feature flags global oleh SUPERADMIN (1 sekolah)                            | §5.N                                | DITETAPKAN              |
+| 2   | Satu metode login (Email/Username + Password)                               | §5.P                                | DITETAPKAN              |
+| 3   | No third-party feature API (ekosistem penuh)                                | §5.O                                | DITETAPKAN              |
+| 4   | Usability semua kalangan                                                    | §5.Q                                | DITETAPKAN              |
+| 5   | Fokus keamanan                                                              | §5.P/§6/§8.3                        | DITETAPKAN              |
+| 6   | Aplikasi SATU sekolah (tanpa multi-tenant/multi-sekolah/user multi-sekolah) | §2, §3, §4, §5.M, §5.N, §6, §8, §10 | DITETAPKAN [owner-v4.2] |
+| 7   | Model pengelolaan: dikelola penyedia (a), on-premise cadangan               | §13 Q1                              | DITETAPKAN              |
+| 8   | Cakupan pasar: SMA/SMK di MVP; MA kondisional                               | §13 Q20                             | DITETAPKAN              |
 
 ### 14.6 Register Ambiguitas (dari pembacaan ulang semua PRD)
 
-| # | Item ambigu/tidak jelas | Status (DITETAPKAN / OPEN) | Resolusi/seksi |
-|---|-------------------------|----------------------------|----------------|
-| 1 | Metode login ganda | DITETAPKAN: 1 metode | §5.P |
-| 2 | Ketergantungan third-party | DITETAPKAN: ekosistem penuh | §5.O |
-| 3 | Feature flags belum dirancang | DITETAPKAN | §5.N |
-| 4 | "Sederajat" termasuk MA? | **DITETAPKAN: SMA/SMK di MVP; MA kondisional [owner]** | Q20 |
-| 5 | Rollover tahun ajaran | **DITETAPKAN: didesain di §5.R; task M-ROLLOVER-T1..T6** | Q21 |
-| 6 | Multi-kampus/NPSN | OPEN | Q22 |
-| 7 | User multi-sekolah (switcher UI) | **DITETAPKAN: tidak ada multi-sekolah [owner-v4.2]** — tanpa school switcher; sinkronisasi 04-api-contract & 07-ux-design (§16.3) | §5.P |
-| 8 | Reset password tanpa email/SMS | DITETAPKAN: via OPERATOR | §5.P |
-| 9 | Skala total SaaS | **DITETAPKAN: single-school [owner-v4.2]** — skala = 500–3.000 user dalam 1 sekolah | Q23 |
-| 10 | e-Rapor P5 MVP | DITETAPKAN (rekomendasi disetujui): wadah manual di MVP; penilaian penuh gelombang 3 | Q24 |
-| 11–16 | Open items regulasi (TER, Permen, KYC, fiskal, rate-limit, konkurensi) | **Q4/Q7/Q14/Q16/Q17 DITETAPKAN; Q15 SEBAGIAN** | Q4, Q7, Q14–Q17 (riset-06 Topik 11–16) |
-| 17 | Retensi data (Q18) | DITETAPKAN: konfigurasi aplikasi (default 60 bulan, bukan klaim UU); disepakati dengan sekolah pilot | Q18, §6 |
-| 18 | Billing SaaS (G18) & analitik lintas-sekolah (G21) | **TIDAK RELEVAN (single-school)** [owner-v4.2] | Q1, §5.M |
+| #     | Item ambigu/tidak jelas                                                | Status (DITETAPKAN / OPEN)                                                                                                        | Resolusi/seksi                         |
+| ----- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 1     | Metode login ganda                                                     | DITETAPKAN: 1 metode                                                                                                              | §5.P                                   |
+| 2     | Ketergantungan third-party                                             | DITETAPKAN: ekosistem penuh                                                                                                       | §5.O                                   |
+| 3     | Feature flags belum dirancang                                          | DITETAPKAN                                                                                                                        | §5.N                                   |
+| 4     | "Sederajat" termasuk MA?                                               | **DITETAPKAN: SMA/SMK di MVP; MA kondisional [owner]**                                                                            | Q20                                    |
+| 5     | Rollover tahun ajaran                                                  | **DITETAPKAN: didesain di §5.R; task M-ROLLOVER-T1..T6**                                                                          | Q21                                    |
+| 6     | Multi-kampus/NPSN                                                      | OPEN                                                                                                                              | Q22                                    |
+| 7     | User multi-sekolah (switcher UI)                                       | **DITETAPKAN: tidak ada multi-sekolah [owner-v4.2]** — tanpa school switcher; sinkronisasi 04-api-contract & 07-ux-design (§16.3) | §5.P                                   |
+| 8     | Reset password tanpa email/SMS                                         | DITETAPKAN: via OPERATOR                                                                                                          | §5.P                                   |
+| 9     | Skala total SaaS                                                       | **DITETAPKAN: single-school [owner-v4.2]** — skala = 500–3.000 user dalam 1 sekolah                                               | Q23                                    |
+| 10    | e-Rapor P5 MVP                                                         | DITETAPKAN (rekomendasi disetujui): wadah manual di MVP; penilaian penuh gelombang 3                                              | Q24                                    |
+| 11–16 | Open items regulasi (TER, Permen, KYC, fiskal, rate-limit, konkurensi) | **Q4/Q7/Q14/Q16/Q17 DITETAPKAN; Q15 SEBAGIAN**                                                                                    | Q4, Q7, Q14–Q17 (riset-06 Topik 11–16) |
+| 17    | Retensi data (Q18)                                                     | DITETAPKAN: konfigurasi aplikasi (default 60 bulan, bukan klaim UU); disepakati dengan sekolah pilot                              | Q18, §6                                |
+| 18    | Billing SaaS (G18) & analitik lintas-sekolah (G21)                     | **TIDAK RELEVAN (single-school)** [owner-v4.2]                                                                                    | Q1, §5.M                               |
 
 ---
 
 ## 15. Glossary
 
-| Istilah | Arti |
-|---------|------|
-| **Super-app** | Satu platform yang memuat banyak layanan (LMS + SIS + keuangan + payroll + aset + PPDB + komunikasi) dengan satu akun & satu sumber data [§2.2] |
-| **Single-school** | Aplikasi untuk satu sekolah; tanpa multi-tenant, tanpa pemisahan data antar-sekolah [owner-v4.2][§2] |
-| **SUPERADMIN** | Admin sistem aplikasi sekolah (bukan penyedia SaaS) — pengaturan aplikasi, feature flags, manajemen user, audit, backup [§3.1] |
-| **LMS / SIS** | Learning Management System (pengelolaan pembelajaran) / School Information System (informasi operasional sekolah) [v1 §1] |
-| **RBAC permission-based** | Kontrol akses berbasis izin `resource:action[:scope]`, bukan hanya label role [§4] |
-| **Scope RBAC** | Batas data: SENDIRI / KELAS / SEKOLAH [§4.1] |
-| **UserPermissionOverride** | Pengecualian izin individual (ALLOW/DENY) yang diaudit [§4.3] |
-| **Payroll run** | Proses penghitungan gaji bulanan: DRAFT → hitung → validasi → approval → PAID [§5.E.2] |
-| **Slip gaji digital** | Dokumen gaji per pegawai (pendapatan, potongan, beban pemberi kerja, net) [§5.E.4] |
-| **TER** | Tarif Efektif Rata-rata — skema PPh 21 (PP 58/2023 + PMK 168/2023); tarif & ceiling terkonfigurasi per periode [§5.E.3][riset-06 Topik 7] |
-| **BPJS Kesehatan / Ketenagakerjaan** | Program jaminan sosial: Kesehatan (PPU 5%: 4% + 1%); Ketenagakerjaan (JHT, JKK, JKM, JP, JKP) [§5.E.3][riset-06 Topik 7] |
-| **JTM** | Jam Tatap Muka — dasar honor mengajar variabel [§5.E.1] |
-| **UMP** | Upah Minimum Provinsi — batas validasi gaji (konfigurasi regional) [§5.E.2] |
-| **Depresiasi garis lurus** | Penyusutan aset: `nilai_buku = harga − (harga/masa_manfaat × bulan)`; dihitung saat laporan [§5.G.2][PSAK 16][riset-06 Topik 9] |
-| **Nilai buku** | Harga perolehan dikurangi akumulasi depresiasi [§5.G.2] |
-| **Opname aset** | Pencocokan fisik vs buku (audit aset berkala); selisih dicatat [§5.G.3] |
-| **Invoice / Tagihan** | Dokumen penagihan per siswa (SPP, uang kegiatan, dst.) [§5.F.1] |
-| **Payment allocation** | Pemetaan pembayaran ke invoice (parsial/cicilan) [§5.F.2] |
-| **Denda keterlambatan** | Denda otomatis per LateFeeRule (grace period, nominal/persen) [§5.F.3] |
-| **Refund** | Pengembalian pembayaran dengan approval & metode [§5.F.4] |
-| **Rekonsiliasi** | Pencocokan pembayaran vs mutasi bank → MATCHED/UNMATCHED [§5.F.5] |
-| **Arus kas** | Kas masuk/keluar & outstanding per periode [§5.F.6] |
-| **Payment gateway** | Layanan pembayaran digital (QRIS, VA) [§5.F.7] |
-| **QRIS / VA** | Quick Response Code Indonesian Standard / Virtual Account [§5.F.7] |
-| **MDR** | Merchant Discount Rate — biaya transaksi gateway (pendidikan 0,6%) [§5.F.7][riset-06 Topik 8] |
-| **CWV** | Core Web Vitals — LCP, INP, CLS (target §7.1) [riset-06 Topik 10] |
-| **LCP / INP / CLS** | Largest Contentful Paint / Interaction to Next Paint / Cumulative Layout Shift [§7.1] |
-| **PWA / IndexedDB** | Progressive Web App / penyimpanan lokal browser untuk offline queue [§7.2][tek-02 §10][riset-06 Topik 10] |
-| **Feature flag** | Saklar on/off fitur aplikasi, dikendalikan SUPERADMIN (admin sistem sekolah) [§5.N] |
-| **Argon2id** | Algoritma hash password (OWASP) — hash default autentikasi [§5.P] |
-| **Kebijakan Ekosistem Penuh** | Tanpa dependensi API/layanan pihak ketiga untuk fitur; infrastruktur boleh managed & swappable [§5.O] |
-| **SLO** | Service Level Objective — target kuantitatif (uptime ≥ 99%, p95 < 3 s, error < 1%) [§8.2] |
-| **RPO / RTO** | Recovery Point Objective (≤ 24 jam, target 15 mnt) / Recovery Time Objective (≤ 4 jam) [§6] |
-| **PITR** | Point-In-Time Recovery — pemulihan database ke titik waktu [§8.1] |
-| **Dapodik / ANBK** | Data Pokok Pendidikan / Asesmen Nasional Berbasis Komputer [riset-06 Topik 2] |
-| **CP / TP / ATP** | Capaian Pembelajaran / Tujuan Pembelajaran / Alur Tujuan Pembelajaran (Kurikulum Merdeka) [riset-06 Topik 3] |
-| **P5** | Projek Penguatan Profil Pelajar Pancasila (rapor terpisah) [riset-06 Topik 3] |
-| **UU PDP** | Undang-Undang Pelindungan Data Pribadi (No. 27/2022) [riset-06 Topik 1] |
-| **DPIA** | Data Protection Impact Assessment — penilaian dampak pemrosesan risiko tinggi [riset-06 Topik 1] |
-| **Homeroom / wali kelas** | Guru penanggung jawab kelas — via `Class.homeroom_teacher_id`, bukan role [§3.1, §4] |
-| **PKL / UKK / DUDI** | Praktik Kerja Lapangan / Uji Kompetensi Keahlian / Dunia Usaha-Dunia Industri [§5.L] |
-| **Rollover tahun ajaran** | Proses menutup tahun ajaran & menyiapkan tahun baru (naik kelas, kelulusan, arsip) [§5.R] |
-| **AcademicYear** | Entitas tahun ajaran (status OPEN/CLOSED) [§5.R] |
-| **Carry-over** | Invoice belum lunas yang diteruskan ke tahun ajaran baru [§5.R] |
+| Istilah                              | Arti                                                                                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Super-app**                        | Satu platform yang memuat banyak layanan (LMS + SIS + keuangan + payroll + aset + PPDB + komunikasi) dengan satu akun & satu sumber data [§2.2] |
+| **Single-school**                    | Aplikasi untuk satu sekolah; tanpa multi-tenant, tanpa pemisahan data antar-sekolah [owner-v4.2][§2]                                            |
+| **SUPERADMIN**                       | Admin sistem aplikasi sekolah (bukan penyedia SaaS) — pengaturan aplikasi, feature flags, manajemen user, audit, backup [§3.1]                  |
+| **LMS / SIS**                        | Learning Management System (pengelolaan pembelajaran) / School Information System (informasi operasional sekolah) [v1 §1]                       |
+| **RBAC permission-based**            | Kontrol akses berbasis izin `resource:action[:scope]`, bukan hanya label role [§4]                                                              |
+| **Scope RBAC**                       | Batas data: SENDIRI / KELAS / SEKOLAH [§4.1]                                                                                                    |
+| **UserPermissionOverride**           | Pengecualian izin individual (ALLOW/DENY) yang diaudit [§4.3]                                                                                   |
+| **Payroll run**                      | Proses penghitungan gaji bulanan: DRAFT → hitung → validasi → approval → PAID [§5.E.2]                                                          |
+| **Slip gaji digital**                | Dokumen gaji per pegawai (pendapatan, potongan, beban pemberi kerja, net) [§5.E.4]                                                              |
+| **TER**                              | Tarif Efektif Rata-rata — skema PPh 21 (PP 58/2023 + PMK 168/2023); tarif & ceiling terkonfigurasi per periode [§5.E.3][riset-06 Topik 7]       |
+| **BPJS Kesehatan / Ketenagakerjaan** | Program jaminan sosial: Kesehatan (PPU 5%: 4% + 1%); Ketenagakerjaan (JHT, JKK, JKM, JP, JKP) [§5.E.3][riset-06 Topik 7]                        |
+| **JTM**                              | Jam Tatap Muka — dasar honor mengajar variabel [§5.E.1]                                                                                         |
+| **UMP**                              | Upah Minimum Provinsi — batas validasi gaji (konfigurasi regional) [§5.E.2]                                                                     |
+| **Depresiasi garis lurus**           | Penyusutan aset: `nilai_buku = harga − (harga/masa_manfaat × bulan)`; dihitung saat laporan [§5.G.2][PSAK 16][riset-06 Topik 9]                 |
+| **Nilai buku**                       | Harga perolehan dikurangi akumulasi depresiasi [§5.G.2]                                                                                         |
+| **Opname aset**                      | Pencocokan fisik vs buku (audit aset berkala); selisih dicatat [§5.G.3]                                                                         |
+| **Invoice / Tagihan**                | Dokumen penagihan per siswa (SPP, uang kegiatan, dst.) [§5.F.1]                                                                                 |
+| **Payment allocation**               | Pemetaan pembayaran ke invoice (parsial/cicilan) [§5.F.2]                                                                                       |
+| **Denda keterlambatan**              | Denda otomatis per LateFeeRule (grace period, nominal/persen) [§5.F.3]                                                                          |
+| **Refund**                           | Pengembalian pembayaran dengan approval & metode [§5.F.4]                                                                                       |
+| **Rekonsiliasi**                     | Pencocokan pembayaran vs mutasi bank → MATCHED/UNMATCHED [§5.F.5]                                                                               |
+| **Arus kas**                         | Kas masuk/keluar & outstanding per periode [§5.F.6]                                                                                             |
+| **Payment gateway**                  | Layanan pembayaran digital (QRIS, VA) [§5.F.7]                                                                                                  |
+| **QRIS / VA**                        | Quick Response Code Indonesian Standard / Virtual Account [§5.F.7]                                                                              |
+| **MDR**                              | Merchant Discount Rate — biaya transaksi gateway (pendidikan 0,6%) [§5.F.7][riset-06 Topik 8]                                                   |
+| **CWV**                              | Core Web Vitals — LCP, INP, CLS (target §7.1) [riset-06 Topik 10]                                                                               |
+| **LCP / INP / CLS**                  | Largest Contentful Paint / Interaction to Next Paint / Cumulative Layout Shift [§7.1]                                                           |
+| **PWA / IndexedDB**                  | Progressive Web App / penyimpanan lokal browser untuk offline queue [§7.2][tek-02 §10][riset-06 Topik 10]                                       |
+| **Feature flag**                     | Saklar on/off fitur aplikasi, dikendalikan SUPERADMIN (admin sistem sekolah) [§5.N]                                                             |
+| **Argon2id**                         | Algoritma hash password (OWASP) — hash default autentikasi [§5.P]                                                                               |
+| **Kebijakan Ekosistem Penuh**        | Tanpa dependensi API/layanan pihak ketiga untuk fitur; infrastruktur boleh managed & swappable [§5.O]                                           |
+| **SLO**                              | Service Level Objective — target kuantitatif (uptime ≥ 99%, p95 < 3 s, error < 1%) [§8.2]                                                       |
+| **RPO / RTO**                        | Recovery Point Objective (≤ 24 jam, target 15 mnt) / Recovery Time Objective (≤ 4 jam) [§6]                                                     |
+| **PITR**                             | Point-In-Time Recovery — pemulihan database ke titik waktu [§8.1]                                                                               |
+| **Dapodik / ANBK**                   | Data Pokok Pendidikan / Asesmen Nasional Berbasis Komputer [riset-06 Topik 2]                                                                   |
+| **CP / TP / ATP**                    | Capaian Pembelajaran / Tujuan Pembelajaran / Alur Tujuan Pembelajaran (Kurikulum Merdeka) [riset-06 Topik 3]                                    |
+| **P5**                               | Projek Penguatan Profil Pelajar Pancasila (rapor terpisah) [riset-06 Topik 3]                                                                   |
+| **UU PDP**                           | Undang-Undang Pelindungan Data Pribadi (No. 27/2022) [riset-06 Topik 1]                                                                         |
+| **DPIA**                             | Data Protection Impact Assessment — penilaian dampak pemrosesan risiko tinggi [riset-06 Topik 1]                                                |
+| **Homeroom / wali kelas**            | Guru penanggung jawab kelas — via `Class.homeroom_teacher_id`, bukan role [§3.1, §4]                                                            |
+| **PKL / UKK / DUDI**                 | Praktik Kerja Lapangan / Uji Kompetensi Keahlian / Dunia Usaha-Dunia Industri [§5.L]                                                            |
+| **Rollover tahun ajaran**            | Proses menutup tahun ajaran & menyiapkan tahun baru (naik kelas, kelulusan, arsip) [§5.R]                                                       |
+| **AcademicYear**                     | Entitas tahun ajaran (status OPEN/CLOSED) [§5.R]                                                                                                |
+| **Carry-over**                       | Invoice belum lunas yang diteruskan ke tahun ajaran baru [§5.R]                                                                                 |
 
 ---
 
@@ -1204,37 +1205,37 @@ Perluasan [master §10] + pertanyaan baru prd04. Setiap item: pertanyaan → ops
 
 ### 16.1 Lampiran A — Mapping role lengkap (12 role → permission utama)
 
-| Role | Permission kunci (subset) | Scope |
-|------|---------------------------|-------|
-| SUPERADMIN | `system:write:school`, `monitor:read:school`, `featureflag:write:school`, `audit:read:school` | SEKOLAH |
-| KEPSEK | `report:read:school`, `cashflow:read:school`, `payroll:approve:school` (rekap), `counseling:read:class`, `audit:read:school` | SEKOLAH |
-| WAKEPSEK | `schedule:write:school`, `exam:write:school`, `exam:token:school`, `discipline:record:class` | SEKOLAH |
-| OPERATOR | `class:write:school`, `import:run:school`, `invitation:send:school`, `ppdb:verify:school`, `app:write:school` | SEKOLAH |
-| KEUANGAN | `invoice:write:school`, `payment:verify:school`, `refund:approve:school`, `reconciliation:run:school`, `payroll:write:school`, `payroll:run:school` | SEKOLAH |
-| GURU | `material:write:class`, `assignment:write:class`, `submission:grade:class`, `exam:token:class`, `attendance:session:write:class` | KELAS |
-| GURU_BK | `counseling:write:school`, `permit:verify:class`, `discipline:record:class` | SEKOLAH/KELAS |
-| SISWA | `submission:submit:self`, `exam:attempt:self`, `attendance:scan:self`, `material:read:class`, `invoice:read:self` (lihat status tagihan sendiri — sesuai prd01 §5.5) | SENDIRI/KELAS |
-| WALI_MURID | `report:read:self` (anak), `invoice:read:self` (anak), `permit:request:self` (anak) | SENDIRI |
-| CALON_SISWA | `ppdb:register:public` (via endpoint publik), `ppdb:read:self` | SENDIRI |
-| PEMBIMBING_INDUSTRI | `internship:journal:self`, `internship:grade:self` (siswa bimbingan) | SENDIRI |
-| PENGUJI_EKSTERNAL | `competency:grade:self` (penugasan) | SENDIRI |
+| Role                | Permission kunci (subset)                                                                                                                                            | Scope         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| SUPERADMIN          | `system:write:school`, `monitor:read:school`, `featureflag:write:school`, `audit:read:school`                                                                        | SEKOLAH       |
+| KEPSEK              | `report:read:school`, `cashflow:read:school`, `payroll:approve:school` (rekap), `counseling:read:class`, `audit:read:school`                                         | SEKOLAH       |
+| WAKEPSEK            | `schedule:write:school`, `exam:write:school`, `exam:token:school`, `discipline:record:class`                                                                         | SEKOLAH       |
+| OPERATOR            | `class:write:school`, `import:run:school`, `invitation:send:school`, `ppdb:verify:school`, `app:write:school`                                                        | SEKOLAH       |
+| KEUANGAN            | `invoice:write:school`, `payment:verify:school`, `refund:approve:school`, `reconciliation:run:school`, `payroll:write:school`, `payroll:run:school`                  | SEKOLAH       |
+| GURU                | `material:write:class`, `assignment:write:class`, `submission:grade:class`, `exam:token:class`, `attendance:session:write:class`                                     | KELAS         |
+| GURU_BK             | `counseling:write:school`, `permit:verify:class`, `discipline:record:class`                                                                                          | SEKOLAH/KELAS |
+| SISWA               | `submission:submit:self`, `exam:attempt:self`, `attendance:scan:self`, `material:read:class`, `invoice:read:self` (lihat status tagihan sendiri — sesuai prd01 §5.5) | SENDIRI/KELAS |
+| WALI_MURID          | `report:read:self` (anak), `invoice:read:self` (anak), `permit:request:self` (anak)                                                                                  | SENDIRI       |
+| CALON_SISWA         | `ppdb:register:public` (via endpoint publik), `ppdb:read:self`                                                                                                       | SENDIRI       |
+| PEMBIMBING_INDUSTRI | `internship:journal:self`, `internship:grade:self` (siswa bimbingan)                                                                                                 | SENDIRI       |
+| PENGUJI_EKSTERNAL   | `competency:grade:self` (penugasan)                                                                                                                                  | SENDIRI       |
 
 Catatan: permission penuh (~120) di-seed di implementasi; tabel ini adalah subset otoritatif untuk desain.
 
 ### 16.2 Lampiran B — Referensi dokumen
 
-| Dokumen | Peran untuk prd04 |
-|---------|-------------------|
-| docs/prd/prd01.md | Fondasi produk (role, modul, arsitektur) — digantikan sebagai acuan produk oleh prd04 |
-| docs/prd/prd02.md | Ujian/absensi online + peta modul — diadopsi |
-| docs/prd/prd03.md | Audit 24 gap — diadopsi sebagai backlog & fondasi teknis |
-| docs/01-master-prd.md | Master terpadu — dirujuk untuk MVP & roadmap |
-| docs/02-technical-architecture.md | Arsitektur teknis — dirujuk, tidak diubah |
-| docs/03-database-erd.md | ERD 61 entitas (56 + 4 platform baru + Alumni) — dirujuk; catatan: enum Role mengikuti §3.1 prd04 |
-| docs/04-api-contract.md | Kontrak API & RBAC matrix — dirujuk |
-| docs/05-implementation-plan.md | Plan task — dirujuk untuk roadmap eksekusi |
-| docs/06-research-validations.md | Validasi regulasi & standar (UU PDP, Kurikulum, pajak/BPJS, gateway, aset, performa) — Topik 1–16 — wajib selaras; **gateway (Topik 8) = referensi untuk fitur opsional flag OFF default [§5.F.7, §5.O]**; regulasi Q14–Q17 & Q20 (Topik 11–16) |
-| docs/07-ux-design.md | Spesifikasi UX/UI — dirujuk |
+| Dokumen                           | Peran untuk prd04                                                                                                                                                                                                                               |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| docs/prd/prd01.md                 | Fondasi produk (role, modul, arsitektur) — digantikan sebagai acuan produk oleh prd04                                                                                                                                                           |
+| docs/prd/prd02.md                 | Ujian/absensi online + peta modul — diadopsi                                                                                                                                                                                                    |
+| docs/prd/prd03.md                 | Audit 24 gap — diadopsi sebagai backlog & fondasi teknis                                                                                                                                                                                        |
+| docs/01-master-prd.md             | Master terpadu — dirujuk untuk MVP & roadmap                                                                                                                                                                                                    |
+| docs/02-technical-architecture.md | Arsitektur teknis — dirujuk, tidak diubah                                                                                                                                                                                                       |
+| docs/03-database-erd.md           | ERD 61 entitas (56 + 4 platform baru + Alumni) — dirujuk; catatan: enum Role mengikuti §3.1 prd04                                                                                                                                               |
+| docs/04-api-contract.md           | Kontrak API & RBAC matrix — dirujuk                                                                                                                                                                                                             |
+| docs/05-implementation-plan.md    | Plan task — dirujuk untuk roadmap eksekusi                                                                                                                                                                                                      |
+| docs/06-research-validations.md   | Validasi regulasi & standar (UU PDP, Kurikulum, pajak/BPJS, gateway, aset, performa) — Topik 1–16 — wajib selaras; **gateway (Topik 8) = referensi untuk fitur opsional flag OFF default [§5.F.7, §5.O]**; regulasi Q14–Q17 & Q20 (Topik 11–16) |
+| docs/07-ux-design.md              | Spesifikasi UX/UI — dirujuk                                                                                                                                                                                                                     |
 
 ### 16.3 Catatan penutup
 

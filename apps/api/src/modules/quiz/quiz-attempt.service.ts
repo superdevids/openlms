@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -60,8 +61,12 @@ export class QuizAttemptService {
 
     // Anti-IDOR: SISWA selalu mengerjakan sebagai dirinya sendiri (student_id
     // dari client diabaikan). Staff diperbolehkan memakai dto.student_id
-    // (guard: quiz:attempt:school / quiz:write:class).
-    const studentId = this.isStaffScope(actor) ? dto.student_id : actor.userId;
+    // (guard: quiz:attempt:school / quiz:write:class) — wajib diisi.
+    const staffScope = this.isStaffScope(actor);
+    if (staffScope && !dto.student_id) {
+      throw new BadRequestException("student_id wajib diisi untuk staf");
+    }
+    const studentId = staffScope ? (dto.student_id as string) : actor.userId;
 
     const attempt = await prisma.$transaction(async (tx) => {
       // Status otomatis jadi ONGOING saat attempt pertama dibuat.

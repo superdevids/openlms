@@ -2,12 +2,7 @@
 
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, Input, Label, Select, Checkbox, Alert } from "@/components/ui";
-import { Steps } from "@/components/ui/steps";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "@/components/ui/toast";
-import { IconCheck, IconDownload, IconUpload } from "@/components/ui/icons";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Input, Label, Select, Checkbox, Alert, Steps, Progress, toast, IconCheck, IconDownload, IconUpload } from "@openlms/ui";
 
 /**
  * Onboarding aplikasi sekolah — wizard setup 5 langkah (07-ux §4.1, prd04 §9.1).

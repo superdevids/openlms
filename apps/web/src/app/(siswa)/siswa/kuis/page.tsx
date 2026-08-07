@@ -4,11 +4,17 @@ import * as React from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Badge,
+  Button,
+  EmptyState
+} from "@openlms/ui";
 
 interface Quiz {
   id: string;
@@ -18,8 +24,32 @@ interface Quiz {
   status: string;
 }
 
+interface ApiQuiz {
+  id: string;
+  title: string;
+  status: string;
+  duration_min: number;
+  class_subject?: { subject?: { name?: string } | null } | null;
+}
+
+interface QuizListResponse {
+  items: ApiQuiz[];
+}
+
 export default function SiswaKuisPage(): React.JSX.Element {
-  const list = useApi<Quiz[]>(() => api.get("/quizzes"), []);
+  const list = useApi<Quiz[]>(
+    () =>
+      api.get<QuizListResponse>("/quiz").then((r) =>
+        (r.items ?? []).map((q) => ({
+          id: q.id,
+          title: q.title,
+          subject: q.class_subject?.subject?.name ?? "",
+          durationSeconds: (q.duration_min ?? 0) * 60,
+          status: q.status
+        }))
+      ),
+    []
+  );
 
   return (
     <div className="space-y-6">

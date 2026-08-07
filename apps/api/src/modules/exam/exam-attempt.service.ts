@@ -22,7 +22,7 @@ import {
 } from "../quiz/quiz.util";
 import {
   StartExamAttemptDto,
-  SaveExamAnswerDto,
+  SaveExamAnswersDto,
   GradeExamAttemptDto,
   LogExamActivityDto
 } from "./dto/exam-attempt.dto";
@@ -84,8 +84,12 @@ export class ExamAttemptService {
 
     // Anti-IDOR: SISWA selalu mengerjakan sebagai dirinya sendiri (student_id
     // dari client diabaikan). Staff diperbolehkan memakai dto.student_id
-    // (guard: exam:attempt:school / exam:write:school).
-    const studentId = this.isStaffScope(actor) ? dto.student_id : actor.userId;
+    // (guard: exam:attempt:school / exam:write:school) — wajib diisi.
+    const staffScope = this.isStaffScope(actor);
+    if (staffScope && !dto.student_id) {
+      throw new BadRequestException("student_id wajib diisi untuk staf");
+    }
+    const studentId = staffScope ? (dto.student_id as string) : actor.userId;
 
     return prisma.$transaction(async (tx) => {
       // Satu akun satu sesi: unique(exam_session_id, student_id) di schema + cek eksplisit.
@@ -148,17 +152,28 @@ export class ExamAttemptService {
     });
   }
 
-  // ---------------- Autosave idempotent (M-EXAM-T5) ----------------
+  // ---------------- Autosave idempotent batch (M-EXAM-T5 / G-01) ----------------
 
-  async saveAnswer(
+  /**
+   * Simpan BANYAK jawaban dalam SATU transaksi (G-01) — dikirim client tiap 15
+   * detik untuk mengurangi round-trip 2000 siswa. Idempotency key header
+   * di-unik-kan per soal (`<key>:<question_id>`) agar sesuai unique
+   * (attempt_id, idempotency_key) dan batch retry tidak menduplikasi log.
+   * Jawaban tetap append-only di ExamAnswerLog (audit); finalisasi grade
+   * memakai jawaban terbaru per soal.
+   */
+  async saveAnswers(
     attemptId: string,
-    dto: SaveExamAnswerDto,
+    dto: SaveExamAnswersDto,
     actor: AttemptActor,
     idempotencyKey?: string,
     _ip?: string | null
   ) {
     if (!idempotencyKey) {
       throw new BadRequestException("Header Idempotency-Key wajib untuk autosave");
+    }
+    if (!dto.answers || dto.answers.length === 0) {
+      throw new BadRequestException("answers tidak boleh kosong");
     }
     return prisma.$transaction(async (tx) => {
       const attempt = await tx.examAttempt.findUnique({
@@ -175,30 +190,54 @@ export class ExamAttemptService {
         throw new ConflictException("Waktu ujian habis; attempt di-auto-submit");
       }
 
-      const existing = await tx.examAnswerLog.findFirst({
-        where: { attempt_id: attemptId, idempotency_key: idempotencyKey }
+      // Validasi semua soal sekaligus (hindari N+1): semua harus milik paket attempt.
+      const questionIds = [...new Set(dto.answers.map((a) => a.question_id))];
+      const questions = await tx.question.findMany({
+        where: { id: { in: questionIds }, exam_package_id: attempt.exam_package_id },
+        select: { id: true }
       });
-      if (existing) {
-        return { duplicated: true, log: existing };
-      }
-
-      const question = await tx.question.findUnique({ where: { id: dto.question_id } });
-      if (!question) throw new NotFoundException("Soal tidak ditemukan");
-      if (question.exam_package_id !== attempt.exam_package_id) {
+      const owned = new Set(questions.map((q) => q.id));
+      const unknown = questionIds.filter((id) => !owned.has(id));
+      if (unknown.length > 0) {
         throw new BadRequestException("Soal tidak termasuk paket attempt ini");
       }
 
-      const log = await tx.examAnswerLog.create({
-        data: {
+      // Dedupe per (key) agar dua item question_id sama dalam satu batch tidak
+      // melanggar unique (attempt_id, idempotency_key).
+      const seen = new Set<string>();
+      const entries: { item: SaveExamAnswersDto["answers"][number]; key: string }[] = [];
+      for (const item of dto.answers) {
+        const key = `${idempotencyKey}:${item.question_id}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        entries.push({ item, key });
+      }
+
+      const existingLogs = await tx.examAnswerLog.findMany({
+        where: {
           attempt_id: attemptId,
-          question_id: dto.question_id,
-          answer: dto.answer ?? null,
-          is_auto_saved: true,
-          saved_at: new Date(),
-          idempotency_key: idempotencyKey
-        }
+          idempotency_key: { in: entries.map((e) => e.key) }
+        },
+        select: { idempotency_key: true }
       });
-      return { duplicated: false, log };
+      const existingKeys = new Set(existingLogs.map((l) => l.idempotency_key));
+
+      let saved = 0;
+      for (const { item, key } of entries) {
+        if (existingKeys.has(key)) continue;
+        await tx.examAnswerLog.create({
+          data: {
+            attempt_id: attemptId,
+            question_id: item.question_id,
+            answer: item.answer ?? null,
+            is_auto_saved: true,
+            saved_at: new Date(),
+            idempotency_key: key
+          }
+        });
+        saved += 1;
+      }
+      return { saved, duplicated: entries.length - saved };
     });
   }
 

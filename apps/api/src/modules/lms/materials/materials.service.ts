@@ -16,7 +16,7 @@ import {
 export class MaterialsService {
   constructor(private readonly storageService: StorageService) {}
 
-  /** Minta signed URL upload ke bucket `materials` (F2-T4, skeleton lokal/MinIO). */
+  /** Minta signed URL upload ke bucket `materials` (F2-T4, skeleton lokal). */
   async requestSignedUpload(dto: RequestSignedUploadDto, ctx: RequestContext) {
     const cs = await prisma.classSubject.findUnique({ where: { id: dto.classSubjectId } });
     if (!cs) throw new NotFoundException("Kelas-mapel tidak ditemukan");

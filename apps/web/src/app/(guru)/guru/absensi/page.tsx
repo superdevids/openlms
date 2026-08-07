@@ -2,13 +2,10 @@
 
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, Label, Select, Input, Alert } from "@/components/ui";
-import { ConfirmDialog } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Label, Select, Input, Alert, ConfirmDialog, Badge, toast, IconQr } from "@openlms/ui";
+
 import { formatDuration } from "@/lib/format";
-import { IconQr } from "@/components/ui/icons";
+
 import { DEMO_ATTENDANCE_SUMMARY } from "@/lib/demo";
 
 /**

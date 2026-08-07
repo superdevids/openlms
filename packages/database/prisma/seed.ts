@@ -139,6 +139,26 @@ async function main(): Promise<void> {
     }
   });
 
+  // 4b2. SystemStatus — baris tunggal status sistem (maintenance OFF default).
+  // Update hanya mengoreksi flag OFF agar seed ulang tidak membatalkan
+  // maintenance yang sedang aktif oleh SUPERADMIN.
+  const existingStatus = await prisma.systemStatus.findUnique({
+    where: { id: "system_status_default" }
+  });
+  await prisma.systemStatus.upsert({
+    where: { id: "system_status_default" },
+    update: {},
+    create: {
+      id: "system_status_default",
+      maintenance_enabled: false
+    }
+  });
+  if (existingStatus) {
+    console.log("- SystemStatus: baris default sudah ada (status dipertahankan)");
+  } else {
+    console.log("- SystemStatus: baris default dibuat (maintenance OFF)");
+  }
+
   // 4c. Prodi (jurusan/kompetensi keahlian SMK) — kode unik per jurusan
   const PRODI_SEED = [
     { code: "TKJ", name: "Teknik Komputer dan Jaringan", short_name: "TKJ" },

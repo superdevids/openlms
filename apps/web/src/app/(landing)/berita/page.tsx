@@ -1,8 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@openlms/ui";
+import { API_BASE_FALLBACK, API_TIMEOUT_MS, APP_NAME } from "@/lib/constants";
 
 /** Daftar berita sekolah — GET /public/landing/berita (publik). */
 
@@ -19,7 +26,7 @@ interface NewsItem {
 }
 
 function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001").replace(/\/+$/, "");
+  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
   if (base.endsWith("/api/v1")) return `${base}${path}`;
   return `${base}/api/v1${path}`;
 }
@@ -36,7 +43,7 @@ function formatTanggal(value: string | null): string {
 async function fetchBerita(): Promise<NewsItem[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
     try {
       const res = await fetch(landingApiUrl("/public/landing/berita"), {
         cache: "no-store",
@@ -53,7 +60,7 @@ async function fetchBerita(): Promise<NewsItem[]> {
 }
 
 export const metadata: Metadata = {
-  title: "Berita — openlms",
+  title: `Berita — ${APP_NAME}`,
   description: "Kabar dan pengumuman terbaru dari sekolah."
 };
 

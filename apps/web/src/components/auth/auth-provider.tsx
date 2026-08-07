@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ApiError, DEMO_MODE } from "@/lib/api-client";
 import { fetchSession, fetchDemoSession, type SessionUser } from "@/lib/session";
 import { readDemoRoleOverride } from "@/lib/session";
-import { toast } from "@/components/ui/toast";
+import { toast } from "@openlms/ui";
 
 /**
  * AuthProvider — muat session dari /auth/me (cookie httpOnly).

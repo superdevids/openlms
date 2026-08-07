@@ -1,12 +1,20 @@
 import { HttpException, HttpStatus, Injectable, NestMiddleware } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
+import { parseCookies } from "../../modules/auth/cookie.util";
+import { verifyAccessToken } from "../../modules/auth/jwt.util";
+import { ACCESS_COOKIE_NAME, SESSION_COOKIE_NAME } from "../../modules/auth/auth.constants";
 
 /**
- * Rate limit per-IP (sliding window) — in-memory Map dengan TTL cleanup.
- * - General routes: RATE_LIMIT_MAX request per RATE_LIMIT_WINDOW_MS (default 100/menit)
- * - POST /auth/login  : LOGIN_RATE_LIMIT_MAX (default 10/menit)  — brute-force layer di atas locked_until
- * - POST /auth/refresh: REFRESH_RATE_LIMIT_MAX (default 30/menit)
- * - Socket.IO (/socket.io, /ws) dikecualikan — di-throttle di Nginx (long-poll/websocket).
+ * Rate limit sliding window — in-memory Map dengan TTL cleanup.
+ * Keying (G-06):
+ * - Route terautentikasi (ada JWT access valid di cookie / requestContext):
+ *   dikunci per-IDENTITAS USER (`user:<id>`) → 2000 siswa di belakang 1 NAT IP
+ *   tidak saling potong; limit USER_RATE_LIMIT_MAX (default 120/menit/user).
+ * - POST /auth/login & /auth/refresh: tetap per-IP (brute-force layer di atas
+ *   locked_until); login LOGIN_RATE_LIMIT_MAX (default 10/menit), refresh
+ *   REFRESH_RATE_LIMIT_MAX (default 30/menit).
+ * - Endpoint publik tanpa identitas: per-IP RATE_LIMIT_MAX (default 100/menit).
+ * - Socket.IO (/socket.io, /ws) dikecualikan — di-throttle di Nginx.
  * Respon 429 + header Retry-After (format error standar lewat AllExceptionsFilter).
  *
  * Catatan: memori per-instance (bukan distributed). Untuk multi-instance gunakan
@@ -29,6 +37,9 @@ function envNumber(name: string, fallback: number): number {
   return Number.isFinite(raw) && raw > 0 ? raw : fallback;
 }
 
+/** Request yang mungkin sudah diproses AuthGuard (bila middleware berjalan setelahnya). */
+type RateLimitRequest = Request & { requestContext?: { userId?: string } };
+
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
   private readonly buckets = new Map<string, Bucket>();
@@ -36,6 +47,7 @@ export class RateLimitMiddleware implements NestMiddleware {
   private readonly generalMax = envNumber("RATE_LIMIT_MAX", 100);
   private readonly loginMax = envNumber("LOGIN_RATE_LIMIT_MAX", 10);
   private readonly refreshMax = envNumber("REFRESH_RATE_LIMIT_MAX", 30);
+  private readonly authUserMax = envNumber("USER_RATE_LIMIT_MAX", 120);
   private readonly cleanupTimer: NodeJS.Timeout;
 
   constructor() {
@@ -52,9 +64,7 @@ export class RateLimitMiddleware implements NestMiddleware {
       return;
     }
 
-    const ip = (req.ip as string | undefined) ?? "unknown";
-    const max = this.limitFor(path);
-    const key = `${ip}:${max}`;
+    const { key, max } = this.limitForKey(path, req);
     const now = Date.now();
 
     const bucket = this.buckets.get(key);
@@ -86,15 +96,42 @@ export class RateLimitMiddleware implements NestMiddleware {
     next();
   }
 
-  /** Limit per-route: login/refresh lebih ketat, sisanya general. */
-  private limitFor(path: string): number {
+  /**
+   * Limit & key per route:
+   * - login/refresh selalu per-IP (publik, anti-brute-force);
+   * - identitas user valid → per-user USER_RATE_LIMIT_MAX;
+   * - selain itu → per-IP RATE_LIMIT_MAX (endpoint publik).
+   */
+  private limitForKey(path: string, req: Request): { key: string; max: number } {
+    const ip = (req.ip as string | undefined) ?? "unknown";
     if (path.includes(LOGIN_MARKER)) {
-      return this.loginMax;
+      return { key: `${ip}:login:${this.loginMax}`, max: this.loginMax };
     }
     if (path.includes(REFRESH_MARKER)) {
-      return this.refreshMax;
+      return { key: `${ip}:refresh:${this.refreshMax}`, max: this.refreshMax };
     }
-    return this.generalMax;
+    const userId = this.userIdOf(req);
+    if (userId) {
+      return { key: `user:${userId}:${this.authUserMax}`, max: this.authUserMax };
+    }
+    return { key: `${ip}:general:${this.generalMax}`, max: this.generalMax };
+  }
+
+  /** Identitas user dari requestContext (jika sudah ada) atau verifikasi JWT access cookie. */
+  private userIdOf(req: Request): string | null {
+    const contextUser = (req as RateLimitRequest).requestContext?.userId;
+    if (contextUser) {
+      return contextUser;
+    }
+    const cookies = parseCookies(req.headers?.cookie);
+    const token = cookies[SESSION_COOKIE_NAME] ?? cookies[ACCESS_COOKIE_NAME];
+    if (token) {
+      const payload = verifyAccessToken(token);
+      if (payload?.sub) {
+        return payload.sub;
+      }
+    }
+    return null;
   }
 
   /** Hapus bucket yang sudah lewat window — mencegah kebocoran memori. */

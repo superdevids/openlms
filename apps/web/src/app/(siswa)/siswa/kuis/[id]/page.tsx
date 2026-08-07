@@ -2,14 +2,24 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api-client";
+import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button, RadioGroup, Textarea, Label, Progress, Alert } from "@/components/ui";
-import { ConfirmDialog } from "@/components/ui/dialog";
+import {
+  DataView,
+  Card,
+  CardContent,
+  Button,
+  RadioGroup,
+  Textarea,
+  Label,
+  Progress,
+  Alert,
+  ConfirmDialog,
+  toast
+} from "@openlms/ui";
+
 import { formatDuration } from "@/lib/format";
-import { toast } from "@/components/ui/toast";
+
 import { DEMO_QUESTIONS } from "@/lib/demo";
 import { cn } from "@openlms/ui";
 
@@ -27,28 +37,56 @@ interface QuizMeta {
   questions: QuizQuestion[];
 }
 
+/** Bentuk mentah dari GET /quiz/:id (QuizService.findOne). */
+interface ApiQuizDetail {
+  id: string;
+  title: string;
+  duration_min: number;
+  questions: QuizQuestion[];
+}
+
+function mapQuizDetail(raw: ApiQuizDetail): QuizMeta {
+  return {
+    id: raw.id,
+    title: raw.title,
+    durationSeconds: (raw.duration_min ?? 0) * 60,
+    questions: raw.questions ?? []
+  };
+}
+
 export default function SiswaKuisKerjakanPage(): React.JSX.Element {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const quizId = params.id ?? "";
 
-  const quiz = useApi<QuizMeta>(() => api.get(`/quizzes/${quizId}`), [quizId], {
-    fallbackData: DEMO_QUESTIONS
-      ? ({
-          id: quizId,
-          title: "Kuis: Vektor",
-          durationSeconds: 720,
-          questions: DEMO_QUESTIONS
-        } as QuizMeta)
-      : undefined
-  });
+  const quiz = useApi<QuizMeta>(
+    () => api.get<ApiQuizDetail>(`/quiz/${quizId}`).then(mapQuizDetail),
+    [quizId],
+    {
+      fallbackData: DEMO_QUESTIONS
+        ? ({
+            id: quizId,
+            title: "Kuis: Vektor",
+            durationSeconds: 720,
+            questions: DEMO_QUESTIONS
+          } as QuizMeta)
+        : undefined
+    }
+  );
 
+  const [attemptId, setAttemptId] = React.useState<string | null>(null);
+  const [startError, setStartError] = React.useState<string | null>(null);
   const [index, setIndex] = React.useState(0);
   const [answers, setAnswers] = React.useState<Record<string, string>>({});
   const [flags, setFlags] = React.useState<Record<string, boolean>>({});
   const [remaining, setRemaining] = React.useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+
+  const answersRef = React.useRef(answers);
+  answersRef.current = answers;
+  const startRef = React.useRef(false);
+  const submittedRef = React.useRef(false);
 
   const questions = quiz.data?.questions ?? [];
   const current = questions[index];
@@ -57,29 +95,99 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
     if (quiz.data && remaining === null) setRemaining(quiz.data.durationSeconds);
   }, [quiz.data, remaining]);
 
+  // G-03: mulai attempt saat kuis siap → dapatkan attemptId untuk save/submit.
+  React.useEffect(() => {
+    if (!quizId || !quiz.data || attemptId || startRef.current || DEMO_MODE) return;
+    startRef.current = true;
+    void (async () => {
+      try {
+        const res = await api.post<{ attempt: { id: string; remaining_seconds: number } }>(
+          `/quiz/${quizId}/attempts`,
+          {}
+        );
+        setAttemptId(res.attempt.id);
+        if (res.attempt.remaining_seconds != null) {
+          setRemaining(res.attempt.remaining_seconds);
+        }
+      } catch (err) {
+        setStartError(err instanceof ApiError ? errorMessage(err) : "Gagal memulai kuis.");
+        startRef.current = false;
+      }
+    })();
+  }, [quizId, quiz.data, attemptId]);
+
+  const saveOne = React.useCallback(
+    async (questionId: string, answer: string): Promise<void> => {
+      if (!attemptId) return;
+      await api.post(`/quiz/attempts/${attemptId}/answers`, {
+        question_id: questionId,
+        answer
+      });
+    },
+    [attemptId]
+  );
+
+  // Kirim SEMUA jawaban secara berurutan sebelum submit (hindari race baca-tulis JSON).
+  const flushAnswers = React.useCallback(async (): Promise<void> => {
+    if (!attemptId) return;
+    const current = answersRef.current;
+    for (const q of questions) {
+      const answer = current[q.id];
+      if (answer !== undefined && answer !== "") {
+        await saveOne(q.id, answer);
+      }
+    }
+  }, [attemptId, questions, saveOne]);
+
+  // Timer: saat habis, kirim jawaban lalu submit otomatis (server juga auto-submit).
   React.useEffect(() => {
     if (remaining === null) return;
-    const t = window.setInterval(
-      () => setRemaining((r) => (r === null ? null : Math.max(0, r - 1))),
-      1000
-    );
+    const t = window.setInterval(() => {
+      setRemaining((r) => {
+        if (r === null) return null;
+        const next = Math.max(0, r - 1);
+        if (next === 0 && !submittedRef.current) {
+          submittedRef.current = true;
+          window.clearInterval(t);
+          void submitQuiz();
+        }
+        return next;
+      });
+    }, 1000);
     return () => window.clearInterval(t);
   }, [remaining === null]);
 
   const submitQuiz = async (): Promise<void> => {
     setSubmitting(true);
     try {
-      await api.post(`/quiz/attempts/${quizId}/submit`, { answers });
+      if (DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 200));
+      } else {
+        if (!attemptId)
+          throw new ApiError(0, "INTERNAL", "Kuis belum dimulai. Muat ulang halaman.");
+        await flushAnswers();
+        await api.post(`/quiz/attempts/${attemptId}/submit`, {});
+      }
       toast({ variant: "success", title: "Kuis terkirim" });
       router.replace("/siswa/kuis");
-    } catch {
+    } catch (err) {
+      submittedRef.current = false;
       toast({
         variant: "error",
         title: "Gagal mengirim kuis",
-        description: "Coba lagi saat koneksi stabil."
+        description: err instanceof ApiError ? errorMessage(err) : "Coba lagi saat koneksi stabil."
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onAnswerChange = (questionId: string, value: string): void => {
+    setAnswers((a) => ({ ...a, [questionId]: value }));
+    // Simpan langsung saat berubah; kegagalan jaringan tetap aman karena submit
+    // mengirim ulang SEMUA jawaban sebelum menutup attempt.
+    if (!DEMO_MODE && attemptId) {
+      void saveOne(questionId, value).catch(() => undefined);
     }
   };
 
@@ -98,6 +206,11 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
       </div>
 
       <DataView status={quiz.status} error={quiz.error} onRetry={quiz.refetch} fallbackLabel="Kuis">
+        {startError ? (
+          <Alert variant="danger" className="mb-4">
+            <p className="text-sm">{startError}</p>
+          </Alert>
+        ) : null}
         {current ? (
           <>
             <Card>
@@ -111,7 +224,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
                     name={`q-${current.id}`}
                     options={(current.options ?? []).map((o) => ({ value: o.id, label: o.text }))}
                     value={answers[current.id] ?? ""}
-                    onChange={(e) => setAnswers((a) => ({ ...a, [current.id]: e.target.value }))}
+                    onChange={(e) => onAnswerChange(current.id, e.target.value)}
                   />
                 ) : (
                   <div className="space-y-1.5">
@@ -120,7 +233,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
                       id={`q-${current.id}`}
                       rows={5}
                       value={answers[current.id] ?? ""}
-                      onChange={(e) => setAnswers((a) => ({ ...a, [current.id]: e.target.value }))}
+                      onChange={(e) => onAnswerChange(current.id, e.target.value)}
                       placeholder="Tulis jawaban Anda..."
                     />
                   </div>

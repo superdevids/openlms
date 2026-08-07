@@ -5,12 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, Tabs, TabPanel, Badge, Button, EmptyState } from "@openlms/ui";
+
 import { formatRelative } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_TASKS } from "@/lib/demo";
 

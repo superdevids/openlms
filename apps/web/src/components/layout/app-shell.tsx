@@ -15,7 +15,9 @@ import {
 } from "@/lib/roles";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
 import { DEMO_MODE } from "@/lib/api-client";
+import { APP_NAME } from "@/lib/constants";
 import { DEMO_ROLES } from "@/lib/demo";
+import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { useApi } from "@/lib/use-api";
 import {
   IconBell,
@@ -38,9 +40,9 @@ import {
   IconRocket,
   IconRefresh,
   IconLogout,
-  IconMenu
-} from "@/components/ui/icons";
-import { Select } from "@/components/ui/select";
+  IconMenu,
+  Select
+} from "@openlms/ui";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   home: IconHome,
@@ -164,7 +166,7 @@ export function AppShell({
               <IconMenu className="h-5 w-5" />
             </button>
             <Link href={`/${roleGroup}/dashboard`} className="text-lg font-bold text-primary-700">
-              openlms
+              {APP_NAME}
             </Link>
             <span className="hidden text-sm text-neutral-500 sm:inline">
               · {ROLE_GROUP_LABEL[roleGroup]}
@@ -325,6 +327,8 @@ export function AppShell({
           })}
         </ul>
       </nav>
+
+      <OnboardingTour />
     </div>
   );
 }

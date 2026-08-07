@@ -2,12 +2,14 @@ import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { LoggerModule } from "nestjs-pino";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
+import { MaintenanceMiddleware } from "./common/middleware/maintenance.middleware";
 import { RateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
 import { AuthModule } from "./modules/auth/auth.module";
 import { HealthModule } from "./modules/health/health.module";
 import { FeatureFlagsModule } from "./modules/feature-flags/feature-flags.module";
 import { AppSettingsModule } from "./modules/app-settings/app-settings.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
+import { MaintenanceModule } from "./modules/maintenance/maintenance.module";
 import { LmsModule } from "./modules/lms/lms.module";
 import { QuizModule } from "./modules/quiz/quiz.module";
 import { ExamModule } from "./modules/exam/exam.module";
@@ -74,6 +76,7 @@ import { JobsModule } from "./modules/jobs/jobs.module";
     FeatureFlagsModule,
     AppSettingsModule,
     OnboardingModule,
+    MaintenanceModule, // status sistem global + maintenance middleware (global dev mode)
     // Akademik & LMS
     AcademicModule,
     LmsModule, // menempel APP_PIPE global (ValidationPipe whitelist+transform)
@@ -96,8 +99,11 @@ import { JobsModule } from "./modules/jobs/jobs.module";
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // Urutan penting: RequestId dahulu (echo x-request-id), lalu rate limit per-IP.
+    // Urutan penting: RequestId dahulu (echo x-request-id), lalu maintenance
+    // (global dev mode — allowlist /health, /public/system-status, /public/landing*,
+    // /admin/system/maintenance), lalu rate limit per-IP.
     consumer.apply(RequestIdMiddleware).forRoutes("*");
+    consumer.apply(MaintenanceMiddleware).forRoutes("*");
     consumer.apply(RateLimitMiddleware).forRoutes("*");
   }
 }

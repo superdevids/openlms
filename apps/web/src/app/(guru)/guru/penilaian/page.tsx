@@ -3,13 +3,11 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button, Input, Label, Textarea } from "@/components/ui";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, Button, Input, Label, Textarea, EmptyState, toast } from "@openlms/ui";
+
 import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
-import { toast } from "@/components/ui/toast";
+
 import { DEMO_SUBMISSIONS } from "@/lib/demo";
 
 interface Submission {

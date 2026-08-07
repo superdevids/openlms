@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import compression from "compression";
 import helmet from "helmet";
 import { Logger } from "nestjs-pino";
 import type { NextFunction, Request, Response } from "express";
@@ -96,6 +97,10 @@ async function bootstrap(): Promise<void> {
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     next();
   });
+
+  // Kompresi respons (gzip/br) — "lebih banyak middleware" (F0 hardening).
+  // Dipasang sebelum global prefix; respon JSON besar (rapor, rekap) terkompresi.
+  app.use(compression());
 
   // docs/04 §1.2 — semua endpoint di bawah prefix /api/v1
   app.setGlobalPrefix(GLOBAL_PREFIX);

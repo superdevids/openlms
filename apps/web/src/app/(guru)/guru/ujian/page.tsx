@@ -3,16 +3,11 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, Input, Label, Alert } from "@/components/ui";
-import { Dialog } from "@/components/ui/dialog";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Input, Label, Alert, Dialog, Tabs, TabPanel, EmptyState, toast, IconClock } from "@openlms/ui";
+
 import { formatDateTime } from "@/lib/format";
-import { toast } from "@/components/ui/toast";
+
 import { DEMO_EXAMS } from "@/lib/demo";
-import { IconClock } from "@/components/ui/icons";
 
 interface Exam {
   id: string;

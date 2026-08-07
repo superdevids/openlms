@@ -11,7 +11,7 @@
 
 ## 1. Ringkasan Eksekutif
 
-openlms dibangun sebagai monorepo Turborepo dengan **satu backend NestJS** (`apps/api`), **satu frontend Next.js App Router** (`apps/web`), dan **tiga paket bersama** (`packages/database`, `packages/ui`, `packages/types`). Aplikasi berjalan untuk **SATU sekolah** dengan **skema tunggal** — tanpa multi-tenant, tanpa school switcher, tanpa SUPERADMIN penyedia SaaS (prd04 §16.3(g) [owner-v4.2]). Otorisasi dikendalikan **permission + scope RBAC (SENDIRI/KELAS/SEKOLAH)** di aplikasi sebagai lapis utama; **RLS PostgreSQL bersifat opsional** (defense-in-depth, tanpa session var tenant). **Auth in-house**: Email/Username + Password (Argon2id), JWT di httpOnly cookie, refresh rotation; **otoritas role adalah tabel `UserRole`** — JWT hanya identitas (`sub`), agar perubahan role instan. Real-time via **Socket.IO namespace tunggal `/ws`** (siap multi-instance via Redis adapter); storage via **object storage self-managed (MinIO/S3) dengan signed URL**; live class **DITUNDA** (tanpa Jitsi/Zoom/Meet); feature flags global (`FeatureFlag`/`AppFeatureSetting`) dikendalikan **SUPERADMIN = admin sistem sekolah** (prd04 §5.N).
+openlms dibangun sebagai monorepo Turborepo dengan **satu backend NestJS** (`apps/api`), **satu frontend Next.js App Router** (`apps/web`), dan **tiga paket bersama** (`packages/database`, `packages/ui`, `packages/types`). Aplikasi berjalan untuk **SATU sekolah** dengan **skema tunggal** — tanpa multi-tenant, tanpa school switcher, tanpa SUPERADMIN penyedia SaaS (prd04 §16.3(g) [owner-v4.2]). Otorisasi dikendalikan **permission + scope RBAC (SENDIRI/KELAS/SEKOLAH)** di aplikasi sebagai lapis utama; **RLS PostgreSQL bersifat opsional** (defense-in-depth, tanpa session var tenant). **Auth in-house**: Email/Username + Password (Argon2id), JWT di httpOnly cookie, refresh rotation; **otoritas role adalah tabel `UserRole`** — JWT hanya identitas (`sub`), agar perubahan role instan. Real-time via **Socket.IO namespace tunggal `/ws`** (siap multi-instance via Redis adapter); storage via **filesystem lokal backend** (`STORAGE_LOCAL_DIR`, tanpa S3/MinIO — upload multipart lewat API); live class **DITUNDA** (tanpa Jitsi/Zoom/Meet); feature flags global (`FeatureFlag`/`AppFeatureSetting`) dikendalikan **SUPERADMIN = admin sistem sekolah** (prd04 §5.N).
 
 Keputusan yang membentuk arsitektur ini: modular backend per domain, route groups frontend per peran, autosave ujian yang idempotent, queue offline untuk absensi QR, observability & backup/DR sejak fase 0 (G6–G8, G11 prd04).
 
@@ -19,15 +19,15 @@ Keputusan yang membentuk arsitektur ini: modular backend per domain, route group
 
 ## 2. Prinsip Arsitektur
 
-| # | Prinsip | Arti Operasional |
-|---|---------|------------------|
-| P1 | Isolasi akses per scope RBAC | Guard NestJS `@RequirePermission('resource:action[:scope]')` (scope SENDIRI/KELAS/SEKOLAH) adalah lapis utama; RLS PostgreSQL **opsional** sebagai defense-in-depth **tanpa dimensi tenant**. |
-| P2 | JWT = identitas, bukan otorisasi | Role di-resolve dari tabel `UserRole` per request (cache 60 detik); JWT hanya membawa `sub`. |
-| P3 | Skema tunggal, evolusi bertahap | Satu skema Prisma untuk SATU sekolah; tambah fitur = tambah migrasi, bukan tenant baru. |
-| P4 | Backend modular per domain | Tiap modul (Auth, School, Academic, Lms, Quiz, Exam, Attendance, Finance, Ppdb, Notification, dsb) independen: controller → service → repository. |
-| P5 | Frontend server-first | Server Components untuk data-fetching, Client Components hanya untuk interaktivitas (form, timer kuis/ujian). |
-| P6 | Kritis alur = idempotent & audit | Autosave ujian, scan QR, dan pembayaran punya idempotency key; perubahan sensitif masuk `AuditLog`. |
-| P7 | Observability & DR bukan fitur | Struktur logging, error tracking, backup/PITR, dan rate limiting dibangun di Fase 0–1, bukan ditambahkan belakangan. |
+| #   | Prinsip                          | Arti Operasional                                                                                                                                                                              |
+| --- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1  | Isolasi akses per scope RBAC     | Guard NestJS `@RequirePermission('resource:action[:scope]')` (scope SENDIRI/KELAS/SEKOLAH) adalah lapis utama; RLS PostgreSQL **opsional** sebagai defense-in-depth **tanpa dimensi tenant**. |
+| P2  | JWT = identitas, bukan otorisasi | Role di-resolve dari tabel `UserRole` per request (cache 60 detik); JWT hanya membawa `sub`.                                                                                                  |
+| P3  | Skema tunggal, evolusi bertahap  | Satu skema Prisma untuk SATU sekolah; tambah fitur = tambah migrasi, bukan tenant baru.                                                                                                       |
+| P4  | Backend modular per domain       | Tiap modul (Auth, School, Academic, Lms, Quiz, Exam, Attendance, Finance, Ppdb, Notification, dsb) independen: controller → service → repository.                                             |
+| P5  | Frontend server-first            | Server Components untuk data-fetching, Client Components hanya untuk interaktivitas (form, timer kuis/ujian).                                                                                 |
+| P6  | Kritis alur = idempotent & audit | Autosave ujian, scan QR, dan pembayaran punya idempotency key; perubahan sensitif masuk `AuditLog`.                                                                                           |
+| P7  | Observability & DR bukan fitur   | Struktur logging, error tracking, backup/PITR, dan rate limiting dibangun di Fase 0–1, bukan ditambahkan belakangan.                                                                          |
 
 ---
 
@@ -71,13 +71,13 @@ openlms/
 
 **Tanggung jawab paket:**
 
-| Paket | Tanggung jawab | Batas |
-|-------|----------------|-------|
-| `apps/api` | Semua logika bisnis, otorisasi, real-time gateway, integrasi storage (signed URL MinIO/S3) — **tanpa dependensi API fitur pihak ketiga** | Tidak boleh import komponen UI |
-| `apps/web` | Presentasi, routing per role, state UI, PWA/offline, upload via signed URL | Tidak boleh query Prisma langsung; hanya via API |
-| `packages/database` | Skema Prisma (61 entitas: 56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni), client singleton, migrasi, seed, file RLS **opsional** | Tidak boleh berisi logika bisnis |
-| `packages/ui` | Komponen shadcn/ui yang di-styling, primitives | Stateless; data lewat props |
-| `packages/types` | Enum, DTO, kontrak API (satu sumber kebenaran tipe) | Tanpa runtime berat |
+| Paket               | Tanggung jawab                                                                                                                                            | Batas                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `apps/api`          | Semua logika bisnis, otorisasi, real-time gateway, integrasi storage file lokal (`STORAGE_LOCAL_DIR`) — **tanpa dependensi API fitur pihak ketiga**       | Tidak boleh import komponen UI                   |
+| `apps/web`          | Presentasi, routing per role, state UI, PWA/offline, upload file via API (multipart)                                                                      | Tidak boleh query Prisma langsung; hanya via API |
+| `packages/database` | Skema Prisma (61 entitas: 56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni), client singleton, migrasi, seed, file RLS **opsional** | Tidak boleh berisi logika bisnis                 |
+| `packages/ui`       | Komponen shadcn/ui yang di-styling, primitives                                                                                                            | Stateless; data lewat props                      |
+| `packages/types`    | Enum, DTO, kontrak API (satu sumber kebenaran tipe)                                                                                                       | Tanpa runtime berat                              |
 
 Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): `web → api (HTTP)`, `web → packages/{ui,types}`, `api → packages/{database,types}`, `packages/database → packages/types` (enum).
 
@@ -87,28 +87,28 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
 
 ### 4.1 Modul per Domain
 
-| Modul | Tanggung jawab utama | Entitas inti (lihat ERD) |
-|-------|----------------------|--------------------------|
-| `AuthModule` | Login Email/Username + Password (Argon2id), JWT httpOnly cookie, refresh rotation, reset via OPERATOR | User, UserRole |
-| `SchoolModule` | Pengaturan aplikasi, feature flags (FeatureFlag/AppFeatureSetting), impor data, retensi, rollover tahun ajaran | SchoolProfile, FeatureFlag, AppFeatureSetting, ImportBatch, ImportError, DataRetentionPolicy, AcademicYear, RolloverRun |
-| `AcademicModule` | Kelas, mapel, jadwal, enrollment, rapor | Class, Subject, ClassSubject, ScheduleEntry, Enrollment, Grade |
-| `LmsModule` | Materi, tugas, submission, penilaian | Material, Assignment, Submission |
-| `QuizModule` | Bank soal, kuis, attempt | Quiz, Question, QuizAttempt |
-| `ExamModule` | Paket ujian, sesi, token, attempt, autosave, analisis butir | Exam, ExamPackage, ExamSession, ExamAttempt, ExamAnswerLog |
-| `AttendanceModule` | Sesi QR, geofencing, rekap, izin/sakit | AttendanceSession, AttendanceQrToken, AttendanceRecord, Attendance |
-| `StudentAffairModule` | BK, tata tertib, ekskul, prestasi | CounselingNote, DisciplinePoint, DisciplineRecord, Extracurricular, ExtracurricularEnrollment, Achievement |
-| `StaffModule` | Data induk & absensi guru/staf | Staff, StaffAttendance |
-| `AssetModule` | Inventaris & peminjaman | Asset, AssetBooking |
-| `LibraryModule` | Katalog & peminjaman buku | LibraryBook, LibraryLoan |
-| `FinanceModule` | Tagihan & pembayaran | Invoice, Payment |
-| `PpdbModule` | Pendaftaran publik, verifikasi, seleksi, konsent | PpdbApplicant, ParentalConsent |
-| `CommunicationModule` | Pengumuman, surat resmi, notifikasi | Announcement, OfficialLetter, Notification |
-| `ParentModule` | Portal wali murid (read-only) | ParentGuardian, ParentStudentLink |
-| `VocationalModule` | PKL/UKK (Fase 3) | Internship, InternshipJournal, InternshipPartner, IndustryMentor, CompetencyTest, CompetencyRubricItem |
-| `ExportModule` | Ekspor Dapodik/ANBK, rekap nilai | DataExportLog |
-| `AuditModule` | Audit trail generik | AuditLog |
-| `RealtimeModule` | Socket.IO gateway, namespace tunggal `/ws` (siap multi-instance) | Notification |
-| `IntegrationModule` | Storage signed URL (MinIO/S3); tanpa integrasi fitur pihak ketiga | — |
+| Modul                 | Tanggung jawab utama                                                                                           | Entitas inti (lihat ERD)                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `AuthModule`          | Login Email/Username + Password (Argon2id), JWT httpOnly cookie, refresh rotation, reset via OPERATOR          | User, UserRole                                                                                                          |
+| `SchoolModule`        | Pengaturan aplikasi, feature flags (FeatureFlag/AppFeatureSetting), impor data, retensi, rollover tahun ajaran | SchoolProfile, FeatureFlag, AppFeatureSetting, ImportBatch, ImportError, DataRetentionPolicy, AcademicYear, RolloverRun |
+| `AcademicModule`      | Kelas, mapel, jadwal, enrollment, rapor                                                                        | Class, Subject, ClassSubject, ScheduleEntry, Enrollment, Grade                                                          |
+| `LmsModule`           | Materi, tugas, submission, penilaian                                                                           | Material, Assignment, Submission                                                                                        |
+| `QuizModule`          | Bank soal, kuis, attempt                                                                                       | Quiz, Question, QuizAttempt                                                                                             |
+| `ExamModule`          | Paket ujian, sesi, token, attempt, autosave, analisis butir                                                    | Exam, ExamPackage, ExamSession, ExamAttempt, ExamAnswerLog                                                              |
+| `AttendanceModule`    | Sesi QR, geofencing, rekap, izin/sakit                                                                         | AttendanceSession, AttendanceQrToken, AttendanceRecord, Attendance                                                      |
+| `StudentAffairModule` | BK, tata tertib, ekskul, prestasi                                                                              | CounselingNote, DisciplinePoint, DisciplineRecord, Extracurricular, ExtracurricularEnrollment, Achievement              |
+| `StaffModule`         | Data induk & absensi guru/staf                                                                                 | Staff, StaffAttendance                                                                                                  |
+| `AssetModule`         | Inventaris & peminjaman                                                                                        | Asset, AssetBooking                                                                                                     |
+| `LibraryModule`       | Katalog & peminjaman buku                                                                                      | LibraryBook, LibraryLoan                                                                                                |
+| `FinanceModule`       | Tagihan & pembayaran                                                                                           | Invoice, Payment                                                                                                        |
+| `PpdbModule`          | Pendaftaran publik, verifikasi, seleksi, konsent                                                               | PpdbApplicant, ParentalConsent                                                                                          |
+| `CommunicationModule` | Pengumuman, surat resmi, notifikasi                                                                            | Announcement, OfficialLetter, Notification                                                                              |
+| `ParentModule`        | Portal wali murid (read-only)                                                                                  | ParentGuardian, ParentStudentLink                                                                                       |
+| `VocationalModule`    | PKL/UKK (Fase 3)                                                                                               | Internship, InternshipJournal, InternshipPartner, IndustryMentor, CompetencyTest, CompetencyRubricItem                  |
+| `ExportModule`        | Ekspor Dapodik/ANBK, rekap nilai                                                                               | DataExportLog                                                                                                           |
+| `AuditModule`         | Audit trail generik                                                                                            | AuditLog                                                                                                                |
+| `RealtimeModule`      | Socket.IO gateway, namespace tunggal `/ws` (siap multi-instance)                                               | Notification                                                                                                            |
+| `IntegrationModule`   | Storage file lokal (uploads + serve berkas via `/api/v1/storage/files/*`); tanpa integrasi fitur pihak ketiga  | —                                                                                                                       |
 
 ### 4.2 Lapisan (Layers)
 
@@ -125,13 +125,13 @@ Controller (validasi DTO, status HTTP)
 
 ### 4.3 Middleware & Guard Global
 
-| Lapisan | Mekanisme |
-|---------|-----------|
-| Middleware JWT | Verifikasi `Authorization: Bearer <JWT in-house>` (HS256/RS256, secret dari env); cek signature & `exp`. Hasil `sub` → resolve `UserRole` aktif → attach `RequestContext { userId, roles[], classIds, homeroomClassId }`. |
-| Guard RBAC global | Baca `@RequirePermission('resource:action[:scope]')` di handler + scope resolver (SENDIRI/KELAS/SEKOLAH); role guard `@Roles(...)` sebagai gula sintaks. Endpoint publik ditandai `@Public()`. |
-| Interceptor request | Set request ID header; logging terstruktur; **tanpa session variable tenant**. |
-| Filter exception | Format error standar `{ error: { code, message, details, requestId } }` (konsisten dengan 04-api-contract §1.6). |
-| Rate limiter | `@nestjs/throttler` per endpoint (lihat §13). |
+| Lapisan             | Mekanisme                                                                                                                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Middleware JWT      | Verifikasi `Authorization: Bearer <JWT in-house>` (HS256/RS256, secret dari env); cek signature & `exp`. Hasil `sub` → resolve `UserRole` aktif → attach `RequestContext { userId, roles[], classIds, homeroomClassId }`. |
+| Guard RBAC global   | Baca `@RequirePermission('resource:action[:scope]')` di handler + scope resolver (SENDIRI/KELAS/SEKOLAH); role guard `@Roles(...)` sebagai gula sintaks. Endpoint publik ditandai `@Public()`.                            |
+| Interceptor request | Set request ID header; logging terstruktur; **tanpa session variable tenant**.                                                                                                                                            |
+| Filter exception    | Format error standar `{ error: { code, message, details, requestId } }` (konsisten dengan 04-api-contract §1.6).                                                                                                          |
+| Rate limiter        | `@nestjs/throttler` per endpoint (lihat §13).                                                                                                                                                                             |
 
 Alur per request:
 
@@ -169,11 +169,11 @@ Middleware Next.js: redirect ke `/login` bila session cookie tidak ada; layout p
 
 ### 5.2 Server Components vs Client Components
 
-| Jenis | Dipakai untuk | Contoh |
-|-------|---------------|--------|
-| Server Component (default) | Data-fetching awal, daftar, detail, rendering statis | Daftar materi, rekap nilai, detail kelas |
-| Client Component | Interaktivitas, timer, form dinamis, real-time | Form tugas, kuis timer, autosave ujian, scan QR kamera, peta geofencing |
-| Server Action | Mutasi ringan form (dengan validasi) | Mark notifikasi terbaca, submit izin |
+| Jenis                      | Dipakai untuk                                        | Contoh                                                                  |
+| -------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------- |
+| Server Component (default) | Data-fetching awal, daftar, detail, rendering statis | Daftar materi, rekap nilai, detail kelas                                |
+| Client Component           | Interaktivitas, timer, form dinamis, real-time       | Form tugas, kuis timer, autosave ujian, scan QR kamera, peta geofencing |
+| Server Action              | Mutasi ringan form (dengan validasi)                 | Mark notifikasi terbaca, submit izin                                    |
 
 Aturan: halaman ujian online adalah Client Component (butuh timer + autosave + visibilitychange), tetapi token & jadwal diverifikasi dari server; jawaban tidak pernah dikirim via Server Action — selalu via REST API dengan idempotency key.
 
@@ -192,14 +192,14 @@ Aturan: halaman ujian online adalah Client Component (butuh timer + autosave + v
 
 **Rekomendasi: tabel `UserRole` adalah satu-satunya otoritas role; JWT in-house hanya identitas (`sub`, `email`).** Tidak ada dimensi sekolah — seluruh user terdaftar di SATU sekolah, tanpa multi-sekolah dan tanpa `active_school` (prd04 §4.3 [owner-v4.2]).
 
-| Aspek | Custom claims di JWT | Tabel mapping (UserRole) |
-|-------|----------------------|--------------------------|
-| Perubahan role | JWT lama tetap valid sampai expire (~15–60 mnt) | Instan, cukup update baris |
-| Multi-role | Representasi rumit dalam satu klaim | Natural: 1 user → N baris (user_id, role) |
-| Ukuran | Terbatas (JWT header besar memperlambat request) | Tidak terbatas |
-| Queryable untuk RBAC & RLS | Tidak (harus parse token) | Ya (join langsung di policy RLS) |
-| Konsistensi dengan RLS | RLS tetap harus lookup tabel | Satu sumber kebenaran untuk app + RLS |
-| Kompleksitas | Rendah tapi rapuh | Sedang; mitigasi: cache 60 detik + invalidasi |
+| Aspek                      | Custom claims di JWT                             | Tabel mapping (UserRole)                      |
+| -------------------------- | ------------------------------------------------ | --------------------------------------------- |
+| Perubahan role             | JWT lama tetap valid sampai expire (~15–60 mnt)  | Instan, cukup update baris                    |
+| Multi-role                 | Representasi rumit dalam satu klaim              | Natural: 1 user → N baris (user_id, role)     |
+| Ukuran                     | Terbatas (JWT header besar memperlambat request) | Tidak terbatas                                |
+| Queryable untuk RBAC & RLS | Tidak (harus parse token)                        | Ya (join langsung di policy RLS)              |
+| Konsistensi dengan RLS     | RLS tetap harus lookup tabel                     | Satu sumber kebenaran untuk app + RLS         |
+| Kompleksitas               | Rendah tapi rapuh                                | Sedang; mitigasi: cache 60 detik + invalidasi |
 
 Alasan tambahan: prd04 §5.P menetapkan satu metode login dan satu sekolah — tabel `UserRole` adalah satu-satunya otoritas; perubahan role instan; tanpa kebutuhan `active_school`. Risiko: lookup per request; mitigasi dengan cache Redis/in-memory TTL 60 s dan index `(user_id, status)`.
 
@@ -227,6 +227,7 @@ Alasan tambahan: prd04 §5.P menetapkan satu metode login dan satu sekolah — t
 ```
 
 Catatan penting:
+
 - **Satu akun = satu sesi ujian aktif** (prd02 §2.2.c): saat `ExamAttempt` aktif, login ganda dari device berbeda ditolak oleh `ExamModule` (cek `ExamAttempt` status `IN_PROGRESS` per user; opsi force-expire sesi lama dengan catatan audit).
 - **PPDB publik**: endpoint `/api/v1/ppdb/register` ditandai `@Public()` — tidak butuh JWT; pendaftar diberi `CALON_SISWA` role setelah lolos seleksi dan di-enroll (prd04 §5.M).
 - **Undangan & reset password**: OPERATOR/WAKEPSEK/KEPSEK/SUPERADMIN kirim undangan (in-app) dengan role tetap; `UserRole.status = INVITED` → user accept → `ACTIVE`. Reset password oleh OPERATOR/SUPERADMIN (in-app, password sementara sekali pakai) — **tanpa email/SMS** (prd04 §5.P).
@@ -268,20 +269,20 @@ Catatan penting:
 
 ### 7.2 Daftar Event
 
-| Arah | Event | Payload inti | Pemicu |
-|------|-------|--------------|--------|
-| server → client | `notification:new` | `{ id, type, title, body, data }` | Semua notifikasi (modul Notification) |
-| server → client | `assignment:new` / `assignment:graded` | `{ assignmentId, classId, ... }` | Guru publish tugas / grade submission |
-| server → client | `exam:start` | `{ examSessionId, startAt, durationMin }` | Sesi ujian dibuka |
-| server → client | `exam:time-warning` | `{ minutesLeft }` | 10/5/1 menit tersisa |
-| server → client | `exam:autosave-ok` | `{ answerLogId, savedAt }` | Acknowledge autosave |
-| server → client | `exam:force-submit` | `{ attemptId }` | Waktu habis (server-side autosubmit) |
-| server → client | `attendance:alpa` | `{ studentId, date }` | Sesi ditutup tanpa kehadiran (notifikasi homeroom) |
-| server → client | `attendance:session-closed` | `{ sessionId }` | QR expire / sesi ditutup |
-| server → client | `invoice:due` | `{ invoiceId, studentId }` | Tagihan mendekati jatuh tempo |
-| server → client | `payment:confirmed` | `{ paymentId }` | Pembayaran diverifikasi KEUANGAN |
-| server → client | `announcement:new`, `letter:status`, `library:due`, `discipline:recorded`, `ppdb:status` | sesuai konteks | Modul masing-masing |
-| client → server | `exam:answer:save` | `{ attemptId, answer, idempotencyKey }` | Autosave (juga via REST fallback) |
+| Arah            | Event                                                                                    | Payload inti                              | Pemicu                                             |
+| --------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- | -------------------------------------------------- |
+| server → client | `notification:new`                                                                       | `{ id, type, title, body, data }`         | Semua notifikasi (modul Notification)              |
+| server → client | `assignment:new` / `assignment:graded`                                                   | `{ assignmentId, classId, ... }`          | Guru publish tugas / grade submission              |
+| server → client | `exam:start`                                                                             | `{ examSessionId, startAt, durationMin }` | Sesi ujian dibuka                                  |
+| server → client | `exam:time-warning`                                                                      | `{ minutesLeft }`                         | 10/5/1 menit tersisa                               |
+| server → client | `exam:autosave-ok`                                                                       | `{ answerLogId, savedAt }`                | Acknowledge autosave                               |
+| server → client | `exam:force-submit`                                                                      | `{ attemptId }`                           | Waktu habis (server-side autosubmit)               |
+| server → client | `attendance:alpa`                                                                        | `{ studentId, date }`                     | Sesi ditutup tanpa kehadiran (notifikasi homeroom) |
+| server → client | `attendance:session-closed`                                                              | `{ sessionId }`                           | QR expire / sesi ditutup                           |
+| server → client | `invoice:due`                                                                            | `{ invoiceId, studentId }`                | Tagihan mendekati jatuh tempo                      |
+| server → client | `payment:confirmed`                                                                      | `{ paymentId }`                           | Pembayaran diverifikasi KEUANGAN                   |
+| server → client | `announcement:new`, `letter:status`, `library:due`, `discipline:recorded`, `ppdb:status` | sesuai konteks                            | Modul masing-masing                                |
+| client → server | `exam:answer:save`                                                                       | `{ attemptId, answer, idempotencyKey }`   | Autosave (juga via REST fallback)                  |
 
 Semua event ujian bersifat **best-effort**; sumber kebenaran tetap REST API (autosave via REST dengan `Idempotency-Key`; Socket hanya ack cepat). Reconnect: client re-join room otomatis; event yang terlewat diambil ulang via REST (mis. `GET /exam/attempts/:id`).
 
@@ -291,26 +292,25 @@ Semua event ujian bersifat **best-effort**; sumber kebenaran tetap REST API (aut
 
 ### 8.1 Bucket per Jenis Dokumen
 
-| Bucket | Isi | Policy akses (RBAC scope) |
-|--------|-----|---------------------------|
-| `materials` | Materi (PDF, video, gambar) | Guru mapel + siswa kelas |
-| `submissions` | File tugas siswa | Guru mapel + pemilik |
-| `ppdb-documents` | KK, akta, rapor (PII) | OPERATOR + pendaftar pemilik (pre-enroll) |
-| `payment-proofs` | Bukti transfer | KEUANGAN + pemilik |
-| `permits` | Surat izin/sakit | homeroom + GURU_BK + pemilik |
-| `counseling-attachments` | Lampiran BK | GURU_BK/WAKEPSEK/KEPSEK |
-| `official-letters` | Surat resmi | OPERATOR + approver |
-| `exports` | Rekap nilai, ekspor Dapodik | homeroom/OPERATOR/SUPERADMIN |
-| `avatars` | Foto profil | Public-read (bukan PII sensitif) |
+| Bucket                   | Isi                         | Policy akses (RBAC scope)                 |
+| ------------------------ | --------------------------- | ----------------------------------------- |
+| `materials`              | Materi (PDF, video, gambar) | Guru mapel + siswa kelas                  |
+| `submissions`            | File tugas siswa            | Guru mapel + pemilik                      |
+| `ppdb-documents`         | KK, akta, rapor (PII)       | OPERATOR + pendaftar pemilik (pre-enroll) |
+| `payment-proofs`         | Bukti transfer              | KEUANGAN + pemilik                        |
+| `permits`                | Surat izin/sakit            | homeroom + GURU_BK + pemilik              |
+| `counseling-attachments` | Lampiran BK                 | GURU_BK/WAKEPSEK/KEPSEK                   |
+| `official-letters`       | Surat resmi                 | OPERATOR + approver                       |
+| `exports`                | Rekap nilai, ekspor Dapodik | homeroom/OPERATOR/SUPERADMIN              |
+| `avatars`                | Foto profil                 | Public-read (bukan PII sensitif)          |
 
-### 8.2 Alur Upload (hindari proxy file besar)
+### 8.2 Alur Upload (langsung ke API, multipart — tanpa S3)
 
 ```
-Client (web) → POST /api/v1/storage/signed-url  { bucket, contentType, size }
-   → NestJS: validasi RBAC + jenis bucket + quota → minta signed URL dari MinIO/S3
-   → response { uploadUrl, publicUrl?, objectPath }
-Client → PUT uploadUrl (langsung ke MinIO/S3, tidak lewat NestJS)
-Client → POST /api/v1/{modul}/confirm  { objectPath } → simpan path di DB
+Client (web) → POST /api/v1/storage/files/{bucket}  (multipart, field "file")
+   → NestJS: validasi RBAC + jenis bucket + quota → simpan ke STORAGE_LOCAL_DIR/{bucket}/
+   → response { path } → simpan path di DB
+Client → GET /api/v1/storage/files/{bucket}/{path} (public branding/avatars; protected lainnya)
 ```
 
 ### 8.3 Contoh Policy (deskriptif)
@@ -330,7 +330,8 @@ CREATE POLICY "materials_read_owner_class"
     )
   );
 ```
-Konvensi path: `{module}/{entity_id}/{file}` (tanpa school_id) agar policy RLS bisa diuji dari path. Enkripsi at-rest: **SSE (server-side encryption)** bawaan MinIO/S3; data PII (PPDB, BK) tidak pernah masuk bucket publik.
+
+Konvensi path: `{bucket}/{module}/{entity_id}/{file}` (tanpa school_id) agar kebijakan akses bisa diuji dari path. Enkripsi at-rest: tanggung jawab filesystem/volume backend (data PII — PPDB, BK — tidak pernah disimpan di folder publik `branding`/`avatars`).
 
 ---
 
@@ -338,12 +339,13 @@ Konvensi path: `{module}/{entity_id}/{file}` (tanpa school_id) agar policy RLS b
 
 ### 9.1 Live Class
 
-| Opsi | Kapan dipakai | Kebutuhan |
-|------|---------------|-----------|
-| **DITUNDA** | Tanpa Jitsi/Zoom/Meet (prd04 §5.O) | Bila dibangun: **WebRTC self-hosted** (SFU + TURN/STUN), tanpa API fitur pihak ketiga |
-| Link manual (MVP) | MVP: tautan manual | Field `live_class_url` di entitas kelas/jadwal; tombol "Buka Link" |
+| Opsi              | Kapan dipakai                      | Kebutuhan                                                                             |
+| ----------------- | ---------------------------------- | ------------------------------------------------------------------------------------- |
+| **DITUNDA**       | Tanpa Jitsi/Zoom/Meet (prd04 §5.O) | Bila dibangun: **WebRTC self-hosted** (SFU + TURN/STUN), tanpa API fitur pihak ketiga |
+| Link manual (MVP) | MVP: tautan manual                 | Field `live_class_url` di entitas kelas/jadwal; tombol "Buka Link"                    |
 
 ### 9.2 Lainnya
+
 - **Dapodik/ANBK (G4)**: ekspor file Excel/CSV terformat (bukan API langsung — akses resmi terbatas, prd03 §4.4); struktur data siswa/rombel disiapkan kompatibel.
 - **Payment gateway**: **opsional, flag OFF default** (`FINANCE_GATEWAY`, prd04 §5.F.7); manual-first + rekonsiliasi file CSV.
 - **Import migrasi (G9)**: template Excel (siswa, guru, kelas) → `ImportBatch`/`ImportError` + validasi & preview.
@@ -372,6 +374,7 @@ Web (Next.js + next-pwa/Workbox)
 ### 10.2 Alur Kritis
 
 **Absensi QR offline** (prd02 §3.3 + prd03 G10):
+
 1. Siswa scan QR saat offline → simpan ke `queue.absensi` (token QR + idempotencyKey di-generate client).
 2. Online → background sync kirim `POST /api/v1/attendance/records/scan` dengan key yang sama.
 3. Server validasi (token sekali pakai + waktu) → sukses/tolak; duplikat key → `200` idempotent (tidak dobel absen).
@@ -384,52 +387,52 @@ Web (Next.js + next-pwa/Workbox)
 
 ## 11. Observability (G7)
 
-| Lapisan | Tool | Detail |
-|---------|------|--------|
-| Structured logging | pino + pino-http | JSON log; request ID (header `X-Request-Id`, dihasilkan per transaksi, di-echo ke response); konteks request (`userId`, `module`); **tidak pernah log token/password/PII** |
-| Error tracking | Sentry (web + api) — opsional non-dependensi | Source map; tag `userId`/`module`; alert error baru; grouping per modul |
-| Metrik | Prometheus + Grafana | HTTP request count/latency (histogram), error rate, active Socket.IO connections, queue depth, DB pool; dashboard **SUPERADMIN (admin sistem sekolah)** |
-| Alerting | Grafana Alerting | **Khusus jam ujian**: error rate > 1% dalam 5 menit, p95 latency > 3 s, autosave failure rate > 5% → alert on-call; alert umum: error 5xx spike, disk usage, backup gagal |
-| Audit | AuditLog | Perubahan data sensitif (nilai, absensi, BK, pembayaran, data siswa) — actor, entity, before/after, timestamp |
+| Lapisan            | Tool                                         | Detail                                                                                                                                                                     |
+| ------------------ | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Structured logging | pino + pino-http                             | JSON log; request ID (header `X-Request-Id`, dihasilkan per transaksi, di-echo ke response); konteks request (`userId`, `module`); **tidak pernah log token/password/PII** |
+| Error tracking     | Sentry (web + api) — opsional non-dependensi | Source map; tag `userId`/`module`; alert error baru; grouping per modul                                                                                                    |
+| Metrik             | Prometheus + Grafana                         | HTTP request count/latency (histogram), error rate, active Socket.IO connections, queue depth, DB pool; dashboard **SUPERADMIN (admin sistem sekolah)**                    |
+| Alerting           | Grafana Alerting                             | **Khusus jam ujian**: error rate > 1% dalam 5 menit, p95 latency > 3 s, autosave failure rate > 5% → alert on-call; alert umum: error 5xx spike, disk usage, backup gagal  |
+| Audit              | AuditLog                                     | Perubahan data sensitif (nilai, absensi, BK, pembayaran, data siswa) — actor, entity, before/after, timestamp                                                              |
 
 ---
 
 ## 12. Backup & Disaster Recovery (G8)
 
-| Aspek | Target | Implementasi |
-|-------|--------|--------------|
-| RPO | ≤ 24 jam (target operasional 15 menit) | Backup harian full + WAL archiving (PITR) — pakai kemampuan **managed PostgreSQL (RDS/Neon)** atau `pg_basebackup` + WAL untuk self-managed |
-| RTO | ≤ 4 jam | Runbook restore terdokumentasi + restore drill bulanan; komponen stateless (web/api) redeploy otomatis dari image; hanya DB + Storage yang perlu restore |
-| Off-region | Backup disimpan di region terpisah | Snapshot DB direplikasi lintas region; **storage MinIO/S3** backup via periodic export ke bucket terpisah |
-| Cakupan | DB + Storage + env/secrets | Semua bucket (materi, submission, PPDB) masuk cakupan; secrets di Vault (bukan di backup) |
-| Verifikasi | Restore drill bulanan | Auto-test: restore ke sandbox → jalankan smoke test (login, query data, ekspor) |
+| Aspek      | Target                                 | Implementasi                                                                                                                                             |
+| ---------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RPO        | ≤ 24 jam (target operasional 15 menit) | Backup harian full + WAL archiving (PITR) — pakai kemampuan **managed PostgreSQL (RDS/Neon)** atau `pg_basebackup` + WAL untuk self-managed              |
+| RTO        | ≤ 4 jam                                | Runbook restore terdokumentasi + restore drill bulanan; komponen stateless (web/api) redeploy otomatis dari image; hanya DB + Storage yang perlu restore |
+| Off-region | Backup disimpan di region terpisah     | Snapshot DB direplikasi lintas region; **direktori storage lokal** (`STORAGE_LOCAL_DIR`) di-backup periodik ke lokasi/volume terpisah                    |
+| Cakupan    | DB + Storage + env/secrets             | Semua bucket (materi, submission, PPDB) masuk cakupan; secrets di Vault (bukan di backup)                                                                |
+| Verifikasi | Restore drill bulanan                  | Auto-test: restore ke sandbox → jalankan smoke test (login, query data, ekspor)                                                                          |
 
 ---
 
 ## 13. Security Hardening (G11)
 
-| Area | Langkah |
-|------|---------|
-| Rate limiting | `@nestjs/throttler`: login 5 gagal/15 mnt/user; submit ujian 20/mnt/user; scan QR 30/mnt/user; API global 1000/mnt/IP |
-| Brute-force lockout | Kolom `failed_login_attempts` (User): 5 gagal → lock 15 mnt |
-| CSRF | Cookie session `SameSite=Lax`; mutasi lintas-origin pakai double-submit token; Next.js Server Actions memakai proteksi bawaan |
-| CSP | Strict: `default-src 'self'`, script nonce; **connect-src hanya API sendiri + Socket.IO** (tanpa Jitsi/Supabase) |
-| Header keamanan | Helmet di NestJS; `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` |
-| Dependency | `npm audit` di CI (fail on high/critical), Dependabot/Renovate, lockfile terverifikasi |
-| Secret | `.env.example` tanpa nilai; secret di env CI/Vault; rotasi rutin; scan secret di repo (gitleaks) |
-| RLS | **Opsional** (defense-in-depth RBAC, tanpa session var tenant); test **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)** di integration test |
-| Privacy (G14) | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **GURU_BK/WAKEPSEK/KEPSEK**) |
+| Area                | Langkah                                                                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Rate limiting       | `@nestjs/throttler`: login 5 gagal/15 mnt/user; submit ujian 20/mnt/user; scan QR 30/mnt/user; API global 1000/mnt/IP                   |
+| Brute-force lockout | Kolom `failed_login_attempts` (User): 5 gagal → lock 15 mnt                                                                             |
+| CSRF                | Cookie session `SameSite=Lax`; mutasi lintas-origin pakai double-submit token; Next.js Server Actions memakai proteksi bawaan           |
+| CSP                 | Strict: `default-src 'self'`, script nonce; **connect-src hanya API sendiri + Socket.IO** (tanpa Jitsi/Supabase)                        |
+| Header keamanan     | Helmet di NestJS; `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`                                                     |
+| Dependency          | `npm audit` di CI (fail on high/critical), Dependabot/Renovate, lockfile terverifikasi                                                  |
+| Secret              | `.env.example` tanpa nilai; secret di env CI/Vault; rotasi rutin; scan secret di repo (gitleaks)                                        |
+| RLS                 | **Opsional** (defense-in-depth RBAC, tanpa session var tenant); test **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)** di integration test |
+| Privacy (G14)       | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **GURU_BK/WAKEPSEK/KEPSEK**)              |
 
 ---
 
 ## 14. Strategi Testing (G6) & CI
 
-| Lapisan | Framework | Cakupan |
-|---------|-----------|---------|
-| Unit | Jest | Logika penilaian (auto-grade PG, isian), RBAC guard (matrix role×aksi), late submission, perhitungan tagihan, validasi token QR |
+| Lapisan     | Framework                                    | Cakupan                                                                                                                                                                                 |
+| ----------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit        | Jest                                         | Logika penilaian (auto-grade PG, isian), RBAC guard (matrix role×aksi), late submission, perhitungan tagihan, validasi token QR                                                         |
 | Integration | Jest + Supertest + testcontainers PostgreSQL | Alur ujian E2E (paket → sesi → attempt → autosave → autosubmit → grade), alur QR absensi (generate → scan → sekali pakai), **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)**, RLS opsional |
-| E2E | Playwright | Setup awal sekolah (G19), **login Email/Username + Password (bukan Google mock)**, guru buat tugas → siswa submit → guru nilai, homeroom lihat rapor |
-| Load | k6 | Ujian online: ratusan siswa submit dalam 5 menit terakhir; target p95 < 3 s; identifikasi bottleneck autosave |
+| E2E         | Playwright                                   | Setup awal sekolah (G19), **login Email/Username + Password (bukan Google mock)**, guru buat tugas → siswa submit → guru nilai, homeroom lihat rapor                                    |
+| Load        | k6                                           | Ujian online: ratusan siswa submit dalam 5 menit terakhir; target p95 < 3 s; identifikasi bottleneck autosave                                                                           |
 
 **CI (GitHub Actions)**: `lint → typecheck → unit → integration (service postgres) → build → npm audit` pada tiap PR; E2E pada merge ke main; load test terjadwal sebelum ujian sungguhan (prd02 §7).
 
@@ -458,10 +461,10 @@ Web (Next.js + next-pwa/Workbox)
         └──────┬──────────────┬──────────────┬──────────────┬───────────┘
                │              │              │              │
         ┌──────▼─────┐ ┌──────▼─────┐ ┌──────▼──────┐ ┌─────▼──────────┐
-        │ PostgreSQL │ │ Redis      │ │ Object      │ │ Live class     │
-        │ skema      │ │ cache/rate │ │ storage     │ │ DITUNDA        │
-        │ tunggal,   │ │ lock/socket│ │ (MinIO/S3)  │ │ (WebRTC self-  │
-        │ RLS ops.   │ │ adapter    │ │ signed URL  │ │  hosted bila   │
+        │ PostgreSQL │ │ Redis      │ │ Storage     │ │ Live class     │
+        │ skema      │ │ cache/rate │ │ lokal       │ │ DITUNDA        │
+        │ tunggal,   │ │ lock/socket│ │ (STORAGE_   │ │ (WebRTC self-  │
+        │ RLS ops.   │ │ adapter    │ │ LOCAL_DIR)  │ │  hosted bila   │
         │ 61 tables  │ │            │ │             │ │  dibangun)     │
         └────────────┘ └────────────┘ └─────────────┘ └────────────────┘
 ```
@@ -497,6 +500,7 @@ Waktu habis (server-side, tidak bergantung client)
 ## 16. Architecture Decision Records (ADR)
 
 ### ADR-001: Single-school: satu skema, tanpa school_id
+
 **Keputusan:** satu skema PostgreSQL untuk SATU sekolah; tanpa kolom identitas sekolah (`school_id`) di tiap entitas; tanpa multi-tenant, tanpa school switcher; **RLS opsional** (defense-in-depth).
 **Alternatif ditolak:** shared schema + `school_id` + RLS tenant (tidak relevan — tidak ada isolasi antar-sekolah), DB-per-tenant (biaya ops & backup N× lipat, tidak dibutuhkan).
 **Alasan:** prd04 §16.3(g) [owner-v4.2] — aplikasi untuk SATU sekolah (500–3.000 user); seluruh data milik sekolah itu; dashboard & ekspor hanya untuk sekolah tersebut.
@@ -504,29 +508,34 @@ Waktu habis (server-side, tidak bergantung client)
 **Implikasi:** guard scope RBAC (SENDIRI/KELAS/SEKOLAH) di aplikasi adalah lapis utama; RLS opsional lapis kedua (tanpa session var tenant).
 
 ### ADR-002: Auth in-house vs managed auth / IdP eksternal
+
 **Keputusan:** auth in-house — Email/Username + Password (Argon2id), JWT httpOnly cookie, refresh rotation. **Tanpa ketergantungan pihak ketiga** (prd04 §5.O, §5.P).
 **Alternatif ditolak:** managed auth / Google OAuth / email SSO (third-party API fitur — dilarang [owner-v4.1]), Keycloak/Zitadel (beban operasional besar untuk tim kecil).
 **Alasan:** prd04 §5.P — satu metode login; hash Argon2id; cookie aman; reset via OPERATOR; keputusan no-third-party [owner-v4.1].
 **Trade-off:** **kehilangan OAuth/SSO diterima** (tidak ada social login); mitigasi: interface `AuthService` + JWT standar → bisa menambah IdP nanti tanpa ubah backend.
 
 ### ADR-003: Turborepo vs Nx
+
 **Keputusan:** Turborepo.
 **Alternatif ditolak:** Nx (powerful tapi kompleks, overkill untuk 2 apps + 3 packages + tim 1–3 orang).
 **Alasan:** prd01 [v1] §6.1 — ringan, cache remote cepat, konfigurasi minimal; cukup untuk task orchestration (build/lint/test).
 **Trade-off:** plugin ecosystem Nx tidak tersedia; tidak relevan pada skala ini; bisa migrasi bila monorepo tumbuh besar.
 
 ### ADR-004: NestJS + Prisma vs Express/TypeORM
+
 **Keputusan:** NestJS (modular per domain, DI, guard global) + Prisma (type-safe, migrasi, anti SQL-injection by default).
 **Alternatif ditolak:** Express (tidak ada struktur/DI — rawan modul berantakan), TypeORM/Sequelize (dekorator entity rawan, migrasi kurang mulus).
 **Alasan:** prd01 [v1] §6.2; modularitas NestJS cocok untuk 18+ modul domain; Prisma mendukung RLS via `$transaction` — **opsional, tanpa `set_config` tenant** (single-school; session var hanya `app.user_id`).
 **Trade-off:** Prisma kurang fleksibel untuk query super kompleks → `$queryRaw` untuk laporan/analitik; tetap filter scope RBAC.
 
 ### ADR-005: JWT mapping vs custom claims (lihat §6.1)
+
 **Keputusan:** tabel `UserRole` sebagai otoritas; JWT hanya identitas.
 **Alasan:** prd04 §4.3 — role berubah instan, queryable untuk RLS opsional; **tanpa `school_id`/`active_school`** (single-school).
 **Trade-off:** lookup tambahan per request → cache 60 detik (Redis/in-memory) + index `(user_id, status)`.
 
 ### ADR-006: Live class
+
 **Keputusan:** **DITUNDA**; tanpa Jitsi/Zoom/Meet (prd04 §5.O); MVP memakai tautan manual (`live_class_url`).
 **Alternatif ditolak:** Jitsi (third-party API fitur — dilarang [owner-v4.1]), Zoom embed (lisensi & restriktif), BigBlueButton (berat, butuh infra besar).
 **Alasan:** prd04 §5.A.10/§5.O — live class bukan prioritas; **bila dibangun = WebRTC self-hosted** (SFU + TURN/STUN).
@@ -535,6 +544,7 @@ Waktu habis (server-side, tidak bergantung client)
 ---
 
 ## 17. Keterkaitan dengan Dokumen Lain
+
 - Skema lengkap **61 entitas single-school (56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni)** + enum + RLS opsional: `03-database-erd.md`.
 - Kontrak endpoint, RBAC matrix, contoh payload: `04-api-contract.md`.
 - Urutan implementasi, task breakdown, risk register: `05-implementation-plan.md`.

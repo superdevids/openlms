@@ -3,14 +3,9 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button, Input, Label, Select, Textarea, Alert } from "@/components/ui";
-import { Dialog } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, Button, Input, Label, Select, Textarea, Alert, Dialog, Badge, EmptyState, toast } from "@openlms/ui";
+
 import { formatRelative } from "@/lib/format";
-import { toast } from "@/components/ui/toast";
 
 interface Material {
   id: string;

@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@openlms/ui";
+import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
 import { fetchBrandingServer, type BrandingView } from "@/lib/api-client";
+import {
+  API_BASE_FALLBACK,
+  API_TIMEOUT_MS,
+  APP_NAME,
+  FALLBACK_BRANDING,
+  FALLBACK_LANDING,
+  type LandingPageData,
+  type LandingSection
+} from "@/lib/constants";
 
 /**
  * Halaman depan sekolah — konten dari GET /public/landing (API).
@@ -13,97 +29,25 @@ import { fetchBrandingServer, type BrandingView } from "@/lib/api-client";
 
 export const dynamic = "force-dynamic";
 
-interface LandingSection {
-  slug: string;
-  title: string;
-  subtitle: string | null;
-  body: string;
-  imagePath: string | null;
-  sectionOrder: number;
-}
-
-interface NewsItem {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  coverImagePath: string | null;
-  author: string | null;
-  publishedAt: string | null;
-}
-
-interface LandingPageData {
-  sections: LandingSection[];
-  berita: NewsItem[];
-  beritaTotal: number;
-}
-
 /** URL absolut /api/v1/public/landing untuk fetch server-side. */
 function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001").replace(/\/+$/, "");
+  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
   if (base.endsWith("/api/v1")) return `${base}${path}`;
   return `${base}/api/v1${path}`;
 }
-
-const FALLBACK_LANDING: LandingPageData = {
-  sections: [
-    {
-      slug: "hero",
-      title: "Selamat Datang",
-      subtitle: "Sekolah unggulan dengan teknologi digital",
-      body: "Sistem Informasi Sekolah (SIS) dan Learning Management System (LMS) terpadu untuk mendukung pembelajaran, administrasi, dan pelayanan sekolah yang modern, transparan, dan akuntabel.",
-      imagePath: null,
-      sectionOrder: 0
-    },
-    {
-      slug: "tentang",
-      title: "Tentang Kami",
-      subtitle: "Profil singkat sekolah",
-      body: "Kami adalah sekolah yang berkomitmen mencetak generasi cerdas, berkarakter, dan siap menghadapi tantangan zaman. Kurikulum kami mengintegrasikan penguasaan ilmu pengetahuan, penguatan karakter, dan kecakapan digital agar setiap peserta didik berkembang optimal.",
-      imagePath: null,
-      sectionOrder: 10
-    },
-    {
-      slug: "piagam",
-      title: "Visi, Misi & Piagam Sekolah",
-      subtitle: "Arah dan komitmen kami",
-      body: "Visi:\nTerwujudnya peserta didik yang beriman, bertakwa, cerdas, terampil, mandiri, dan berwawasan lingkungan.\n\nMisi:\n1. Menyelenggarakan pembelajaran aktif, kreatif, dan menyenangkan.\n2. Menumbuhkan budaya literasi dan numerasi.\n3. Membangun karakter peserta didik melalui pembiasaan positif.\n4. Mengembangkan bakat dan minat peserta didik.\n5. Mewujudkan lingkungan sekolah yang sehat, hijau, dan ramah anak.",
-      imagePath: null,
-      sectionOrder: 20
-    },
-    {
-      slug: "kontak",
-      title: "Hubungi Kami",
-      subtitle: "Informasi kontak sekolah",
-      body: "Alamat: Jl. Pendidikan No. 1\nTelepon: 021-0000000\nEmail: info@openlms.local\nJam layanan: Senin–Jumat, 07.00–15.00 WIB",
-      imagePath: null,
-      sectionOrder: 40
-    }
-  ],
-  berita: [],
-  beritaTotal: 0
-};
 
 const getBranding = cache(async (): Promise<BrandingView> => {
   try {
     return await fetchBrandingServer();
   } catch {
-    return {
-      appName: "openlms",
-      tagline: "LMS & SIS Sekolah",
-      logoUrl: null,
-      faviconUrl: null,
-      colors: { primary: "#2563eb", secondary: "#1d4ed8", accent: "#0ea5e9" },
-      radius: null,
-      configVersion: 1
-    };
+    return FALLBACK_BRANDING;
   }
 });
 
 const getLanding = cache(async (): Promise<LandingPageData> => {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
     try {
       const res = await fetch(landingApiUrl("/public/landing"), {
         cache: "no-store",
@@ -207,7 +151,7 @@ function LandingFooter({ branding }: { branding: BrandingView }): React.JSX.Elem
 export async function generateMetadata(): Promise<Metadata> {
   const b = await getBranding();
   return {
-    title: b.appName ? `${b.appName} — Website Resmi Sekolah` : "openlms — Website Resmi Sekolah",
+    title: `${b.appName ?? APP_NAME} — Website Resmi Sekolah`,
     description: b.tagline ?? "LMS & SIS Sekolah"
   };
 }
@@ -231,45 +175,57 @@ export default async function HomePage(): Promise<React.JSX.Element> {
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-accent opacity-30 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-brand-secondary opacity-40 blur-3xl" />
           <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-28">
-            <div className="max-w-2xl">
+            <StaggerContainer className="max-w-2xl">
               {hero?.subtitle ? (
-                <Badge variant="primary" className="mb-4 bg-white/15 text-white">
-                  {hero.subtitle}
-                </Badge>
+                <StaggerItem>
+                  <Badge variant="primary" className="mb-4 bg-white/15 text-white">
+                    {hero.subtitle}
+                  </Badge>
+                </StaggerItem>
               ) : null}
-              <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-                {branding.appName}
-              </h1>
-              <p className="mt-3 text-lg font-medium text-white/90">
-                {branding.tagline ?? hero?.title ?? "LMS & SIS Sekolah"}
-              </p>
+              <StaggerItem>
+                <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+                  {branding.appName}
+                </h1>
+              </StaggerItem>
+              <StaggerItem>
+                <p className="mt-3 text-lg font-medium text-white/90">
+                  {branding.tagline ?? hero?.title ?? "LMS & SIS Sekolah"}
+                </p>
+              </StaggerItem>
               {hero?.body ? (
-                <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85">{hero.body}</p>
+                <StaggerItem>
+                  <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85">
+                    {hero.body}
+                  </p>
+                </StaggerItem>
               ) : null}
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/login">
-                  <Button size="lg" className="bg-white text-brand-primary hover:bg-neutral-100">
-                    Masuk ke Aplikasi
-                  </Button>
-                </Link>
-                <Link href="/berita">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white/60 bg-transparent text-white hover:bg-white/10"
-                  >
-                    Lihat Berita
-                  </Button>
-                </Link>
-              </div>
-            </div>
+              <StaggerItem>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link href="/login">
+                    <Button size="lg" className="bg-white text-brand-primary hover:bg-neutral-100">
+                      Masuk ke Aplikasi
+                    </Button>
+                  </Link>
+                  <Link href="/berita">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-white/60 bg-transparent text-white hover:bg-white/10"
+                    >
+                      Lihat Berita
+                    </Button>
+                  </Link>
+                </div>
+              </StaggerItem>
+            </StaggerContainer>
           </div>
         </section>
 
         {/* Tentang */}
         {tentang ? (
           <section id="tentang" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
-            <div className="grid items-center gap-8 lg:grid-cols-2">
+            <FadeInUp className="grid items-center gap-8 lg:grid-cols-2">
               <div>
                 <Badge variant="primary">Tentang</Badge>
                 <h2 className="mt-3 text-3xl font-bold text-neutral-900">{tentang.title}</h2>
@@ -302,14 +258,14 @@ export default async function HomePage(): Promise<React.JSX.Element> {
                   />
                 </CardContent>
               </Card>
-            </div>
+            </FadeInUp>
           </section>
         ) : null}
 
         {/* Piagam / Visi Misi */}
         {piagam ? (
           <section id="piagam" className="scroll-mt-20 bg-brand-secondary py-16 text-white">
-            <div className="mx-auto max-w-4xl px-4">
+            <FadeInUp className="mx-auto max-w-4xl px-4">
               <Badge variant="primary" className="bg-white/15 text-white">
                 Piagam
               </Badge>
@@ -320,13 +276,13 @@ export default async function HomePage(): Promise<React.JSX.Element> {
               <div className="mt-6 rounded-2xl bg-white/10 p-6 backdrop-blur sm:p-8">
                 <p className="whitespace-pre-line leading-relaxed text-white/95">{piagam.body}</p>
               </div>
-            </div>
+            </FadeInUp>
           </section>
         ) : null}
 
         {/* Berita */}
         <section id="berita" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16">
-          <div className="flex items-end justify-between gap-3">
+          <FadeInUp className="flex items-end justify-between gap-3">
             <div>
               <Badge variant="primary">Berita</Badge>
               <h2 className="mt-3 text-3xl font-bold text-neutral-900">Kabar Sekolah</h2>
@@ -338,47 +294,51 @@ export default async function HomePage(): Promise<React.JSX.Element> {
                 </Button>
               </Link>
             ) : null}
-          </div>
+          </FadeInUp>
           {berita.length === 0 ? (
-            <Card className="mt-8">
-              <CardContent className="p-6 text-sm text-neutral-500">
-                Belum ada berita. Operator sekolah dapat menambahkan berita melalui menu Landing
-                Page di aplikasi.
-              </CardContent>
-            </Card>
+            <FadeInUp className="mt-8">
+              <Card>
+                <CardContent className="p-6 text-sm text-neutral-500">
+                  Belum ada berita. Operator sekolah dapat menambahkan berita melalui menu Landing
+                  Page di aplikasi.
+                </CardContent>
+              </Card>
+            </FadeInUp>
           ) : (
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StaggerContainer className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {berita.map((item) => (
-                <Link key={item.id} href={`/berita/${item.slug}`} className="block">
-                  <Card className="h-full transition-colors hover:border-brand-primary">
-                    <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant="neutral">{formatTanggal(item.publishedAt)}</Badge>
-                        {item.author ? (
-                          <span className="text-xs text-neutral-500">{item.author}</span>
+                <StaggerItem key={item.id} className="h-full">
+                  <Link href={`/berita/${item.slug}`} className="block h-full">
+                    <Card className="h-full transition-colors hover:border-brand-primary">
+                      <CardHeader>
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="neutral">{formatTanggal(item.publishedAt)}</Badge>
+                          {item.author ? (
+                            <span className="text-xs text-neutral-500">{item.author}</span>
+                          ) : null}
+                        </div>
+                        <CardTitle className="line-clamp-2">{item.title}</CardTitle>
+                        {item.excerpt ? (
+                          <CardDescription className="line-clamp-3">{item.excerpt}</CardDescription>
                         ) : null}
-                      </div>
-                      <CardTitle className="line-clamp-2">{item.title}</CardTitle>
-                      {item.excerpt ? (
-                        <CardDescription className="line-clamp-3">{item.excerpt}</CardDescription>
-                      ) : null}
-                    </CardHeader>
-                    <CardContent>
-                      <span className="text-sm font-semibold text-brand-primary">
-                        Baca selengkapnya
-                      </span>
-                    </CardContent>
-                  </Card>
-                </Link>
+                      </CardHeader>
+                      <CardContent>
+                        <span className="text-sm font-semibold text-brand-primary">
+                          Baca selengkapnya
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerContainer>
           )}
         </section>
 
         {/* Kontak */}
         {kontak ? (
           <section id="kontak" className="scroll-mt-20 border-t border-neutral-200 bg-white py-16">
-            <div className="mx-auto max-w-4xl px-4">
+            <FadeInUp className="mx-auto max-w-4xl px-4">
               <div className="text-center">
                 <Badge variant="primary">Kontak</Badge>
                 <h2 className="mt-3 text-3xl font-bold text-neutral-900">{kontak.title}</h2>
@@ -395,7 +355,7 @@ export default async function HomePage(): Promise<React.JSX.Element> {
                   </p>
                 </CardContent>
               </Card>
-            </div>
+            </FadeInUp>
           </section>
         ) : null}
       </main>

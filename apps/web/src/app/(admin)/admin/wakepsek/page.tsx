@@ -1,18 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { EmptyState } from "@/components/ui/empty-state";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+
 import { formatNumber, formatPercent } from "@/lib/format";
 
 const DEMO_ACADEMIC = [

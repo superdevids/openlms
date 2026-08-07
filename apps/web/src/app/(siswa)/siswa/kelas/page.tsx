@@ -4,9 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from "@openlms/ui";
+
 import { DEMO_CLASSES } from "@/lib/demo";
 
 interface ClassItem {

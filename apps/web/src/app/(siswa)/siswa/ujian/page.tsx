@@ -3,11 +3,18 @@
 import * as React from "react";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Badge,
+  Button,
+  EmptyState
+} from "@openlms/ui";
+
 import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
 import { DEMO_EXAMS } from "@/lib/demo";
@@ -19,11 +26,14 @@ interface Exam {
   className: string;
   startsAt: string;
   endsAt: string;
+  durationMinutes?: number;
   status: string;
 }
 
 export default function SiswaUjianPage(): React.JSX.Element {
-  const list = useApi<Exam[]>(() => api.get("/exams"), [], { fallbackData: DEMO_EXAMS });
+  const list = useApi<Exam[]>(() => api.get("/exam/list-for-student"), [], {
+    fallbackData: DEMO_EXAMS
+  });
 
   return (
     <div className="space-y-6">

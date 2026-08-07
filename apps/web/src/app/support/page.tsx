@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@openlms/ui";
+import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Bantuan & FAQ — openlms"
+  title: `Bantuan & FAQ — ${APP_NAME}`
 };
 
 const FAQ = [
@@ -37,7 +38,7 @@ export default function SupportPage(): React.JSX.Element {
     <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto max-w-3xl px-4 py-10">
         <header className="mb-8">
-          <p className="text-lg font-bold text-primary-700">openlms</p>
+          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
           <h1 className="mt-2 text-2xl font-bold text-neutral-900">Bantuan & FAQ</h1>
           <p className="mt-1 text-sm text-neutral-600">
             Butuh bantuan? Hubungi operator sekolah. Pertanyaan umum di bawah ini dijawab ringkas.

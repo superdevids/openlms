@@ -1,11 +1,13 @@
 import type { Role } from "@openlms/types";
+import { ROLE_GROUP_LABEL, type RoleGroup } from "./constants";
+
+export { ROLE_GROUP_LABEL };
+export type { RoleGroup };
 
 /**
  * Navigasi per role (02-technical-architecture §5.1, 07-ux-design §3).
  * Setiap item bisa membawa featureFlagKey — menu disembunyikan saat flag OFF.
  */
-
-export type RoleGroup = "siswa" | "guru" | "admin" | "superadmin" | "ortu";
 
 export interface NavItem {
   label: string;
@@ -14,14 +16,6 @@ export interface NavItem {
   featureFlagKey?: string;
   roles: Role[];
 }
-
-export const ROLE_GROUP_LABEL: Record<RoleGroup, string> = {
-  siswa: "Siswa",
-  guru: "Guru",
-  admin: "Tata Usaha / Admin",
-  superadmin: "Superadmin",
-  ortu: "Orang Tua"
-};
 
 export function roleGroupFor(role: Role | undefined): RoleGroup | null {
   switch (role) {
@@ -212,6 +206,12 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       icon: "refresh",
       roles: ROLES.superadmin,
       featureFlagKey: "ACADEMIC_ROLLOVER"
+    },
+    {
+      label: "Maintenance",
+      href: "/superadmin/maintenance",
+      icon: "settings",
+      roles: ROLES.superadmin
     }
   ],
   ortu: [

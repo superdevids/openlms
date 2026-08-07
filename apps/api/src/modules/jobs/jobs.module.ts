@@ -5,18 +5,23 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { PayrollModule } from "../payroll/payroll.module";
 import { RolloverModule } from "../rollover/rollover.module";
 import { FinanceModule } from "../finance/finance.module";
+import { ExamModule } from "../exam/exam.module";
+import { QuizModule } from "../quiz/quiz.module";
 import { JobsService } from "./jobs.service";
 import { NotificationsProcessor } from "./processors/notifications.processor";
 import { PayrollProcessor } from "./processors/payroll.processor";
 import { RolloverProcessor } from "./processors/rollover.processor";
 import { ReportProcessor } from "./processors/report.processor";
 import { SppProcessor } from "./processors/spp.processor";
+import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor";
 
 /**
  * JobsModule — antrean job + cron (@nestjs/schedule).
  * - QueueModule (global) menyediakan IJobQueue (BullMQ bila REDIS_URL, else in-process).
  * - SPP bulanan dijadwalkan @Cron di SppProcessor; enqueue dengan period
  *   sebagai idempotency key.
+ * - Auto-submit attempt ujian/kuis tiap menit (G-05) di ExamAutoSubmitProcessor
+ *   dengan guard per-instance (BullMQ jobId tetap / boolean in-process).
  * - Export JobsService untuk modul domain yang ingin enqueue job.
  */
 @Module({
@@ -26,7 +31,9 @@ import { SppProcessor } from "./processors/spp.processor";
     NotificationsModule,
     PayrollModule,
     RolloverModule,
-    FinanceModule
+    FinanceModule,
+    ExamModule,
+    QuizModule
   ],
   providers: [
     JobsService,
@@ -34,7 +41,8 @@ import { SppProcessor } from "./processors/spp.processor";
     PayrollProcessor,
     RolloverProcessor,
     ReportProcessor,
-    SppProcessor
+    SppProcessor,
+    ExamAutoSubmitProcessor
   ],
   exports: [JobsService]
 })

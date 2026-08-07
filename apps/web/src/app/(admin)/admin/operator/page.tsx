@@ -3,22 +3,7 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
-import { Button, Input, Label, Select, Badge, Alert } from "@/components/ui";
-import { Dialog } from "@/components/ui/dialog";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { EmptyState } from "@/components/ui/empty-state";
-import { toast } from "@/components/ui/toast";
-import { IconUpload, IconDownload, IconUser } from "@/components/ui/icons";
+import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Button, Input, Label, Select, Badge, Alert, Dialog, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, toast, IconUpload, IconDownload, IconUser } from "@openlms/ui";
 
 interface Applicant {
   id: string;

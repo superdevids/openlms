@@ -284,6 +284,18 @@ export const PERMISSIONS: PermissionSeed[] = [
     description: "Kelola sistem sekolah",
     is_system: true
   },
+  {
+    code: "system:status:read",
+    category: "SISTEM",
+    description: "Baca status sistem global (maintenance/dev mode)",
+    is_system: true
+  },
+  {
+    code: "system:maintenance:write",
+    category: "SISTEM",
+    description: "Kelola mode maintenance / dev mode (SUPERADMIN)",
+    is_system: true
+  },
 
   // Kepegawaian & komunikasi (melengkapi matrix 04-api-contract §4)
   { code: "staff:read:self", category: "PENGATURAN", description: "Lihat data staf sendiri" },

@@ -3,10 +3,8 @@
 import * as React from "react";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, EmptyState } from "@openlms/ui";
+
 import { formatDateLong } from "@/lib/format";
 import { cn } from "@openlms/ui";
 

@@ -143,16 +143,24 @@ describe("ExamAttemptService — anti-IDOR", () => {
     );
   });
 
-  it("saveAnswer(): SISWA mencoba attempt milik siswa lain -> ForbiddenException", async () => {
+  it("start(): staf tanpa student_id -> BadRequestException", async () => {
+    db.examSession.findUnique.mockResolvedValue(sessionRow());
+
+    await expect(
+      service.start("s1", { access_token: TOKEN }, { userId: "guru-1", roles: ["GURU"] })
+    ).rejects.toThrow("student_id wajib");
+  });
+
+  it("saveAnswers(): SISWA mencoba attempt milik siswa lain -> ForbiddenException", async () => {
     const tx = txMock({
       examAttempt: { findUnique: jest.fn().mockResolvedValue(baseAttempt) }
     });
     db.$transaction.mockImplementation((cb: (t: unknown) => Promise<unknown>) => cb(tx));
 
     await expect(
-      service.saveAnswer(
+      service.saveAnswers(
         "att-lain",
-        { question_id: "qq1", answer: "A" },
+        { answers: [{ question_id: "qq1", answer: "A" }] },
         { userId: "siswa-1", roles: ["SISWA"] },
         "idem-1"
       )

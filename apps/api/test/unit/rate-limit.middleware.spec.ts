@@ -1,20 +1,32 @@
 import { HttpException, HttpStatus } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 import { RateLimitMiddleware } from "../../src/common/middleware/rate-limit.middleware";
+import { signAccessToken } from "../../src/modules/auth/jwt.util";
 
 describe("RateLimitMiddleware", () => {
   const originalEnv = { ...process.env };
   let res: { setHeader: jest.Mock };
   let next: jest.Mock;
 
-  const makeReq = (path: string, ip = "1.2.3.4"): Request =>
-    ({ ip, originalUrl: path, url: path }) as unknown as Request;
+  const makeReq = (path: string, ip = "1.2.3.4", cookie?: string): Request => {
+    const req = { ip, originalUrl: path, url: path } as unknown as Request;
+    if (cookie) {
+      (req as Request & { headers: Record<string, string> }).headers = { cookie };
+    }
+    return req;
+  };
 
   const create = (): RateLimitMiddleware => new RateLimitMiddleware();
 
-  const hit = (m: RateLimitMiddleware, times: number, path = "/api/v1/ping"): void => {
+  const hit = (
+    m: RateLimitMiddleware,
+    times: number,
+    path = "/api/v1/ping",
+    ip?: string,
+    cookie?: string
+  ): void => {
     for (let i = 0; i < times; i++) {
-      m.use(makeReq(path), res as unknown as Response, next as unknown as NextFunction);
+      m.use(makeReq(path, ip, cookie), res as unknown as Response, next as unknown as NextFunction);
     }
   };
 
@@ -23,6 +35,7 @@ describe("RateLimitMiddleware", () => {
     process.env.RATE_LIMIT_MAX = "100";
     process.env.LOGIN_RATE_LIMIT_MAX = "10";
     process.env.REFRESH_RATE_LIMIT_MAX = "30";
+    process.env.USER_RATE_LIMIT_MAX = "60";
     res = { setHeader: jest.fn() };
     next = jest.fn();
   });
@@ -50,7 +63,7 @@ describe("RateLimitMiddleware", () => {
     expect(res.setHeader).toHaveBeenCalledWith("Retry-After", expect.any(String));
   });
 
-  it("menerapkan kuota login lebih ketat (10/menit)", () => {
+  it("menerapkan kuota login lebih ketat (10/menit per-IP)", () => {
     const m = create();
     hit(m, 10, "/api/v1/auth/login");
     m.use(
@@ -122,5 +135,70 @@ describe("RateLimitMiddleware", () => {
     );
     expect(next).toHaveBeenCalledTimes(4);
     expect(next.mock.calls[3][0]).toBeUndefined();
+  });
+
+  describe("G-06 — keying per identitas user untuk route terautentikasi", () => {
+    it("user terautentikasi memakai kuota USER_RATE_LIMIT_MAX (bukan per-IP umum)", () => {
+      process.env.RATE_LIMIT_MAX = "5";
+      const token = signAccessToken({ sub: "user-1" });
+      const cookie = `openlms_session=${token}`;
+      const m = create();
+      // 5 request user dari IP yang sama (kuota umum per-IP hanya 5) tetap lolos
+      // karena dikunci per-user (USER_RATE_LIMIT_MAX = 60).
+      hit(m, 10, "/api/v1/exam/attempts/att1/answers", "10.0.0.1", cookie);
+      expect(next).toHaveBeenCalledTimes(10);
+      expect(next.mock.calls.every(([err]) => !(err instanceof HttpException))).toBe(true);
+    });
+
+    it("user terlampaui kuota per-user → 429", () => {
+      const token = signAccessToken({ sub: "user-1" });
+      const cookie = `openlms_session=${token}`;
+      const m = create();
+      hit(m, 60, "/api/v1/exam/attempts/att1/answers", "10.0.0.1", cookie);
+      m.use(
+        makeReq("/api/v1/exam/attempts/att1/answers", "10.0.0.1", cookie),
+        res as unknown as Response,
+        next as unknown as NextFunction
+      );
+      expect(next).toHaveBeenCalledTimes(61);
+      const error = next.mock.calls[60][0] as HttpException;
+      expect(error).toBeInstanceOf(HttpException);
+      expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(res.setHeader).toHaveBeenCalledWith("Retry-After", expect.any(String));
+    });
+
+    it("dua user di belakang NAT IP sama tidak saling potong kuota", () => {
+      const tokenA = signAccessToken({ sub: "user-a" });
+      const tokenB = signAccessToken({ sub: "user-b" });
+      const m = create();
+      // user-a hampir penuh kuota per-user
+      hit(m, 59, "/api/v1/exam/attempts/att1/answers", "10.0.0.1", `openlms_session=${tokenA}`);
+      // user-b (IP sama) tetap jalan penuh tanpa terblokir
+      hit(m, 59, "/api/v1/exam/attempts/att1/answers", "10.0.0.1", `openlms_session=${tokenB}`);
+      expect(next).toHaveBeenCalledTimes(118);
+      expect(next.mock.calls.every(([err]) => !(err instanceof HttpException))).toBe(true);
+    });
+
+    it("cookie openlms_access juga dikenali sebagai identitas", () => {
+      const token = signAccessToken({ sub: "user-1" });
+      const m = create();
+      hit(m, 10, "/api/v1/me", "10.0.0.1", `openlms_access=${token}`);
+      expect(next).toHaveBeenCalledTimes(10);
+      expect(next.mock.calls.every(([err]) => !(err instanceof HttpException))).toBe(true);
+    });
+
+    it("login tetap per-IP meski request membawa cookie user", () => {
+      const token = signAccessToken({ sub: "user-1" });
+      const m = create();
+      hit(m, 10, "/api/v1/auth/login", "10.0.0.1", `openlms_session=${token}`);
+      m.use(
+        makeReq("/api/v1/auth/login", "10.0.0.1", `openlms_session=${token}`),
+        res as unknown as Response,
+        next as unknown as NextFunction
+      );
+      expect(next).toHaveBeenCalledTimes(11);
+      const error = next.mock.calls[10][0] as HttpException;
+      expect(error.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    });
   });
 });

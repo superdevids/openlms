@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { cache } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@openlms/ui";
 import { fetchBrandingServer, type BrandingView } from "@/lib/api-client";
+import { FALLBACK_BRANDING } from "@/lib/constants";
 
 /**
  * Layout grup (landing) — halaman publik di luar dashboard (berita, dll).
@@ -14,15 +15,7 @@ const getBranding = cache(async (): Promise<BrandingView> => {
   try {
     return await fetchBrandingServer();
   } catch {
-    return {
-      appName: "openlms",
-      tagline: "LMS & SIS Sekolah",
-      logoUrl: null,
-      faviconUrl: null,
-      colors: { primary: "#2563eb", secondary: "#1d4ed8", accent: "#0ea5e9" },
-      radius: null,
-      configVersion: 1
-    };
+    return FALLBACK_BRANDING;
   }
 });
 

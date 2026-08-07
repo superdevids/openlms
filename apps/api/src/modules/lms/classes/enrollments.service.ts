@@ -9,6 +9,7 @@ import {
   STUDENT_LIST_ROLES
 } from "../lms-scope";
 import { writeAudit } from "../lms-audit";
+import { ScopeResolver } from "../../../common/scope-resolver";
 import { BulkEnrollDto, BulkUnenrollDto, UpdateEnrollmentStatusDto } from "./dto/enrollments.dto";
 
 @Injectable()
@@ -52,6 +53,9 @@ export class EnrollmentsService {
       });
     }
 
+    // Keanggotaan kelas berubah → cache scope siswa di-resolve ulang.
+    toCreate.forEach((studentId) => ScopeResolver.invalidateScope(studentId));
+
     await writeAudit({
       ctx,
       action: "CREATE",
@@ -77,6 +81,9 @@ export class EnrollmentsService {
       },
       data: { status: "DROPPED" }
     });
+
+    // Keanggotaan kelas berubah → cache scope siswa di-resolve ulang.
+    dto.studentIds.forEach((studentId) => ScopeResolver.invalidateScope(studentId));
 
     await writeAudit({
       ctx,
@@ -108,6 +115,8 @@ export class EnrollmentsService {
       where: { id: enrollment.id },
       data: { status: dto.status }
     });
+    // Status keanggotaan berubah → scope siswa di-resolve ulang.
+    ScopeResolver.invalidateScope(dto.studentId);
     await writeAudit({
       ctx,
       action: "UPDATE",

@@ -3,17 +3,8 @@
 import * as React from "react";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+
 import { DEMO_GRADES } from "@/lib/demo";
 
 export default function OrtuNilaiPage(): React.JSX.Element {

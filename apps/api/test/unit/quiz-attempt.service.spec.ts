@@ -106,6 +106,14 @@ describe("QuizAttemptService — anti-IDOR", () => {
     );
   });
 
+  it("start(): staf tanpa student_id -> BadRequestException", async () => {
+    db.quiz.findUnique.mockResolvedValue(BASE_QUIZ);
+
+    await expect(service.start("q1", {}, { userId: "guru-1", roles: ["GURU"] })).rejects.toThrow(
+      "student_id wajib"
+    );
+  });
+
   it("saveAnswer(): SISWA mencoba attempt milik siswa lain -> ForbiddenException", async () => {
     const tx = txMock({
       quizAttempt: {

@@ -29,7 +29,7 @@ import {
 } from "./dto/exam.dto";
 import {
   StartExamAttemptDto,
-  SaveExamAnswerDto,
+  SaveExamAnswersDto,
   GradeExamAttemptDto,
   LogExamActivityDto
 } from "./dto/exam-attempt.dto";
@@ -89,6 +89,15 @@ export class ExamController {
   @RequirePermission("exam:attempt:self", "exam:read:school")
   listExams(@Query() query: { subject_id?: string; status?: AssessmentStatus; q?: string }) {
     return this.examService.findAll(query);
+  }
+
+  /** Daftar ujian siswa (G-02): sesi yang menyasar kelas siswa, dipetakan ke
+   *  { id, title, subject, className, startsAt, endsAt, durationMinutes, status }.
+   *  Dideklarasikan SEBELUM @Get(":examId") agar "list-for-student" tidak tertangkap param. */
+  @Get("list-for-student")
+  @RequirePermission("exam:attempt:self", "exam:read:school")
+  listForStudent(@CurrentUser() user: AuthUser | undefined) {
+    return this.examService.listForStudent(this.userId(user));
   }
 
   @Get(":examId")
@@ -210,14 +219,14 @@ export class ExamController {
 
   @Post("attempts/:attemptId/answers")
   @RequirePermission("exam:attempt:self", "exam:attempt:school")
-  saveAnswer(
+  saveAnswers(
     @Param("attemptId") attemptId: string,
-    @Body() dto: SaveExamAnswerDto,
+    @Body() dto: SaveExamAnswersDto,
     @Headers("idempotency-key") idempotencyKey: string | undefined,
     @Req() req: Request,
     @CurrentUser() user: AuthUser | undefined
   ) {
-    return this.examAttemptService.saveAnswer(
+    return this.examAttemptService.saveAnswers(
       attemptId,
       dto,
       this.actor(user),

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge, Button, Card, CardContent } from "@openlms/ui";
+import { API_BASE_FALLBACK, API_TIMEOUT_MS, APP_NAME } from "@/lib/constants";
 
 /** Detail berita — GET /public/landing/berita/:slug (publik). */
 
@@ -21,7 +20,7 @@ interface NewsDetail {
 }
 
 function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:3001").replace(/\/+$/, "");
+  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
   if (base.endsWith("/api/v1")) return `${base}${path}`;
   return `${base}/api/v1${path}`;
 }
@@ -37,7 +36,7 @@ function formatTanggal(value: string | null): string {
 
 async function fetchBerita(slug: string): Promise<NewsDetail | "not-found" | "offline"> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
     const res = await fetch(landingApiUrl(`/public/landing/berita/${encodeURIComponent(slug)}`), {
       cache: "no-store",
@@ -61,10 +60,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const berita = await fetchBerita(slug);
   if (typeof berita === "string") {
-    return { title: "Berita — openlms" };
+    return { title: `Berita — ${APP_NAME}` };
   }
   return {
-    title: `${berita.title} — openlms`,
+    title: `${berita.title} — ${APP_NAME}`,
     description: berita.excerpt ?? berita.body.slice(0, 160)
   };
 }

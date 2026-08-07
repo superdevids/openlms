@@ -4,11 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { DataView, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Button, EmptyState } from "@openlms/ui";
+
 import { formatDateTime } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_SUBMISSIONS } from "@/lib/demo";
 

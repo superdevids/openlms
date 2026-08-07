@@ -30,7 +30,6 @@ describe("ExamAttemptService", () => {
   const mockAttemptFindUnique = prisma.examAttempt.findUnique as jest.Mock;
   const mockAttemptUpdate = prisma.examAttempt.update as jest.Mock;
   const mockLogCreate = prisma.examAnswerLog.create as jest.Mock;
-  const mockLogFindFirst = prisma.examAnswerLog.findFirst as jest.Mock;
   const mockGradeUpsert = prisma.grade.upsert as jest.Mock;
 
   beforeEach(() => {
@@ -41,7 +40,7 @@ describe("ExamAttemptService", () => {
     service = new ExamAttemptService();
   });
 
-  describe("saveAnswer (autosave idempotent M-EXAM-T5)", () => {
+  describe("saveAnswers (autosave batch idempotent M-EXAM-T5 / G-01)", () => {
     const inProgressAttempt = {
       id: "att1",
       exam_session_id: "sess1",
@@ -51,44 +50,73 @@ describe("ExamAttemptService", () => {
       exam_session: { exam: { duration_min: 60 } }
     };
 
-    it("Idempotency-Key sama tidak membuat log duplikat", async () => {
+    it("Idempotency-Key sama tidak membuat log duplikat (per soal)", async () => {
       mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
-      mockLogFindFirst.mockResolvedValue({ id: "log1", answer: "B" });
+      (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }]);
+      (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([
+        { idempotency_key: "key-1:q1" }
+      ]);
 
-      const result = await service.saveAnswer(
+      const result = await service.saveAnswers(
         "att1",
-        { question_id: "q1", answer: "B" },
+        { answers: [{ question_id: "q1", answer: "B" }] },
         { userId: "guru-1", roles: ["GURU"] },
         "key-1",
         "127.0.0.1"
       );
-      expect(result.duplicated).toBe(true);
+      expect(result.duplicated).toBe(1);
+      expect(result.saved).toBe(0);
       expect(mockLogCreate).not.toHaveBeenCalled();
     });
 
-    it("key baru menyimpan log append-only dengan saved_at server time", async () => {
+    it("batch baru menyimpan log append-only dengan key per soal", async () => {
       mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
-      mockLogFindFirst.mockResolvedValue(null);
-      (prisma.question.findUnique as jest.Mock).mockResolvedValue({
-        id: "q1",
-        exam_package_id: "pkg1"
-      });
+      (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }, { id: "q2" }]);
+      (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([]);
       mockLogCreate.mockResolvedValue({ id: "log2", answer: "B" });
 
-      const result = await service.saveAnswer(
+      const result = await service.saveAnswers(
         "att1",
-        { question_id: "q1", answer: "B" },
+        {
+          answers: [
+            { question_id: "q1", answer: "B", saved_at_client: "2026-08-07T00:00:00.000Z" },
+            { question_id: "q2", answer: "Jakarta" }
+          ]
+        },
         { userId: "guru-1", roles: ["GURU"] },
         "key-2",
         "127.0.0.1"
       );
-      expect(result.duplicated).toBe(false);
+      expect(result.duplicated).toBe(0);
+      expect(result.saved).toBe(2);
       const createArg = mockLogCreate.mock.calls[0]?.[0] as {
         data: { attempt_id: string; question_id: string; idempotency_key: string; saved_at: Date };
       };
       expect(createArg.data.attempt_id).toBe("att1");
-      expect(createArg.data.idempotency_key).toBe("key-2");
+      expect(createArg.data.question_id).toBe("q1");
+      expect(createArg.data.idempotency_key).toBe("key-2:q1");
       expect(createArg.data.saved_at).toBeInstanceOf(Date);
+      const createArg2 = mockLogCreate.mock.calls[1]?.[0] as {
+        data: { question_id: string; idempotency_key: string };
+      };
+      expect(createArg2.data.question_id).toBe("q2");
+      expect(createArg2.data.idempotency_key).toBe("key-2:q2");
+    });
+
+    it("menolak soal yang bukan milik paket attempt", async () => {
+      mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
+      (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }]);
+
+      await expect(
+        service.saveAnswers(
+          "att1",
+          { answers: [{ question_id: "qLain", answer: "X" }] },
+          { userId: "guru-1", roles: ["GURU"] },
+          "key-3",
+          "127.0.0.1"
+        )
+      ).rejects.toThrow("tidak termasuk paket attempt ini");
+      expect(mockLogCreate).not.toHaveBeenCalled();
     });
   });
 

@@ -3,19 +3,7 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
-import { Button, Input, Switch, Badge } from "@/components/ui";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell
-} from "@/components/ui/table";
-import { toast } from "@/components/ui/toast";
-import { IconLock, IconDownload } from "@/components/ui/icons";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Button, Input, Switch, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, toast, IconLock, IconDownload } from "@openlms/ui";
 
 const DEMO_USERS = [
   { id: "u1", username: "guru.2026", fullName: "Budi Santoso", role: "GURU", status: "ACTIVE" },

@@ -1,10 +1,22 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  ValidateNested
+} from "class-validator";
 
 /** Start attempt ujian (M-EXAM-T4): token sesi sekali pakai. */
 export class StartExamAttemptDto {
+  /** SISWA selalu diikat ke actor.userId (nilai ini diabaikan); wajib untuk staf. */
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  student_id!: string;
+  student_id?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -14,8 +26,8 @@ export class StartExamAttemptDto {
   device_info?: Record<string, unknown>;
 }
 
-/** Autosave jawaban (M-EXAM-T5): wajib header Idempotency-Key dari client. */
-export class SaveExamAnswerDto {
+/** Satu item jawaban dalam batch autosave (M-EXAM-T5). */
+export class SaveExamAnswersItemDto {
   @IsString()
   @IsNotEmpty()
   question_id!: string;
@@ -24,8 +36,19 @@ export class SaveExamAnswerDto {
   @IsString()
   answer?: string;
 
+  /** Waktu jawaban dicatat di client (informasional; server memakai saved_at). */
   @IsOptional()
-  device_info?: Record<string, unknown>;
+  @IsString()
+  saved_at_client?: string;
+}
+
+/** Autosave batch (G-01): banyak soal dalam satu request; wajib header Idempotency-Key. */
+export class SaveExamAnswersDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => SaveExamAnswersItemDto)
+  answers!: SaveExamAnswersItemDto[];
 }
 
 /** Submit attempt ujian. */

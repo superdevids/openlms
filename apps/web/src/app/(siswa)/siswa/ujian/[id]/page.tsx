@@ -4,11 +4,20 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, Alert } from "@/components/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Alert,
+  toast
+} from "@openlms/ui";
+
 import { formatDateTime } from "@/lib/format";
-import { toast } from "@/components/ui/toast";
+
 import { DEMO_EXAMS } from "@/lib/demo";
 import { cn } from "@openlms/ui";
 
@@ -22,16 +31,54 @@ interface ExamDetail {
   sessions?: Array<{ id: string; name: string; startsAt: string; endsAt: string }>;
 }
 
+interface ApiExamSession {
+  id: string;
+  name: string;
+  starts_at: string;
+  ends_at: string;
+  target_class?: { name: string } | null;
+}
+
+interface ApiExamDetail {
+  id: string;
+  title: string;
+  created_at: string;
+  subject?: { name: string } | null;
+  sessions?: ApiExamSession[];
+}
+
 const ALLOWED_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // tanpa 0/O/1/I
+
+function mapExamDetail(raw: ApiExamDetail): ExamDetail {
+  const s0 = raw.sessions?.[0];
+  return {
+    id: raw.id,
+    title: raw.title,
+    subject: raw.subject?.name ?? "",
+    className: s0?.target_class?.name ?? "",
+    startsAt: s0?.starts_at ?? raw.created_at ?? "",
+    endsAt: s0?.ends_at ?? "",
+    sessions: (raw.sessions ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      startsAt: s.starts_at,
+      endsAt: s.ends_at
+    }))
+  };
+}
 
 export default function SiswaUjianTokenPage(): React.JSX.Element {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const examId = params.id ?? "";
 
-  const exam = useApi<ExamDetail>(() => api.get(`/exams/${examId}`), [examId], {
-    fallbackData: DEMO_EXAMS.find((e) => e.id === examId)
-  });
+  const exam = useApi<ExamDetail>(
+    () => api.get<ApiExamDetail>(`/exam/${examId}`).then(mapExamDetail),
+    [examId],
+    {
+      fallbackData: DEMO_EXAMS.find((e) => e.id === examId)
+    }
+  );
 
   const [digits, setDigits] = React.useState<string[]>(Array(6).fill(""));
   const refs = React.useRef<Array<HTMLInputElement | null>>([]);
@@ -87,12 +134,14 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
       } else if (!session) {
         throw new ApiError(404, "NOT_FOUND", "Sesi ujian belum tersedia untuk ujian ini.");
       } else {
-        const res = await api.post<{ attemptId: string; remainingSeconds: number }>(
-          `/exam/sessions/${session.id}/attempts/start`,
-          { token, packageId: undefined }
-        );
-        attemptId = res.attemptId;
-        remainingSeconds = res.remainingSeconds;
+        const res = await api.post<{
+          attempt: { id: string; remaining_seconds: number };
+        }>(`/exam/sessions/${session.id}/attempts`, {
+          access_token: token,
+          student_id: ""
+        });
+        attemptId = res.attempt.id;
+        remainingSeconds = res.attempt.remaining_seconds;
       }
       sessionStorage.setItem(
         "openlms_exam_attempt",

@@ -3,12 +3,8 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView } from "@/components/ui/data-view";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button, Label, Select, Textarea, Badge } from "@/components/ui";
-import { Dialog } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
-import { toast } from "@/components/ui/toast";
+import { DataView, Card, CardHeader, CardTitle, CardDescription, Button, Label, Select, Textarea, Badge, Dialog, EmptyState, toast } from "@openlms/ui";
+
 import { DEMO_QUESTIONS } from "@/lib/demo";
 
 interface Question {

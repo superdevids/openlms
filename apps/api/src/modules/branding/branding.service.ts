@@ -6,9 +6,10 @@ import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { LocalStorageProvider, UploadedFile } from "../storage/local-storage.provider";
 import { UpdateBrandingDto } from "./dto/update-branding.dto";
 import type { BrandingView } from "./branding.types";
+import { readCacheTtlMs } from "../../common/cache.util";
 
-/** TTL cache branding (ms). */
-const CACHE_TTL_MS = 60_000;
+/** TTL cache branding (ms) — env CACHE_TTL_MS, default 60s (GET /app/branding tiap load halaman). */
+const CACHE_TTL_MS = readCacheTtlMs(60_000);
 
 /** Branding fallback bila tidak ada row di DB. */
 const DEFAULT_BRANDING: BrandingView = {

@@ -92,51 +92,98 @@ export class AttendanceService {
       recorded_by: actor.userId
     }));
 
-    const saved: ManualAttendanceEntry[] = [];
-    for (const entry of entries) {
-      saved.push(await this.upsertAttendance(entry));
-    }
-    return saved;
+    // Batch dalam satu transaksi (bukan loop serial N+1) untuk jalur
+    // class_subject_id; jalur harian (NULL) di-batch find/update/create.
+    return this.upsertAttendanceBatch(entries);
   }
 
-  /** Upsert memakai unique (student_id, class_subject_id, date); NULL class_subject ditangani manual. */
-  private async upsertAttendance(entry: ManualAttendanceEntry): Promise<ManualAttendanceEntry> {
-    if (entry.class_subject_id) {
-      return this.prisma.attendance.upsert({
-        where: {
-          student_id_class_subject_id_date: {
-            student_id: entry.student_id,
-            class_subject_id: entry.class_subject_id,
-            date: entry.date
-          }
-        },
-        create: entry,
-        update: {
-          status: entry.status,
-          note: entry.note,
-          method: entry.method,
-          recorded_by: entry.recorded_by
-        }
-      });
+  /**
+   * Batch upsert absensi manual — menggantikan loop serial (N+1) dengan satu
+   * transaksi untuk jalur class_subject_id, dan batch find/update/create untuk
+   * jalur NULL class_subject (unique constraint Postgres memperlakukan NULL
+   * sebagai nilai berbeda, jadi guard manual tetap dipertahankan).
+   */
+  private async upsertAttendanceBatch(
+    entries: ManualAttendanceEntry[]
+  ): Promise<ManualAttendanceEntry[]> {
+    const withClassSubject = entries.filter((e) => e.class_subject_id !== null);
+    const withoutClassSubject = entries.filter((e) => e.class_subject_id === null);
+    const saved: ManualAttendanceEntry[] = [];
+
+    if (withClassSubject.length > 0) {
+      const rows = await this.prisma.$transaction(
+        withClassSubject.map((entry) =>
+          this.prisma.attendance.upsert({
+            where: {
+              student_id_class_subject_id_date: {
+                student_id: entry.student_id,
+                class_subject_id: entry.class_subject_id as string,
+                date: entry.date
+              }
+            },
+            create: entry,
+            update: {
+              status: entry.status,
+              note: entry.note,
+              method: entry.method,
+              recorded_by: entry.recorded_by
+            }
+          })
+        )
+      );
+      saved.push(...rows);
     }
 
-    // Harian (class_subject_id NULL): unique constraint Postgres menganggap NULL berbeda,
-    // jadi guard dilakukan manual di service.
-    const existing = await this.prisma.attendance.findFirst({
-      where: { student_id: entry.student_id, class_subject_id: null, date: entry.date }
-    });
-    if (existing) {
-      return this.prisma.attendance.update({
-        where: { id: existing.id },
-        data: {
-          status: entry.status,
-          note: entry.note,
-          method: entry.method,
-          recorded_by: entry.recorded_by
-        }
+    if (withoutClassSubject.length > 0) {
+      const date = withoutClassSubject[0]?.date as Date;
+      const existing = await this.prisma.attendance.findMany({
+        where: {
+          student_id: { in: withoutClassSubject.map((e) => e.student_id) },
+          class_subject_id: null,
+          date
+        },
+        select: { id: true, student_id: true }
       });
+      const existingByStudent = new Map(existing.map((r) => [r.student_id, r.id]));
+      const toUpdate = withoutClassSubject.filter((e) => existingByStudent.has(e.student_id));
+      const toCreate = withoutClassSubject.filter((e) => !existingByStudent.has(e.student_id));
+
+      if (toUpdate.length > 0) {
+        const rows = await this.prisma.$transaction(
+          toUpdate.map((entry) =>
+            this.prisma.attendance.update({
+              where: { id: existingByStudent.get(entry.student_id) as string },
+              data: {
+                status: entry.status,
+                note: entry.note,
+                method: entry.method,
+                recorded_by: entry.recorded_by
+              }
+            })
+          )
+        );
+        saved.push(...rows);
+      }
+
+      if (toCreate.length > 0) {
+        const created = await this.prisma.attendance.createMany({
+          data: toCreate,
+          skipDuplicates: true
+        });
+        if (created.count > 0) {
+          const createdRows = await this.prisma.attendance.findMany({
+            where: {
+              student_id: { in: toCreate.map((e) => e.student_id) },
+              class_subject_id: null,
+              date
+            }
+          });
+          saved.push(...createdRows);
+        }
+      }
     }
-    return this.prisma.attendance.create({ data: entry });
+
+    return saved;
   }
 
   // ============================================================

@@ -4,8 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE } from "@/lib/api-client";
 import { roleHome } from "@/lib/roles";
-import { Button, Input, Label, Alert, Spinner } from "@/components/ui";
-import { toast } from "@/components/ui/toast";
+import { Button, Input, Label, Alert, Spinner, toast } from "@openlms/ui";
 
 /**
  * Login — SATU metode: "Email atau Username" + Password (prd04 §5.P).

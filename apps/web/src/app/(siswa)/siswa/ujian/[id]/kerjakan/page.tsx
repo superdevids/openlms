@@ -3,11 +3,20 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
-import { Button, Alert, RadioGroup, Textarea, Label, Progress } from "@/components/ui";
-import { ConfirmDialog } from "@/components/ui/dialog";
+import {
+  Button,
+  Alert,
+  RadioGroup,
+  Textarea,
+  Label,
+  Progress,
+  ConfirmDialog,
+  toast
+} from "@openlms/ui";
+
 import { formatDuration } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
-import { toast } from "@/components/ui/toast";
+
 import { DEMO_QUESTIONS } from "@/lib/demo";
 import { cn } from "@openlms/ui";
 
@@ -58,16 +67,26 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
           return;
         }
         const res = await api.get<{
-          status: string;
-          remainingSeconds: number;
+          attempt: {
+            id: string;
+            status: string;
+            remaining_seconds: number;
+          };
           questions: ExamQuestion[];
         }>(`/exam/attempts/${attemptId}`);
-        if (res.status === "SUBMITTED" || res.status === "AUTO_SUBMITTED") {
-          setFinalResult({ submitted: true, auto: res.status === "AUTO_SUBMITTED" });
+        if (res.attempt.status === "SUBMITTED" || res.attempt.status === "AUTO_SUBMITTED") {
+          setFinalResult({ submitted: true, auto: res.attempt.status === "AUTO_SUBMITTED" });
           return;
         }
         setQuestions(res.questions ?? []);
-        setRemaining(res.remainingSeconds);
+        setRemaining(res.attempt.remaining_seconds);
+        // Prefill jawaban yang sudah tersimpan di server (resume sesi).
+        const initial: Record<string, string> = {};
+        for (const q of res.questions ?? []) {
+          const mine = (q as ExamQuestion & { my_answer?: string | null }).my_answer;
+          if (mine) initial[q.id] = mine;
+        }
+        setAnswers(initial);
       } catch (err) {
         setError(err instanceof ApiError ? errorMessage(err) : "Gagal memuat ujian.");
       } finally {
@@ -126,10 +145,10 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
         await api.post(
           `/exam/attempts/${attemptId}/answers`,
           {
-            answers: Object.entries(merged).map(([questionId, answer]) => ({
-              questionId,
+            answers: Object.entries(merged).map(([question_id, answer]) => ({
+              question_id,
               answer,
-              savedAtClient: new Date().toISOString()
+              saved_at_client: new Date().toISOString()
             }))
           },
           { idempotencyKey: newIdempotencyKey("exam") }

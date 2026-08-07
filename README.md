@@ -76,20 +76,27 @@ Halaman landing/publik (mis. PPDB) disajikan oleh `apps/web` pada route group
 
 ## Environment (lihat `.env.example`)
 
-| Variabel                                                                                                | Wajib    | Keterangan                                         |
-| ------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------- |
-| `DATABASE_URL`                                                                                          | Ya       | URL PostgreSQL (Prisma)                            |
-| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_INVITATION_SECRET`                                      | Ya       | Secret acak **32+ byte** di production             |
-| `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_DAYS`, `JWT_INVITATION_TTL_DAYS`                             | Tidak    | TTL token                                          |
-| `COOKIE_SECURE`                                                                                         | —        | `true` wajib saat HTTPS (production)               |
-| `COOKIE_SAME_SITE`                                                                                      | Tidak    | `lax` (default)                                    |
-| `CORS_ORIGINS`                                                                                          | Tidak    | Origin diizinkan (koma-pisah), REST + Socket.IO    |
-| `LOG_LEVEL`                                                                                             | Tidak    | pino (default `info`)                              |
-| `STORAGE_LOCAL_DIR`                                                                                     | Tidak    | Direktori upload lokal                             |
-| `REDIS_URL`                                                                                             | Tidak    | Aktifkan BullMQ bila diisi                         |
-| `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_PREFIX`, `S3_REGION`, `S3_FORCE_PATH_STYLE` | Tidak    | Object storage self-managed (MinIO/S3, signed URL) |
-| `NEXT_PUBLIC_API_BASE`                                                                                  | Ya (web) | Base URL API untuk `apps/web`                      |
-| `PORT`                                                                                                  | Tidak    | Default `3000` (web); API production di `3001`     |
+| Variabel                                                                    | Wajib    | Keterangan                                            |
+| --------------------------------------------------------------------------- | -------- | ----------------------------------------------------- |
+| `APP_NAME`                                                                  | Tidak    | Nama aplikasi (opsional; dipakai web bila dikonsumsi) |
+| `DATABASE_URL`                                                              | Ya       | URL PostgreSQL (Prisma)                               |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `JWT_INVITATION_SECRET`          | Ya       | Secret acak **32+ byte** di production                |
+| `JWT_ACCESS_TTL_MINUTES`, `JWT_REFRESH_TTL_DAYS`, `JWT_INVITATION_TTL_DAYS` | Tidak    | TTL token                                             |
+| `COOKIE_SECURE`                                                             | —        | `true` wajib saat HTTPS (production)                  |
+| `COOKIE_SAME_SITE`                                                          | Tidak    | `lax` (default)                                       |
+| `CORS_ORIGINS`                                                              | Tidak    | Origin diizinkan (koma-pisah), REST + Socket.IO       |
+| `LOG_LEVEL`                                                                 | Tidak    | pino (default `info`)                                 |
+| `STORAGE_LOCAL_DIR`                                                         | Tidak    | Direktori upload lokal                                |
+| `CACHE_TTL_MS`                                                              | Tidak    | TTL cache in-memory (ms), default `30000`             |
+| `REDIS_URL`                                                                 | Tidak    | Aktifkan BullMQ bila diisi                            |
+| `NEXT_PUBLIC_API_BASE`                                                      | Ya (web) | Base URL API untuk `apps/web`                         |
+| `PORT`                                                                      | Tidak    | Default `3000` (web); API production di `3001`        |
+
+> **Storage: LOKAL backend saja — S3/MinIO TIDAK dipakai.** Semua unggahan
+> (branding, avatar, materi) disimpan di filesystem backend lewat
+> `STORAGE_LOCAL_DIR` (default `./storage`). Tidak ada variabel `S3_*`,
+> bucket, maupun layanan MinIO/S3 di seluruh repo — jangan menambahkan
+> dependensi object storage tanpa persetujuan arsitek.
 
 ## Keamanan
 
