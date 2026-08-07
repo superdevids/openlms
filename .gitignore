@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+coverage/
+.turbo/
+
+# Prisma
+packages/database/prisma/generated/
+packages/database/prisma/migrations/dev.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editors & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Tests
+.nyc_output/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Secret scanning reports
+gitleaks-report.json
+
+# Uploaded files (keep dir structure via .gitkeep)
+apps/api/storage/*
+!apps/api/storage/.gitkeep

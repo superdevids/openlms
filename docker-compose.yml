@@ -1,0 +1,82 @@
+# openlms — compose untuk layanan pendukung (PostgreSQL + Redis opsional).
+# Jalankan: docker compose up -d
+# Redis dipakai antrean BullMQ (REDIS_URL) — layanan app tetap jalan tanpa Redis
+# (QueueModule fallback in-process). Aktifkan Redis:
+#   docker compose --profile full up -d
+# Nilai env diambil dari .env (interpolasi ${VAR:-default}).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: openlms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-openlms}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-openlms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: openlms-redis
+    restart: unless-stopped
+    profiles: ["full"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # --- Layanan aplikasi (opsional, profile "full") ---
+  # NOTE: Dockerfile belum tersedia di apps/api & apps/web — aktifkan setelah
+  # Dockerfile dibuat. Package dipakai sesuai nama workspace @openlms/*.
+  #
+  # api:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/api/Dockerfile
+  #   container_name: openlms-api
+  #   restart: unless-stopped
+  #   profiles: ["full"]
+  #   env_file: .env
+  #   environment:
+  #     PORT: 3001
+  #     DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-openlms}?schema=public
+  #     REDIS_URL: redis://redis:6379
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   command: npm run start --workspace=@openlms/api
+  #
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/web/Dockerfile
+  #   container_name: openlms-web
+  #   restart: unless-stopped
+  #   profiles: ["full"]
+  #   env_file: .env
+  #   environment:
+  #     PORT: 3000
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - api
+  #   command: npm run start --workspace=@openlms/web
+
+volumes:
+  postgres-data:

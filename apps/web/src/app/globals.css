@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Token warna — 07-ux-design.md §6.1 (kontras WCAG AA) */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+
+  --color-warning-100: #fef3c7;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  --color-danger-100: #fee2e2;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  --color-info-100: #e0f2fe;
+  --color-info-600: #0284c7;
+  --color-info-700: #0369a1;
+}
+
+/*
+ * Token semantik shadcn/ui v4 (single source of truth untuk komponen).
+ * Nilai dipetakan ke palette openlms agar tampilan tetap konsisten:
+ * primary = primary-600, muted/accent = neutral-100, border = neutral-200,
+ * input = neutral-300, destructive = danger-600, radius = 0.5rem (branding radius 8px).
+ */
+:root {
+  --radius: 0.5rem;
+  --background: #fafafa; /* neutral-50 */
+  --foreground: #171717; /* neutral-900 */
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #2563eb; /* primary-600 */
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5; /* neutral-100 */
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5; /* neutral-100 */
+  --muted-foreground: #737373; /* neutral-500 */
+  --accent: #f5f5f5; /* neutral-100 */
+  --accent-foreground: #171717;
+  --destructive: #dc2626; /* danger-600 */
+  --border: #e5e5e5; /* neutral-200 */
+  --input: #d4d4d4; /* neutral-300 */
+  --ring: #2563eb; /* primary-600 */
+}
+
+/*
+ * Ekspos token semantik ke utilitas Tailwind (bg-background, text-primary, dst.)
+ * + skala radius turunan dari --radius.
+ * `inline` agar utilitas Tailwind me-resolve var runtime ini.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /*
+   * Token branding runtime (dari GET /api/v1/app/branding — pre-login).
+   * --brand-primary/secondary/accent diisi JS/layout dari response API;
+   * fallback di sini = palette default openlms (docs/02 ADR-001, branding default).
+   */
+  --color-brand-primary: var(--brand-primary, var(--color-primary-600));
+  --color-brand-secondary: var(--brand-secondary, var(--color-primary-700));
+  --color-brand-accent: var(--brand-accent, var(--color-primary-800));
+  --radius-brand: var(--brand-radius, 0.5rem);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .skip-link {
+    @apply absolute left-2 top-2 z-[100] -translate-y-24 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-transform focus:translate-y-0;
+  }
+
+  .touch-target {
+    @apply flex min-h-11 min-w-11 items-center justify-center;
+  }
+}

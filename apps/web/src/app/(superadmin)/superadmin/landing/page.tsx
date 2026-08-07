@@ -1,0 +1,500 @@
+"use client";
+
+import * as React from "react";
+import { api, errorMessage } from "@/lib/api-client";
+import { useApi } from "@/lib/use-api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Input, Label, Textarea } from "@/components/ui";
+import { Switch } from "@/components/ui/switch";
+import { ConfirmDialog } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/toast";
+import { IconPlus, IconX } from "@/components/ui/icons";
+
+/**
+ * Editor Landing Page — SUPERADMIN + OPERATOR (permission landing:write:school).
+ * List semua section landing + kelola berita (CRUD).
+ */
+
+interface LandingSection {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  body: string;
+  imagePath: string | null;
+  sectionOrder: number;
+  isPublished: boolean;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+interface NewsItem {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  body: string;
+  coverImagePath: string | null;
+  author: string | null;
+  publishedAt: string | null;
+  isPublished: boolean;
+  updatedAt: string;
+}
+
+interface SectionDraft {
+  title: string;
+  subtitle: string;
+  body: string;
+  isPublished: boolean;
+}
+
+interface NewsDraft {
+  title: string;
+  slug: string;
+  excerpt: string;
+  body: string;
+  author: string;
+  isPublished: boolean;
+}
+
+const EMPTY_NEWS_DRAFT: NewsDraft = {
+  title: "",
+  slug: "",
+  excerpt: "",
+  body: "",
+  author: "",
+  isPublished: false
+};
+
+function formatTanggal(value: string | null): string {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
+export default function SuperadminLandingPage(): React.JSX.Element {
+  const sectionsApi = useApi<LandingSection[]>((signal) =>
+    api.get<LandingSection[]>("/admin/landing", { signal })
+  );
+  const newsApi = useApi<NewsItem[]>((signal) =>
+    api.get<NewsItem[]>("/admin/landing/berita", { signal })
+  );
+
+  // Draf section (lokal, belum disimpan)
+  const [drafts, setDrafts] = React.useState<Record<string, SectionDraft>>({});
+  const [saving, setSaving] = React.useState<Record<string, boolean>>({});
+
+  // Draf berita + dialog
+  const [newsDialogOpen, setNewsDialogOpen] = React.useState(false);
+  const [editingNewsId, setEditingNewsId] = React.useState<string | null>(null);
+  const [newsDraft, setNewsDraft] = React.useState<NewsDraft>(EMPTY_NEWS_DRAFT);
+  const [newsSaving, setNewsSaving] = React.useState(false);
+  const [deletingNews, setDeletingNews] = React.useState<NewsItem | null>(null);
+
+  const sections = sectionsApi.data ?? [];
+  const news = newsApi.data ?? [];
+
+  // Inisialisasi draft section saat data dimuat.
+  const synced = React.useRef(false);
+  React.useEffect(() => {
+    if (!synced.current && sectionsApi.data) {
+      const next: Record<string, SectionDraft> = {};
+      for (const s of sectionsApi.data) {
+        next[s.slug] = {
+          title: s.title,
+          subtitle: s.subtitle ?? "",
+          body: s.body,
+          isPublished: s.isPublished
+        };
+      }
+      setDrafts(next);
+      synced.current = true;
+    }
+  }, [sectionsApi.data]);
+
+  const setDraft = (slug: string, patch: Partial<SectionDraft>): void => {
+    setDrafts((prev) => ({
+      ...prev,
+      [slug]: { ...(prev[slug] ?? EMPTY_DRAFT(slug)), ...patch }
+    }));
+  };
+
+  const saveSection = async (section: LandingSection): Promise<void> => {
+    const draft = drafts[section.slug];
+    if (!draft) return;
+    setSaving((prev) => ({ ...prev, [section.slug]: true }));
+    try {
+      await api.put(`/admin/landing/${encodeURIComponent(section.slug)}`, {
+        title: draft.title,
+        subtitle: draft.subtitle,
+        body: draft.body,
+        sectionOrder: section.sectionOrder,
+        isPublished: draft.isPublished
+      });
+      toast({ variant: "success", title: `Section "${section.slug}" disimpan` });
+      sectionsApi.refetch();
+    } catch (err) {
+      toast({
+        variant: "error",
+        title: "Gagal menyimpan section",
+        description: errorMessage(err)
+      });
+    } finally {
+      setSaving((prev) => ({ ...prev, [section.slug]: false }));
+    }
+  };
+
+  const openCreateNews = (): void => {
+    setEditingNewsId(null);
+    setNewsDraft(EMPTY_NEWS_DRAFT);
+    setNewsDialogOpen(true);
+  };
+
+  const openEditNews = (item: NewsItem): void => {
+    setEditingNewsId(item.id);
+    setNewsDraft({
+      title: item.title,
+      slug: item.slug,
+      excerpt: item.excerpt ?? "",
+      body: item.body,
+      author: item.author ?? "",
+      isPublished: item.isPublished
+    });
+    setNewsDialogOpen(true);
+  };
+
+  const saveNews = async (): Promise<void> => {
+    if (!newsDraft.title.trim() || !newsDraft.body.trim()) {
+      toast({ variant: "error", title: "Judul dan isi berita wajib diisi" });
+      return;
+    }
+    setNewsSaving(true);
+    try {
+      const payload = {
+        title: newsDraft.title.trim(),
+        slug: newsDraft.slug.trim() || undefined,
+        excerpt: newsDraft.excerpt.trim(),
+        body: newsDraft.body,
+        author: newsDraft.author.trim() || undefined,
+        isPublished: newsDraft.isPublished
+      };
+      if (editingNewsId) {
+        await api.patch(`/admin/landing/berita/${editingNewsId}`, payload);
+        toast({ variant: "success", title: "Berita diperbarui" });
+      } else {
+        await api.post("/admin/landing/berita", payload);
+        toast({ variant: "success", title: "Berita dibuat" });
+      }
+      setNewsDialogOpen(false);
+      newsApi.refetch();
+    } catch (err) {
+      toast({ variant: "error", title: "Gagal menyimpan berita", description: errorMessage(err) });
+    } finally {
+      setNewsSaving(false);
+    }
+  };
+
+  const confirmDeleteNews = async (): Promise<void> => {
+    if (!deletingNews) return;
+    try {
+      await api.del(`/admin/landing/berita/${deletingNews.id}`);
+      toast({ variant: "success", title: "Berita dihapus" });
+      newsApi.refetch();
+    } catch (err) {
+      toast({ variant: "error", title: "Gagal menghapus berita", description: errorMessage(err) });
+    }
+    setDeletingNews(null);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-neutral-900">Landing Page Sekolah</h1>
+        <p className="text-sm text-neutral-500">
+          Kelola konten halaman depan website (hero, tentang, piagam, kontak) dan berita. Perubahan
+          langsung tampil di <code>/</code>.
+        </p>
+      </div>
+
+      {sectionsApi.status === "error" || newsApi.status === "error" ? (
+        <Card>
+          <CardContent className="p-4 text-sm text-danger-700">
+            Tidak dapat memuat data landing dari API. Periksa koneksi backend dan pastikan akun
+            memiliki permission <code>landing:write:school</code>.
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Section konten */}
+      <section aria-labelledby="landing-sections-title">
+        <h2 id="landing-sections-title" className="text-lg font-semibold text-neutral-900">
+          Konten Halaman
+        </h2>
+        {sections.length === 0 ? (
+          <Card className="mt-4">
+            <CardContent className="p-4 text-sm text-neutral-500">
+              Belum ada section. Jalankan seed atau buat section melalui API.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {sections.map((section) => {
+              const draft = drafts[section.slug] ?? EMPTY_DRAFT(section.slug);
+              return (
+                <Card key={section.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="primary">
+                        <code className="text-xs">{section.slug}</code>
+                      </Badge>
+                      <Switch
+                        checked={draft.isPublished}
+                        onCheckedChange={(v) => setDraft(section.slug, { isPublished: v })}
+                        label={draft.isPublished ? "Terbit" : "Draf"}
+                      />
+                    </div>
+                    <CardDescription>
+                      Urutan {section.sectionOrder} · Diperbarui {formatTanggal(section.updatedAt)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`landing-title-${section.slug}`}>Judul</Label>
+                      <Input
+                        id={`landing-title-${section.slug}`}
+                        value={draft.title}
+                        maxLength={200}
+                        onChange={(e) => setDraft(section.slug, { title: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`landing-subtitle-${section.slug}`}>Subjudul</Label>
+                      <Input
+                        id={`landing-subtitle-${section.slug}`}
+                        value={draft.subtitle}
+                        maxLength={400}
+                        onChange={(e) => setDraft(section.slug, { subtitle: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`landing-body-${section.slug}`}>Isi</Label>
+                      <Textarea
+                        id={`landing-body-${section.slug}`}
+                        value={draft.body}
+                        rows={6}
+                        onChange={(e) => setDraft(section.slug, { body: e.target.value })}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => void saveSection(section)}
+                      disabled={Boolean(saving[section.slug])}
+                    >
+                      {saving[section.slug] ? "Menyimpan..." : "Simpan Section"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Berita */}
+      <section aria-labelledby="landing-news-title">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="landing-news-title" className="text-lg font-semibold text-neutral-900">
+              Berita
+            </h2>
+            <p className="text-sm text-neutral-500">
+              Berita yang diterbitkan tampil di beranda dan halaman /berita.
+            </p>
+          </div>
+          <Button onClick={openCreateNews}>
+            <IconPlus className="h-4 w-4" /> Tambah Berita
+          </Button>
+        </div>
+
+        {news.length === 0 ? (
+          <Card className="mt-4">
+            <CardContent className="p-4 text-sm text-neutral-500">
+              Belum ada berita. Klik &quot;Tambah Berita&quot; untuk membuat berita pertama.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {news.map((item) => (
+              <Card key={item.id}>
+                <CardContent className="flex items-center justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-base font-semibold text-neutral-900">
+                        {item.title}
+                      </p>
+                      <Badge variant={item.isPublished ? "success" : "neutral"}>
+                        {item.isPublished ? "Terbit" : "Draf"}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 truncate text-sm text-neutral-500">
+                      <code>{item.slug}</code> · {formatTanggal(item.publishedAt)}
+                      {item.author ? ` · ${item.author}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditNews(item)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Hapus ${item.title}`}
+                      onClick={() => setDeletingNews(item)}
+                    >
+                      <IconX className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Dialog tambah/edit berita */}
+      {newsDialogOpen ? (
+        <NewsEditorDialog
+          editing={editingNewsId !== null}
+          draft={newsDraft}
+          onChange={setNewsDraft}
+          saving={newsSaving}
+          onSave={() => void saveNews()}
+          onClose={() => setNewsDialogOpen(false)}
+        />
+      ) : null}
+
+      <ConfirmDialog
+        open={deletingNews !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingNews(null);
+        }}
+        title="Hapus berita?"
+        description={`Berita "${deletingNews?.title ?? ""}" akan dihapus permanen.`}
+        confirmLabel="Ya, hapus"
+        destructive
+        onConfirm={() => void confirmDeleteNews()}
+      />
+    </div>
+  );
+}
+
+function EMPTY_DRAFT(slug: string): SectionDraft {
+  return { title: slug, subtitle: "", body: "", isPublished: true };
+}
+
+function NewsEditorDialog({
+  editing,
+  draft,
+  onChange,
+  saving,
+  onSave,
+  onClose
+}: {
+  editing: boolean;
+  draft: NewsDraft;
+  onChange: (draft: NewsDraft) => void;
+  saving: boolean;
+  onSave: () => void;
+  onClose: () => void;
+}): React.JSX.Element {
+  return (
+    <div
+      className="fixed inset-0 z-[150] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={editing ? "Edit berita" : "Tambah berita"}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-xl border border-neutral-200 bg-white p-6 shadow-xl sm:rounded-xl">
+        <h2 className="text-lg font-semibold text-neutral-900">
+          {editing ? "Edit Berita" : "Tambah Berita"}
+        </h2>
+        <div className="mt-4 space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="news-title">Judul</Label>
+            <Input
+              id="news-title"
+              value={draft.title}
+              maxLength={200}
+              placeholder="Judul berita"
+              onChange={(e) => onChange({ ...draft, title: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="news-slug">
+                Slug <span className="text-neutral-400">(opsional)</span>
+              </Label>
+              <Input
+                id="news-slug"
+                value={draft.slug}
+                maxLength={300}
+                placeholder="auto-dari judul"
+                onChange={(e) => onChange({ ...draft, slug: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="news-author">Penulis</Label>
+              <Input
+                id="news-author"
+                value={draft.author}
+                maxLength={120}
+                placeholder="Tim Sekolah"
+                onChange={(e) => onChange({ ...draft, author: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="news-excerpt">Ringkasan</Label>
+            <Input
+              id="news-excerpt"
+              value={draft.excerpt}
+              maxLength={500}
+              placeholder="Ringkasan singkat berita"
+              onChange={(e) => onChange({ ...draft, excerpt: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="news-body">Isi</Label>
+            <Textarea
+              id="news-body"
+              value={draft.body}
+              rows={8}
+              placeholder="Isi lengkap berita"
+              onChange={(e) => onChange({ ...draft, body: e.target.value })}
+            />
+          </div>
+          <Switch
+            checked={draft.isPublished}
+            onCheckedChange={(v) => onChange({ ...draft, isPublished: v })}
+            label={draft.isPublished ? "Terbitkan sekarang" : "Simpan sebagai draf"}
+          />
+        </div>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Batal
+          </Button>
+          <Button onClick={onSave} disabled={saving}>
+            {saving ? "Menyimpan..." : editing ? "Simpan Perubahan" : "Buat Berita"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,2529 @@
+// ============================================================
+// openlms — Prisma schema (PostgreSQL, single-school)
+// Sumber: docs/03-database-erd.md v1.1 (61 entitas) + prd04 §4.3 (RBAC)
+//
+// Konvensi:
+// - id String @id @default(cuid()); created_at/updated_at di semua tabel
+//   kecuali Notification & AuditLog (log-like, hanya created_at).
+// - Nama tabel snake_case (@@map); field camelCase; kolom FK memakai nama ERD
+//   (student_id, created_by, dst.); field relasi diberi nama deskriptif
+//   (created_by_user, dst.) agar tidak bertabrakan dengan kolom FK.
+// - TANPA kolom school_id — aplikasi untuk SATU sekolah (ADR-001).
+// - Enum memakai nilai Bahasa Indonesia sesuai ERD §5.
+// - RBAC support (prd04 §4.3): Permission, RolePermission, UserPermissionOverride.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS (docs/03-database-erd.md §5 + prd04 §4.3)
+// ============================================================
+
+enum Role {
+  SISWA
+  GURU
+  GURU_BK
+  KEUANGAN
+  OPERATOR
+  WAKEPSEK
+  KEPSEK
+  SUPERADMIN
+  CALON_SISWA
+  WALI_MURID
+  PEMBIMBING_INDUSTRI
+  PENGUJI_EKSTERNAL
+}
+
+enum SchoolType {
+  SMA
+  SMK
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  DISABLED
+}
+
+enum SubjectCategory {
+  WAJIB
+  PILIHAN
+  KEJURUAN
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  TRANSFERRED
+  GRADUATED
+  DROPPED
+  PROMOTED
+  REPEATED
+}
+
+enum MaterialType {
+  DOCUMENT
+  VIDEO
+  LINK
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  LATE
+  GRADED
+  RETURNED
+}
+
+enum QuestionType {
+  PILIHAN_GANDA
+  ESAI
+  ISIAN_SINGKAT
+  MENJODOHKAN
+}
+
+enum Difficulty {
+  MUDAH
+  SEDANG
+  SULIT
+}
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  CLOSED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  AUTO_SUBMITTED
+  EXPIRED
+  FLAGGED
+}
+
+enum AttendanceStatus {
+  HADIR
+  IZIN
+  SAKIT
+  ALPA
+  TERLAMBAT
+}
+
+enum AttendanceMethod {
+  MANUAL
+  QR_CODE
+  GEOFENCING
+  RFID
+}
+
+enum GradeType {
+  TUGAS
+  KUIS
+  UJIAN
+  PRAKTIK
+  SIKAP
+  SUMATIF
+}
+
+enum InvoiceType {
+  SPP
+  UANG_KEGIATAN
+  UANG_DAFTAR
+  UANG_SERAGAM
+  UANG_OSIS
+  DENDA
+  LAINNYA
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+  REFUNDED
+  CARRIED_OVER
+}
+
+enum PaymentMethod {
+  TUNAI
+  TRANSFER
+  LAINNYA
+}
+
+enum Gender {
+  L
+  P
+}
+
+enum PpdbStatus {
+  DRAFT
+  SUBMITTED
+  VERIFIED
+  REJECTED
+  SELECTED
+  WAITLIST
+  ENROLLED
+}
+
+enum ExamType {
+  PTS
+  PAS
+  PAT
+  UJIAN_SEKOLAH
+  UKK
+  LAINNYA
+}
+
+enum DisciplineSeverity {
+  RINGAN
+  SEDANG
+  BERAT
+}
+
+enum AchievementLevel {
+  SEKOLAH
+  KABUPATEN
+  PROVINSI
+  NASIONAL
+  INTERNASIONAL
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  RESIGNED
+}
+
+enum AssetCategory {
+  RUANG
+  LAB
+  ALAT
+  KENDARAAN
+  PERALATAN_IT
+  LAINNYA
+}
+
+enum AssetCondition {
+  BAIK
+  RUSAK_RINGAN
+  RUSAK_BERAT
+  MAINTENANCE
+}
+
+enum AssetStatus {
+  AVAILABLE
+  BOOKED
+  MAINTENANCE
+  RETIRED
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum LibraryLoanStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+  LOST
+}
+
+enum LetterType {
+  KETERANGAN
+  IZIN
+  UNDANGAN
+  LAINNYA
+}
+
+enum LetterStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  SIGNED
+}
+
+enum InternshipStatus {
+  PLACED
+  ONGOING
+  COMPLETED
+  TERMINATED
+}
+
+enum CompetencyTestStatus {
+  SCHEDULED
+  ONGOING
+  GRADED
+  PASSED
+  FAILED
+}
+
+enum ExportType {
+  DAPODIK
+  ANBK
+  RAPOR
+  NILAI
+}
+
+enum RetentionAction {
+  ARCHIVE
+  DELETE
+  ANONYMIZE
+}
+
+enum ConsentType {
+  DATA_CHILD
+  PUBLICATION
+  MEDICAL
+}
+
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+  EXPIRED
+}
+
+enum ImportType {
+  STUDENT
+  TEACHER
+  CLASS
+  ASSIGNMENT
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  VIEW
+  EXPORT
+  LOGIN
+  LOCKOUT
+}
+
+enum AcademicYearStatus {
+  DRAFT
+  OPEN
+  CLOSING
+  CLOSED
+}
+
+enum RolloverRunStatus {
+  DRAFT
+  PREVIEW
+  RUNNING
+  DONE
+  ROLLED_BACK
+  FAILED
+}
+
+enum RolloverAction {
+  PROMOTED
+  REPEATED
+  GRADUATED
+  TRANSFERRED
+  DROPPED
+}
+
+enum AlumniStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum NotificationType {
+  TASK_NEW
+  TASK_GRADED
+  EXAM_START
+  EXAM_AUTOSUBMIT
+  ATTENDANCE_ALPA
+  INVOICE_DUE
+  PAYMENT_CONFIRMED
+  PPDB_STATUS
+  ANNOUNCEMENT
+  LETTER_STATUS
+  LIBRARY_DUE
+  ASSET_APPROVED
+  DISCIPLINE
+  BK_REMINDER
+  EXPORT_READY
+}
+
+// RBAC — prd04 §4.3
+enum PermissionEffect {
+  ALLOW
+  DENY
+}
+
+enum PermissionScope {
+  SENDIRI
+  KELAS
+  SEKOLAH
+}
+
+// ============================================================
+// §2.1 SchoolProfile — profil SATU sekolah (tanpa school_id)
+// ============================================================
+
+model SchoolProfile {
+  id                      String   @id @default(cuid())
+  npsn                    String   @unique // validasi 8 digit di service
+  nss                     String?
+  name                    String
+  school_type             SchoolType
+  address                 String
+  phone                   String?
+  email                   String?
+  logo_url                String?
+  current_academic_year_id String?
+  timezone                String   @default("Asia/Jakarta")
+  settings                Json?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  current_academic_year AcademicYear? @relation("SchoolCurrentAcademicYear", fields: [current_academic_year_id], references: [id])
+
+  @@map("school_profile")
+}
+
+// ============================================================
+// §2.2 User — identitas login (auth in-house)
+// ============================================================
+
+model User {
+  id                    String   @id @default(cuid())
+  email                 String?  @unique
+  username              String?  @unique // login "Email atau Username"
+  password_hash         String // Argon2id
+  must_change_password  Boolean  @default(true)
+  failed_login_attempts Int      @default(0) // lockout 15 mnt setelah 5 gagal
+  locked_until          DateTime? // lockout berlapis (kolom W2, prd04 §5.P)
+  full_name             String
+  phone                 String?
+  avatar_url            String?
+  is_active             Boolean  @default(true)
+  last_login_at         DateTime?
+  preferred_language    String?  @default("id")
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  roles                       UserRole[]
+  invitations_sent            UserRole[]                    @relation("UserRoleInviter")
+  parent_guardians            ParentGuardian[]
+  notifications               Notification[]                @relation("NotificationUser")
+  classes_as_homeroom         Class[]                       @relation("ClassHomeroom")
+  class_subjects_taught       ClassSubject[]                @relation("ClassSubjectTeacher")
+  schedules                   ScheduleEntry[]               @relation("ScheduleTeacher")
+  enrollments                 Enrollment[]                  @relation("EnrollmentStudent")
+  materials_created           Material[]                    @relation("MaterialCreatedBy")
+  submissions                 Submission[]                  @relation("SubmissionStudent")
+  submissions_graded          Submission[]                  @relation("SubmissionGradedBy")
+  quizzes_created             Quiz[]                        @relation("QuizCreatedBy")
+  quiz_attempts               QuizAttempt[]                 @relation("QuizAttemptStudent")
+  attendances                 Attendance[]                  @relation("AttendanceStudent")
+  attendances_recorded        Attendance[]                  @relation("AttendanceRecordedBy")
+  grades                      Grade[]                       @relation("GradeStudent")
+  invoices                    Invoice[]                     @relation("InvoiceStudent")
+  invoices_created            Invoice[]                     @relation("InvoiceCreatedBy")
+  payments_verified           Payment[]                     @relation("PaymentVerifiedBy")
+  ppdb_applicants             PpdbApplicant[]               @relation("PpdbUser")
+  exams_created               Exam[]                        @relation("ExamCreatedBy")
+  exam_tokens_generated       ExamSession[]                 @relation("ExamSessionTokenBy")
+  exam_attempts               ExamAttempt[]                 @relation("ExamAttemptStudent")
+  attendance_sessions         AttendanceSession[]           @relation("AttendanceSessionCreatedBy")
+  qr_tokens_used              AttendanceQrToken[]           @relation("QrTokenUsedBy")
+  attendance_records          AttendanceRecord[]            @relation("AttendanceRecordStudent")
+  counseling_notes            CounselingNote[]              @relation("CounselingStudent")
+  counseling_sessions         CounselingNote[]              @relation("CounselingCounselor")
+  discipline_records          DisciplineRecord[]            @relation("DisciplineStudent")
+  discipline_recorded         DisciplineRecord[]            @relation("DisciplineRecordedBy")
+  extracurricular_coached     Extracurricular[]             @relation("ExtracurricularCoach")
+  extracurricular_enrollments ExtracurricularEnrollment[]   @relation("EkskulStudent")
+  achievements                Achievement[]                 @relation("AchievementStudent")
+  staff                       Staff[]                       @relation("StaffUser")
+  asset_bookings              AssetBooking[]                @relation("AssetBookedBy")
+  asset_approvals             AssetBooking[]                @relation("AssetApprovedBy")
+  library_loans               LibraryLoan[]                 @relation("LibraryLoanStudent")
+  announcements               Announcement[]                @relation("AnnouncementCreatedBy")
+  official_letters_requested  OfficialLetter[]              @relation("LetterRequester")
+  official_letters_approved   OfficialLetter[]              @relation("LetterApprover")
+  parent_student_links        ParentStudentLink[]           @relation("ParentStudentLinkStudent")
+  internships                 Internship[]                  @relation("InternshipStudent")
+  internships_school_mentored Internship[]                  @relation("InternshipSchoolMentor")
+  industry_mentors            IndustryMentor[]              @relation("IndustryMentorUser")
+  competency_tests            CompetencyTest[]              @relation("CompetencyStudent")
+  competency_examinations     CompetencyTest[]              @relation("CompetencyExaminer")
+  data_exports                DataExportLog[]               @relation("ExportRequestedBy")
+  parental_consents           ParentalConsent[]             @relation("ConsentStudent")
+  import_batches              ImportBatch[]                 @relation("ImportImportedBy")
+  audit_logs                  AuditLog[]                    @relation("AuditActor")
+  feature_flag_settings       AppFeatureSetting[]           @relation("FeatureSettingUpdatedBy")
+  academic_years_created      AcademicYear[]                @relation("AcademicYearCreatedBy")
+  rollover_runs_executed      RolloverRun[]                 @relation("RolloverExecutedBy")
+  rollover_runs_rolled_back   RolloverRun[]                 @relation("RolloverRolledBackBy")
+  alumni                      Alumni[]                      @relation("AlumniStudent")
+  permission_overrides        UserPermissionOverride[]      @relation("PermissionOverrideUser")
+  refresh_tokens              RefreshToken[]
+  permits_requested           Permit[]                      @relation("PermitStudent")
+  permits_verified            Permit[]                      @relation("PermitVerifiedBy")
+  rollover_items              RolloverItem[]                @relation("RolloverItemStudent")
+  branding_updated            BrandingConfig[]              @relation("BrandingUpdatedBy")
+  landing_content_updated     LandingContent[]              @relation("LandingUpdatedBy")
+  news_updated                NewsArticle[]                 @relation("NewsUpdatedBy")
+
+  @@index([username, is_active])
+  @@map("user")
+}
+
+// ============================================================
+// §2.3 UserRole — mapping, SATU-SATUNYA otoritas role
+// ============================================================
+
+model UserRole {
+  id         String           @id @default(cuid())
+  user_id    String
+  role       Role
+  status     MembershipStatus @default(INVITED)
+  invited_by String?
+  joined_at  DateTime?
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
+
+  user    User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  inviter User? @relation("UserRoleInviter", fields: [invited_by], references: [id])
+
+  @@unique([user_id, role])
+  @@index([user_id, status]) // resolve role per request auth
+  @@map("user_role")
+}
+
+// ============================================================
+// §2.4 Class — rombongan belajar
+// ============================================================
+
+model Class {
+  id                  String   @id @default(cuid())
+  name                String // "X IPA 1" / "10 TKJ 1"
+  grade_level         Int // 10/11/12
+  academic_year_id    String
+  homeroom_teacher_id String?
+  prodi_id            String? // FK → Prodi (jurusan/kompetensi keahlian; null = SMA tanpa jurusan)
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  academic_year     AcademicYear @relation(fields: [academic_year_id], references: [id])
+  homeroom_teacher  User?        @relation("ClassHomeroom", fields: [homeroom_teacher_id], references: [id])
+  prodi             Prodi?       @relation(fields: [prodi_id], references: [id])
+  enrollments       Enrollment[]
+  class_subjects    ClassSubject[]
+  schedule_entries  ScheduleEntry[]
+  exam_sessions     ExamSession[]
+
+  @@index([academic_year_id])
+  @@index([prodi_id])
+  @@map("class")
+}
+
+// ============================================================
+// §2.5 Subject — mata pelajaran
+// ============================================================
+
+model Subject {
+  id                  String          @id @default(cuid())
+  code                String // "MAT-11"
+  name                String
+  category            SubjectCategory
+  is_competency_based Boolean         @default(false)
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+
+  class_subjects ClassSubject[]
+  questions      Question[]
+  schedule_entries ScheduleEntry[]
+  exams          Exam[]
+  curriculum_references CurriculumReference[]
+
+  @@unique([code])
+  @@map("subject")
+}
+
+// ============================================================
+// §2.6 ClassSubject ⚙ — guru mengajar mapel di kelas
+// ============================================================
+
+model ClassSubject {
+  id         String   @id @default(cuid())
+  class_id   String
+  subject_id String
+  teacher_id String
+  semester   String // "GANJIL"/"GENAP" atau "2026/2027-GANJIL"
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  class             Class              @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  subject           Subject            @relation(fields: [subject_id], references: [id])
+  teacher           User               @relation("ClassSubjectTeacher", fields: [teacher_id], references: [id])
+  assignments       Assignment[]
+  materials         Material[]
+  quizzes           Quiz[]
+  attendances       Attendance[]
+  grades            Grade[]
+  attendance_sessions AttendanceSession[]
+  exams             Exam[]
+  permits           Permit[]
+
+  @@unique([class_id, subject_id, semester])
+  @@map("class_subject")
+}
+
+// ============================================================
+// §2.7 ScheduleEntry ⚙ — jadwal pelajaran
+// ============================================================
+
+model ScheduleEntry {
+  id            String   @id @default(cuid())
+  class_id      String
+  subject_id    String
+  teacher_id    String
+  day_of_week   Int // 1–7
+  start_period  Int
+  end_period    Int
+  room          String?
+  academic_year String // denormalisasi dari Class→AcademicYear
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  class   Class   @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subject_id], references: [id])
+  teacher User    @relation("ScheduleTeacher", fields: [teacher_id], references: [id])
+
+  @@index([class_id, day_of_week])
+  @@index([class_id, academic_year]) // filter historis jadwal
+  @@map("schedule_entry")
+}
+
+// ============================================================
+// §2.8 Enrollment — siswa dalam kelas
+// ============================================================
+
+model Enrollment {
+  id               String           @id @default(cuid())
+  student_id       String
+  class_id         String
+  academic_year_id String
+  status           EnrollmentStatus @default(ACTIVE)
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  student       User         @relation("EnrollmentStudent", fields: [student_id], references: [id], onDelete: Cascade)
+  class         Class        @relation(fields: [class_id], references: [id], onDelete: Cascade)
+  academic_year AcademicYear @relation(fields: [academic_year_id], references: [id])
+
+  @@unique([student_id, class_id, academic_year_id])
+  @@index([class_id, academic_year_id]) // daftar siswa per kelas
+  @@index([student_id, academic_year_id])
+  @@map("enrollment")
+}
+
+// ============================================================
+// §2.9 Material — materi pembelajaran
+// ============================================================
+
+model Material {
+  id               String       @id @default(cuid())
+  class_subject_id String
+  title            String
+  description      String?
+  type             MaterialType
+  content_url      String // path di bucket `materials`
+  file_size        Int?
+  is_published     Boolean      @default(false)
+  created_by       String
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  class_subject  ClassSubject @relation(fields: [class_subject_id], references: [id], onDelete: Cascade)
+  created_by_user User        @relation("MaterialCreatedBy", fields: [created_by], references: [id])
+
+  @@map("material")
+}
+
+// ============================================================
+// §2.10 Assignment — tugas
+// ============================================================
+
+model Assignment {
+  id               String           @id @default(cuid())
+  class_subject_id String
+  title            String
+  instructions     String?
+  due_at           DateTime
+  allow_late       Boolean          @default(false)
+  max_score        Int              @default(100)
+  attachment_url   String?
+  status           AssignmentStatus @default(DRAFT)
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  class_subject ClassSubject @relation(fields: [class_subject_id], references: [id], onDelete: Cascade)
+  submissions   Submission[]
+
+  @@index([class_subject_id, due_at]) // daftar tugas per kelas-mapel
+  @@map("assignment")
+}
+
+// ============================================================
+// §2.11 Submission — jawaban tugas siswa
+// ============================================================
+
+model Submission {
+  id             String           @id @default(cuid())
+  assignment_id  String
+  student_id     String
+  content        String?
+  attachment_url String? // bucket `submissions`
+  submitted_at   DateTime?
+  status         SubmissionStatus @default(DRAFT)
+  score          Int?
+  feedback       String?
+  graded_by      String?
+  graded_at      DateTime?
+  idempotency_key String? // idempotensi distributed (LMS F2-T2)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+
+  assignment Assignment @relation(fields: [assignment_id], references: [id], onDelete: Cascade)
+  student    User       @relation("SubmissionStudent", fields: [student_id], references: [id])
+  graded_by_user User?  @relation("SubmissionGradedBy", fields: [graded_by], references: [id])
+
+  @@unique([assignment_id, student_id]) // satu submission per assignment (hot)
+  @@index([idempotency_key])
+  @@map("submission")
+}
+
+// ============================================================
+// §2.12 Quiz — kuis harian
+// ============================================================
+
+model Quiz {
+  id                String           @id @default(cuid())
+  class_subject_id  String
+  title             String
+  description       String?
+  duration_min      Int
+  open_at           DateTime?
+  close_at          DateTime?
+  shuffle_questions Boolean          @default(false)
+  status            AssessmentStatus @default(DRAFT)
+  created_by        String
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+
+  class_subject   ClassSubject @relation(fields: [class_subject_id], references: [id], onDelete: Cascade)
+  created_by_user User         @relation("QuizCreatedBy", fields: [created_by], references: [id])
+  questions       Question[]
+  attempts        QuizAttempt[]
+
+  @@map("quiz")
+}
+
+// ============================================================
+// §2.13 Question — bank soal (kuis & ujian)
+// ============================================================
+
+model Question {
+  id              String       @id @default(cuid())
+  subject_id      String? // bank soal per mapel
+  quiz_id         String?
+  exam_package_id String?
+  type            QuestionType
+  text            String
+  options         Json? // array opsi PG/menjodohkan
+  correct_answer  String?
+  explanation     String?
+  difficulty      Difficulty   @default(MUDAH)
+  tags            String[]
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  subject      Subject?      @relation(fields: [subject_id], references: [id])
+  quiz         Quiz?         @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  exam_package ExamPackage?  @relation(fields: [exam_package_id], references: [id])
+  answer_logs  ExamAnswerLog[]
+
+  @@index([tags]) // GIN
+  @@index([subject_id])
+  @@map("question")
+}
+
+// ============================================================
+// §2.14 QuizAttempt — percobaan kuis
+// ============================================================
+
+model QuizAttempt {
+  id           String        @id @default(cuid())
+  quiz_id      String
+  student_id   String
+  started_at   DateTime
+  submitted_at DateTime?
+  status       AttemptStatus @default(IN_PROGRESS)
+  score        Int?
+  answers      Json?
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  quiz    Quiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  student User @relation("QuizAttemptStudent", fields: [student_id], references: [id])
+
+  @@map("quiz_attempt")
+}
+
+// ============================================================
+// §2.15 Attendance — absensi manual v1
+// ============================================================
+
+model Attendance {
+  id               String           @id @default(cuid())
+  class_subject_id String? // null = harian
+  student_id       String
+  recorded_by      String
+  date             DateTime
+  status           AttendanceStatus
+  note             String?
+  method           AttendanceMethod @default(MANUAL)
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  class_subject    ClassSubject? @relation(fields: [class_subject_id], references: [id])
+  student          User          @relation("AttendanceStudent", fields: [student_id], references: [id])
+  recorded_by_user User          @relation("AttendanceRecordedBy", fields: [recorded_by], references: [id])
+
+  @@unique([student_id, class_subject_id, date]) // rekap per siswa+mapel+hari
+  @@index([student_id, date]) // rekap bulanan
+  @@map("attendance")
+}
+
+// ============================================================
+// §2.16 Grade — nilai
+// ============================================================
+
+model Grade {
+  id               String    @id @default(cuid())
+  student_id       String
+  class_subject_id String
+  semester         String
+  academic_year    String // denormalisasi; filter historis
+  type             GradeType
+  source_id        String? // Assignment/Quiz/ExamAttempt (polymorphic string)
+  score            Int
+  weight           Int       @default(1)
+  note             String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  student       User        @relation("GradeStudent", fields: [student_id], references: [id])
+  class_subject ClassSubject @relation(fields: [class_subject_id], references: [id])
+
+  @@unique([student_id, class_subject_id, semester, type, source_id])
+  @@index([student_id, class_subject_id, semester]) // rekap nilai & rapor
+  @@map("grade")
+}
+
+// ============================================================
+// §2.17 Invoice — tagihan
+// ============================================================
+
+model Invoice {
+  id                       String         @id @default(cuid())
+  student_id               String
+  invoice_no               String
+  type                     InvoiceType
+  period                   String? // "2026-08" untuk SPP bulanan
+  amount                   Decimal        @db.Decimal(12, 2)
+  discount                 Decimal        @default(0) @db.Decimal(12, 2)
+  due_date                 DateTime
+  status                   PaymentStatus  @default(PENDING)
+  academic_year            String // denormalisasi; filter historis
+  original_invoice_id      String?
+  carried_to_academic_year String?
+  carry_over_note          String?
+  created_by               String
+  created_at               DateTime       @default(now())
+  updated_at               DateTime       @updatedAt
+
+  student          User      @relation("InvoiceStudent", fields: [student_id], references: [id])
+  created_by_user  User      @relation("InvoiceCreatedBy", fields: [created_by], references: [id])
+  original_invoice Invoice?  @relation("InvoiceCarryOver", fields: [original_invoice_id], references: [id])
+  carried_invoices Invoice[] @relation("InvoiceCarryOver")
+  payments         Payment[]
+
+  @@unique([invoice_no])
+  @@index([student_id, status, due_date]) // tagihan per siswa + jatuh tempo
+  @@index([academic_year])
+  @@map("invoice")
+}
+
+// ============================================================
+// §2.18 Payment — pembayaran
+// ============================================================
+
+model Payment {
+  id          String         @id @default(cuid())
+  invoice_id  String
+  amount      Decimal        @db.Decimal(12, 2)
+  method      PaymentMethod
+  proof_url   String? // bucket `payment-proofs`
+  note        String?
+  paid_at     DateTime?
+  verified_by String?
+  verified_at DateTime?
+  status      PaymentStatus  @default(PENDING)
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  invoice         Invoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  verified_by_user User?   @relation("PaymentVerifiedBy", fields: [verified_by], references: [id])
+
+  @@index([invoice_id]) // riwayat pembayaran per tagihan
+  @@map("payment")
+}
+
+// ============================================================
+// §2.19 PpdbApplicant — pendaftar siswa baru
+// ============================================================
+
+model PpdbApplicant {
+  id              String     @id @default(cuid())
+  registration_no String
+  full_name       String
+  nisn            String?
+  birth_date      DateTime
+  birth_place     String
+  gender          Gender
+  origin_school   String?
+  phone           String
+  email           String?
+  parent_name     String
+  parent_phone    String
+  status          PpdbStatus @default(SUBMITTED)
+  documents       Json? // [{ type, url }] di bucket `ppdb-documents`
+  selection_score Int?
+  user_id         String?
+  consent_id      String?   @unique
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  user          User?            @relation("PpdbUser", fields: [user_id], references: [id])
+  consent       ParentalConsent? @relation("ApplicantConsent", fields: [consent_id], references: [id])
+  consent_record ParentalConsent? @relation("ConsentApplicant")
+
+  @@index([status, created_at]) // panel verifikasi OPERATOR
+  @@index([registration_no])
+  @@map("ppdb_applicant")
+}
+
+// ============================================================
+// §3.1 Exam — ujian resmi
+// ============================================================
+
+model Exam {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  type        ExamType
+  subject_id  String
+  class_subject_id String? // gap W2: ujian terhubung ClassSubject untuk Grade
+  duration_min Int
+  status      AssessmentStatus @default(DRAFT)
+  created_by  String
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+
+  subject        Subject        @relation(fields: [subject_id], references: [id])
+  class_subject  ClassSubject?  @relation(fields: [class_subject_id], references: [id])
+  created_by_user User          @relation("ExamCreatedBy", fields: [created_by], references: [id])
+  packages       ExamPackage[]
+  sessions       ExamSession[]
+
+  @@index([class_subject_id])
+  @@map("exam")
+}
+
+// ============================================================
+// §3.2 ExamPackage — paket soal A/B/C
+// ============================================================
+
+model ExamPackage {
+  id              String   @id @default(cuid())
+  exam_id         String
+  name            String // "Paket A"
+  total_score     Int      @default(100)
+  shuffle_options Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  exam      Exam          @relation(fields: [exam_id], references: [id], onDelete: Cascade)
+  questions Question[]
+  attempts  ExamAttempt[]
+
+  @@map("exam_package")
+}
+
+// ============================================================
+// §3.3 ExamSession — jadwal/sesi ujian
+// ============================================================
+
+model ExamSession {
+  id                 String    @id @default(cuid())
+  exam_id            String
+  name               String // "Shift 1"
+  starts_at          DateTime
+  ends_at            DateTime
+  target_class_id    String?
+  room               String?
+  is_serentak        Boolean   @default(true)
+  access_token       String?   @unique // hash SHA-256, 6 char tanpa 0/O/1/I
+  token_expires_at   DateTime?
+  token_generated_by String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  exam                  Exam          @relation(fields: [exam_id], references: [id], onDelete: Cascade)
+  target_class          Class?        @relation(fields: [target_class_id], references: [id])
+  token_generated_by_user User?       @relation("ExamSessionTokenBy", fields: [token_generated_by], references: [id])
+  attempts              ExamAttempt[]
+
+  @@index([exam_id, starts_at])
+  @@map("exam_session")
+}
+
+// ============================================================
+// §3.4 ExamAttempt ⚙ — sesi jawab siswa
+// ============================================================
+
+model ExamAttempt {
+  id              String        @id @default(cuid())
+  exam_session_id String
+  student_id      String
+  exam_package_id String
+  token_used      String
+  started_at      DateTime
+  submitted_at    DateTime?
+  status          AttemptStatus @default(IN_PROGRESS)
+  score_auto      Int? // skor otomatis PG/isian
+  score_manual    Int? // esai
+  device_info     Json?
+  ip_address      String?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  exam_session ExamSession  @relation(fields: [exam_session_id], references: [id], onDelete: Cascade)
+  student      User         @relation("ExamAttemptStudent", fields: [student_id], references: [id])
+  exam_package ExamPackage  @relation(fields: [exam_package_id], references: [id])
+  answer_logs  ExamAnswerLog[]
+
+  @@unique([exam_session_id, student_id]) // satu siswa satu attempt per sesi
+  @@map("exam_attempt")
+}
+
+// ============================================================
+// §3.5 ExamAnswerLog — append-only (auditability ujian)
+// ============================================================
+
+model ExamAnswerLog {
+  id              String    @id @default(cuid())
+  attempt_id      String
+  question_id     String
+  answer          String?
+  is_auto_saved   Boolean   @default(false)
+  saved_at        DateTime // server time
+  idempotency_key String?
+  created_at      DateTime  @default(now())
+
+  attempt  ExamAttempt @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+  question Question    @relation(fields: [question_id], references: [id])
+
+  @@index([attempt_id, question_id]) // ambil semua jawaban per attempt (grade)
+  @@index([idempotency_key])
+  @@unique([attempt_id, idempotency_key]) // idempotensi autosave (M-EXAM-T5)
+  @@map("exam_answer_log")
+}
+
+// ============================================================
+// §3.6 AttendanceSession — sesi absensi QR/geofencing
+// ============================================================
+
+model AttendanceSession {
+  id               String           @id @default(cuid())
+  class_subject_id String? // null = sesi harian gerbang
+  title            String
+  method           AttendanceMethod
+  starts_at        DateTime
+  ends_at          DateTime
+  created_by       String
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  class_subject    ClassSubject?        @relation(fields: [class_subject_id], references: [id])
+  created_by_user  User                 @relation("AttendanceSessionCreatedBy", fields: [created_by], references: [id])
+  tokens           AttendanceQrToken[]
+  records          AttendanceRecord[]
+
+  @@map("attendance_session")
+}
+
+// ============================================================
+// §3.7 AttendanceQrToken — token sekali pakai
+// ============================================================
+
+model AttendanceQrToken {
+  id                    String    @id @default(cuid())
+  attendance_session_id String
+  token                 String    @unique // hash token QR
+  expires_at            DateTime // 5–10 menit
+  used_at               DateTime?
+  used_by               String?
+  created_at            DateTime  @default(now())
+
+  attendance_session AttendanceSession @relation(fields: [attendance_session_id], references: [id], onDelete: Cascade)
+  used_by_user       User?             @relation("QrTokenUsedBy", fields: [used_by], references: [id])
+
+  @@map("attendance_qr_token")
+}
+
+// ============================================================
+// §3.8 AttendanceRecord — hasil scan/check-in
+// ============================================================
+
+model AttendanceRecord {
+  id                    String           @id @default(cuid())
+  attendance_session_id String
+  student_id            String
+  recorded_at           DateTime // server time
+  method                AttendanceMethod
+  status                AttendanceStatus @default(HADIR)
+  latitude              Decimal?         @db.Decimal(9, 6)
+  longitude             Decimal?         @db.Decimal(9, 6)
+  idempotency_key       String? // queue offline (G10)
+  created_at            DateTime         @default(now())
+
+  attendance_session AttendanceSession @relation(fields: [attendance_session_id], references: [id], onDelete: Cascade)
+  student            User              @relation("AttendanceRecordStudent", fields: [student_id], references: [id])
+
+  @@unique([attendance_session_id, student_id]) // scan per sesi
+  @@index([student_id, recorded_at]) // rekap bulanan
+  @@index([idempotency_key])
+  @@map("attendance_record")
+}
+
+// ============================================================
+// §3.9 CounselingNote — BK (akses super ketat)
+// ============================================================
+
+model CounselingNote {
+  id              String    @id @default(cuid())
+  student_id      String
+  counselor_id    String
+  date            DateTime
+  topic           String
+  note            String // field-level access: GURU_BK/WAKEPSEK/KEPSEK
+  follow_up       String?
+  is_confidential Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  student   User @relation("CounselingStudent", fields: [student_id], references: [id])
+  counselor User @relation("CounselingCounselor", fields: [counselor_id], references: [id])
+
+  @@index([student_id, date])
+  @@map("counseling_note")
+}
+
+// ============================================================
+// §3.10 DisciplinePoint — katalog pelanggaran & poin
+// ============================================================
+
+model DisciplinePoint {
+  id          String             @id @default(cuid())
+  code        String
+  description String
+  points      Int
+  severity    DisciplineSeverity
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
+
+  records DisciplineRecord[]
+
+  @@unique([code])
+  @@map("discipline_point")
+}
+
+// ============================================================
+// §3.11 DisciplineRecord — pelanggaran siswa
+// ============================================================
+
+model DisciplineRecord {
+  id              String    @id @default(cuid())
+  student_id      String
+  point_id        String
+  recorded_by     String
+  date            DateTime
+  note            String?
+  parent_notified Boolean   @default(false)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  student          User            @relation("DisciplineStudent", fields: [student_id], references: [id])
+  point            DisciplinePoint @relation(fields: [point_id], references: [id])
+  recorded_by_user User            @relation("DisciplineRecordedBy", fields: [recorded_by], references: [id])
+
+  @@index([student_id, date])
+  @@map("discipline_record")
+}
+
+// ============================================================
+// §3.12 Extracurricular — ekskul
+// ============================================================
+
+model Extracurricular {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  coach_id    String?
+  schedule    Json? // { day, time }[]
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  coach       User?                      @relation("ExtracurricularCoach", fields: [coach_id], references: [id])
+  enrollments ExtracurricularEnrollment[]
+  achievements Achievement[]
+
+  @@map("extracurricular")
+}
+
+// ============================================================
+// §3.13 ExtracurricularEnrollment — anggota ekskul
+// ============================================================
+
+model ExtracurricularEnrollment {
+  id                String           @id @default(cuid())
+  extracurricular_id String
+  student_id        String
+  status            EnrollmentStatus @default(ACTIVE)
+  created_at        DateTime         @default(now())
+  updated_at        DateTime         @updatedAt
+
+  extracurricular Extracurricular @relation(fields: [extracurricular_id], references: [id], onDelete: Cascade)
+  student         User            @relation("EkskulStudent", fields: [student_id], references: [id])
+
+  @@unique([extracurricular_id, student_id])
+  @@map("extracurricular_enrollment")
+}
+
+// ============================================================
+// §3.14 Achievement — prestasi/piagam
+// ============================================================
+
+model Achievement {
+  id                 String           @id @default(cuid())
+  student_id         String
+  extracurricular_id String?
+  title              String
+  level              AchievementLevel
+  date               DateTime
+  certificate_url    String?
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+
+  student         User             @relation("AchievementStudent", fields: [student_id], references: [id])
+  extracurricular Extracurricular? @relation(fields: [extracurricular_id], references: [id])
+
+  @@map("achievement")
+}
+
+// ============================================================
+// §3.15 Staff — data induk guru & staf
+// ============================================================
+
+model Staff {
+  id            String      @id @default(cuid())
+  user_id       String?
+  nip           String?
+  employee_no   String?
+  position      String // GURU / OPERATOR / KEUANGAN / BK / KEPSEK / WAKEPSEK / LAINNYA
+  education     String?
+  certification String?
+  hire_date     DateTime?
+  status        StaffStatus @default(ACTIVE)
+  created_at    DateTime    @default(now())
+  updated_at    DateTime    @updatedAt
+
+  user        User?              @relation("StaffUser", fields: [user_id], references: [id])
+  attendances StaffAttendance[]
+
+  @@unique([nip])
+  @@map("staff")
+}
+
+// ============================================================
+// §3.16 StaffAttendance — absensi staf
+// ============================================================
+
+model StaffAttendance {
+  id           String           @id @default(cuid())
+  staff_id     String
+  date         DateTime
+  check_in_at  DateTime?
+  check_out_at DateTime?
+  status       AttendanceStatus
+  method       AttendanceMethod
+  note         String?
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @updatedAt
+
+  staff Staff @relation(fields: [staff_id], references: [id], onDelete: Cascade)
+
+  @@unique([staff_id, date])
+  @@map("staff_attendance")
+}
+
+// ============================================================
+// §3.17 Asset — inventaris
+// ============================================================
+
+model Asset {
+  id        String        @id @default(cuid())
+  code      String
+  name      String
+  category  AssetCategory
+  condition AssetCondition
+  status    AssetStatus   @default(AVAILABLE)
+  quantity  Int           @default(1)
+  location  String?
+  // Perluasan W2 (prd04 §5.G) — inventaris proper
+  merk               String?
+  tahun_perolehan    Int?
+  harga_perolehan    Decimal?       @db.Decimal(12, 2)
+  masa_manfaat_bulan Int?
+  penanggung_jawab_id String?
+  sumber_dana        AssetSourceFund?
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+
+  bookings AssetBooking[]
+  maintenances AssetMaintenance[]
+  audits       AssetAudit[]
+
+  @@unique([code])
+  @@index([category, status])
+  @@map("asset")
+}
+
+// ============================================================
+// §3.18 AssetBooking — peminjaman ruang/alat
+// ============================================================
+
+model AssetBooking {
+  id          String        @id @default(cuid())
+  asset_id    String
+  booked_by   String
+  start_at    DateTime
+  end_at      DateTime
+  purpose     String
+  status      BookingStatus @default(PENDING)
+  approved_by String?
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  asset            Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  booked_by_user   User  @relation("AssetBookedBy", fields: [booked_by], references: [id])
+  approved_by_user User? @relation("AssetApprovedBy", fields: [approved_by], references: [id])
+
+  @@index([asset_id, start_at])
+  @@map("asset_booking")
+}
+
+// ============================================================
+// §3.19 LibraryBook — katalog buku
+// ============================================================
+
+model LibraryBook {
+  id               String   @id @default(cuid())
+  isbn             String?
+  title            String
+  author           String
+  publisher        String?
+  category         String?
+  total_copies     Int      @default(1)
+  available_copies Int      @default(1)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  loans LibraryLoan[]
+
+  @@index([title])
+  @@map("library_book")
+}
+
+// ============================================================
+// §3.20 LibraryLoan — peminjaman buku
+// ============================================================
+
+model LibraryLoan {
+  id          String           @id @default(cuid())
+  book_id     String
+  student_id  String
+  borrowed_at DateTime
+  due_at      DateTime
+  returned_at DateTime?
+  status      LibraryLoanStatus @default(BORROWED)
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+
+  book    LibraryBook @relation(fields: [book_id], references: [id], onDelete: Cascade)
+  student User        @relation("LibraryLoanStudent", fields: [student_id], references: [id])
+
+  @@index([student_id, status])
+  @@map("library_loan")
+}
+
+// ============================================================
+// §3.21 Announcement — pengumuman sekolah
+// ============================================================
+
+model Announcement {
+  id           String    @id @default(cuid())
+  title        String
+  body         String
+  target_role  Role[]
+  pinned       Boolean   @default(false)
+  published_at DateTime?
+  created_by   String
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  created_by_user User @relation("AnnouncementCreatedBy", fields: [created_by], references: [id])
+
+  @@index([target_role]) // GIN
+  @@map("announcement")
+}
+
+// ============================================================
+// §3.22 OfficialLetter — surat-menyurat
+// ============================================================
+
+model OfficialLetter {
+  id           String       @id @default(cuid())
+  letter_no    String?
+  type         LetterType
+  subject      String
+  body         String
+  status       LetterStatus @default(DRAFT)
+  requester_id String
+  approver_id  String?
+  document_url String? // bucket `official-letters`
+  signed_url   String?
+  created_at   DateTime     @default(now())
+  updated_at   DateTime     @updatedAt
+
+  requester User  @relation("LetterRequester", fields: [requester_id], references: [id])
+  approver  User? @relation("LetterApprover", fields: [approver_id], references: [id])
+
+  @@map("official_letter")
+}
+
+// ============================================================
+// §3.23 ParentGuardian — wali murid
+// ============================================================
+
+model ParentGuardian {
+  id        String   @id @default(cuid())
+  user_id   String?
+  full_name String
+  phone     String
+  email     String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user  User?                @relation(fields: [user_id], references: [id])
+  links ParentStudentLink[]
+
+  @@map("parent_guardian")
+}
+
+// ============================================================
+// §3.24 ParentStudentLink — relasi ortu ↔ anak
+// ============================================================
+
+model ParentStudentLink {
+  id           String   @id @default(cuid())
+  parent_id    String
+  student_id   String
+  relationship String // AYAH / IBU / WALI
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  parent  ParentGuardian @relation(fields: [parent_id], references: [id], onDelete: Cascade)
+  student User           @relation("ParentStudentLinkStudent", fields: [student_id], references: [id])
+
+  @@unique([parent_id, student_id])
+  @@map("parent_student_link")
+}
+
+// ============================================================
+// §3.25 Notification ⚙ — pusat notifikasi (log-like)
+// ============================================================
+
+model Notification {
+  id         String           @id @default(cuid())
+  user_id    String
+  type       NotificationType
+  title      String
+  body       String
+  data       Json?
+  read_at    DateTime?
+  created_at DateTime         @default(now()) // tanpa updated_at (log-like)
+
+  user User @relation("NotificationUser", fields: [user_id], references: [id])
+
+  @@index([user_id, read_at, created_at]) // inbox per user (hot)
+  @@index([type, created_at]) // broadcast/rekap per tipe
+  @@map("notification")
+}
+
+// ============================================================
+// §4.1 Internship — PKL/Prakerin
+// ============================================================
+
+model Internship {
+  id                 String           @id @default(cuid())
+  student_id         String
+  partner_id         String
+  academic_year_id   String
+  start_date         DateTime
+  end_date           DateTime
+  school_mentor_id   String?
+  industry_mentor_id String?
+  status             InternshipStatus
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+
+  student          User             @relation("InternshipStudent", fields: [student_id], references: [id])
+  partner          InternshipPartner @relation(fields: [partner_id], references: [id])
+  academic_year    AcademicYear     @relation(fields: [academic_year_id], references: [id])
+  school_mentor    User?            @relation("InternshipSchoolMentor", fields: [school_mentor_id], references: [id])
+  industry_mentor  IndustryMentor?  @relation(fields: [industry_mentor_id], references: [id])
+  journals         InternshipJournal[]
+
+  @@index([student_id, academic_year_id])
+  @@map("internship")
+}
+
+// ============================================================
+// §4.2 InternshipJournal — jurnal harian PKL
+// ============================================================
+
+model InternshipJournal {
+  id                 String   @id @default(cuid())
+  internship_id      String
+  entry_date         DateTime
+  activity           String
+  note               String?
+  verified_by_mentor Boolean  @default(false)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  internship Internship @relation(fields: [internship_id], references: [id], onDelete: Cascade)
+
+  @@map("internship_journal")
+}
+
+// ============================================================
+// §4.3 InternshipPartner — mitra DUDI
+// ============================================================
+
+model InternshipPartner {
+  id             String   @id @default(cuid())
+  name           String
+  industry_type  String?
+  address        String?
+  contact_person String?
+  phone          String?
+  agreement_year String? // riwayat kerja sama per tahun
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  internships      Internship[]
+  industry_mentors IndustryMentor[]
+
+  @@map("internship_partner")
+}
+
+// ============================================================
+// §4.4 IndustryMentor — pembimbing industri
+// ============================================================
+
+model IndustryMentor {
+  id         String   @id @default(cuid())
+  partner_id String
+  user_id    String? // role PEMBIMBING_INDUSTRI
+  full_name  String
+  position   String?
+  phone      String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  partner     InternshipPartner @relation(fields: [partner_id], references: [id])
+  user        User?             @relation("IndustryMentorUser", fields: [user_id], references: [id])
+  internships Internship[]
+
+  @@map("industry_mentor")
+}
+
+// ============================================================
+// §4.5 CompetencyTest — UKK
+// ============================================================
+
+model CompetencyTest {
+  id                  String               @id @default(cuid())
+  title               String
+  competency_standard String
+  student_id          String
+  examiner_id         String? // internal/eksternal (PENGUJI_EKSTERNAL)
+  scheduled_at        DateTime?
+  status              CompetencyTestStatus
+  final_score         Int?
+  certificate_url     String?
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
+
+  student      User                     @relation("CompetencyStudent", fields: [student_id], references: [id])
+  examiner     User?                    @relation("CompetencyExaminer", fields: [examiner_id], references: [id])
+  rubric_items CompetencyRubricItem[]
+
+  @@map("competency_test")
+}
+
+// ============================================================
+// §4.6 CompetencyRubricItem — checklist kompetensi
+// ============================================================
+
+model CompetencyRubricItem {
+  id                 String   @id @default(cuid())
+  competency_test_id String
+  criterion          String
+  max_score          Int
+  score              Int?
+  comment            String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  competency_test CompetencyTest @relation(fields: [competency_test_id], references: [id], onDelete: Cascade)
+
+  @@map("competency_rubric_item")
+}
+
+// ============================================================
+// §4.7 DataExportLog — jejak ekspor
+// ============================================================
+
+model DataExportLog {
+  id           String    @id @default(cuid())
+  export_type  ExportType
+  requested_by String
+  status       JobStatus @default(PENDING)
+  file_url     String? // bucket `exports`
+  record_count Int?
+  started_at   DateTime?
+  finished_at  DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  requested_by_user User @relation("ExportRequestedBy", fields: [requested_by], references: [id])
+
+  @@index([requested_by, created_at])
+  @@map("data_export_log")
+}
+
+// ============================================================
+// §4.8 DataRetentionPolicy — retensi (G12)
+// ============================================================
+
+model DataRetentionPolicy {
+  id               String           @id @default(cuid())
+  entity           String // "student", "attendance", "counseling_note", dst.
+  retention_months Int
+  action           RetentionAction
+  enabled          Boolean          @default(true)
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  @@index([entity, retention_months]) // job retensi
+  @@map("data_retention_policy")
+}
+
+// ============================================================
+// §4.9 ParentalConsent — consent data anak (G13)
+// ============================================================
+
+model ParentalConsent {
+  id                String         @id @default(cuid())
+  student_id        String? // siswa aktif; null saat PPDB
+  ppdb_applicant_id String?        @unique
+  parent_name       String
+  consent_type      ConsentType
+  status            ConsentStatus  @default(GRANTED)
+  granted_at        DateTime
+  revoked_at        DateTime?
+  document_url      String?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  student         User?          @relation("ConsentStudent", fields: [student_id], references: [id])
+  ppdb_applicant  PpdbApplicant? @relation("ConsentApplicant", fields: [ppdb_applicant_id], references: [id])
+  consented_applicant PpdbApplicant? @relation("ApplicantConsent")
+
+  @@map("parental_consent")
+}
+
+// ============================================================
+// §4.10 ImportBatch — impor data (G9)
+// ============================================================
+
+model ImportBatch {
+  id           String     @id @default(cuid())
+  import_type  ImportType
+  filename     String
+  status       JobStatus  @default(PENDING)
+  total_rows   Int?
+  success_rows Int?
+  failed_rows  Int?
+  imported_by  String
+  started_at   DateTime?
+  finished_at  DateTime?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  imported_by_user User         @relation("ImportImportedBy", fields: [imported_by], references: [id])
+  errors           ImportError[]
+
+  @@map("import_batch")
+}
+
+// ============================================================
+// §4.11 ImportError — baris gagal impor
+// ============================================================
+
+model ImportError {
+  id              String   @id @default(cuid())
+  import_batch_id String
+  row_number      Int
+  field           String?
+  message         String
+  raw_row         Json?
+  created_at      DateTime @default(now())
+
+  import_batch ImportBatch @relation(fields: [import_batch_id], references: [id], onDelete: Cascade)
+
+  @@map("import_error")
+}
+
+// ============================================================
+// §4.12 AuditLog — audit trail generik (log-like)
+// ============================================================
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  actor_id   String?
+  actor_role Role?
+  action     AuditAction
+  entity     String
+  entity_id  String
+  before     Json?
+  after      Json?
+  ip_address String?
+  created_at DateTime    @default(now()) // tanpa updated_at (log-like)
+
+  actor User? @relation("AuditActor", fields: [actor_id], references: [id])
+
+  @@index([entity, entity_id, created_at]) // jejak audit per record
+  @@index([actor_id, created_at])
+  @@map("audit_log")
+}
+
+// ============================================================
+// §4.13 FeatureFlag — saklar fitur global
+// ============================================================
+
+model FeatureFlag {
+  id              String   @id @default(cuid())
+  key             String   @unique // "LMS_BASE", "LMS_EXAM", "PAYROLL", ...
+  kategori        String // LMS / AKADEMIK / KESISWAAN / KEUANGAN / PLATFORM / SMK / ...
+  deskripsi       String
+  default_enabled Boolean  @default(false)
+  config_schema   Json? // skema konfigurasi per flag
+  locked          Boolean  @default(false) // fitur DITUNDA dikunci
+  is_system       Boolean  @default(false) // flag inti tak bisa dimatikan
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  settings AppFeatureSetting[] @relation("FeatureFlagSetting")
+
+  @@map("feature_flag")
+}
+
+// ============================================================
+// §4.14 AppFeatureSetting — nilai flag per aplikasi
+// ============================================================
+
+model AppFeatureSetting {
+  id          String   @id @default(cuid())
+  feature_key String
+  enabled     Boolean  @default(true)
+  config      Json?
+  updated_by  String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  feature_flag   FeatureFlag @relation("FeatureFlagSetting", fields: [feature_key], references: [key], onDelete: Cascade)
+  updated_by_user User?      @relation("FeatureSettingUpdatedBy", fields: [updated_by], references: [id])
+
+  @@unique([feature_key]) // resolve nilai flag per request
+  @@map("app_feature_setting")
+}
+
+// ============================================================
+// §4.15 AcademicYear — tahun ajaran
+// ============================================================
+
+model AcademicYear {
+  id         String            @id @default(cuid())
+  code       String            @unique // "2026/2027"
+  name       String
+  start_date DateTime
+  end_date   DateTime
+  status     AcademicYearStatus @default(DRAFT)
+  created_by String?
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+
+  created_by_user        User?           @relation("AcademicYearCreatedBy", fields: [created_by], references: [id])
+  current_school_profiles SchoolProfile[] @relation("SchoolCurrentAcademicYear")
+  classes                Class[]
+  enrollments            Enrollment[]
+  internships            Internship[]
+  rollover_runs          RolloverRun[]  @relation("RolloverSourceYear")
+  rollover_runs_as_new   RolloverRun[]  @relation("RolloverTargetYear")
+  alumni                 Alumni[]       @relation("AlumniGradYear")
+
+  @@map("academic_year")
+}
+
+// ============================================================
+// §4.16 RolloverRun — rollover tahun ajaran
+// ============================================================
+
+model RolloverRun {
+  id                   String             @id @default(cuid())
+  academic_year_id     String
+  new_academic_year_id String?
+  status               RolloverRunStatus  @default(DRAFT)
+  precheck_result      Json?
+  summary              Json?
+  step_state           Json?
+  executed_by          String?
+  executed_at          DateTime?
+  rolled_back_by       String?
+  rolled_back_at       DateTime?
+  rollback_reason      String?
+  idempotency_key      String             @unique
+  created_at           DateTime           @default(now())
+  updated_at           DateTime           @updatedAt
+
+  academic_year      AcademicYear @relation("RolloverSourceYear", fields: [academic_year_id], references: [id])
+  new_academic_year  AcademicYear? @relation("RolloverTargetYear", fields: [new_academic_year_id], references: [id])
+  executed_by_user   User?        @relation("RolloverExecutedBy", fields: [executed_by], references: [id])
+  rolled_back_by_user User?       @relation("RolloverRolledBackBy", fields: [rolled_back_by], references: [id])
+  rollover_items     RolloverItem[]
+
+  @@unique([academic_year_id]) // satu run per tahun ajaran
+  @@map("rollover_run")
+}
+
+// ============================================================
+// §4.17 Alumni — lulusan
+// ============================================================
+
+model Alumni {
+  id                          String        @id @default(cuid())
+  student_id                  String
+  graduation_academic_year_id String
+  final_nisn                  String?
+  graduation_date             DateTime?
+  status                      AlumniStatus  @default(ACTIVE)
+  created_at                  DateTime      @default(now())
+  updated_at                  DateTime      @updatedAt
+
+  student                  User         @relation("AlumniStudent", fields: [student_id], references: [id])
+  graduation_academic_year AcademicYear @relation("AlumniGradYear", fields: [graduation_academic_year_id], references: [id])
+
+  @@index([graduation_academic_year_id]) // filter alumni per angkatan
+  @@index([student_id])
+  @@map("alumni")
+}
+
+// ============================================================
+// RBAC support — prd04 §4.3 (data model RBAC)
+// ============================================================
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique // "resource:action[:scope]"
+  category    String
+  description String
+  is_system   Boolean  @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  role_permissions RolePermission[]
+  user_overrides   UserPermissionOverride[]
+
+  @@index([category])
+  @@map("permission")
+}
+
+model RolePermission {
+  id            String           @id @default(cuid())
+  role           Role
+  permission_id  String
+  effect         PermissionEffect @default(ALLOW)
+  scope_default  PermissionScope
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role, permission_id])
+  @@index([permission_id])
+  @@map("role_permission")
+}
+
+model UserPermissionOverride {
+  id            String           @id @default(cuid())
+  user_id       String
+  permission_id String
+  effect        PermissionEffect
+  reason        String?
+  expires_at    DateTime?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+
+  user       User       @relation("PermissionOverrideUser", fields: [user_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, permission_id])
+  @@map("user_permission_override")
+}
+
+// ============================================================
+// W2 — Auth: RefreshToken & lockout kolom (prd04 §5.P)
+// ============================================================
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  user_id    String
+  token_hash String    @unique // hash SHA-256; plaintext hanya sekali
+  expires_at DateTime
+  revoked_at DateTime?
+  created_at DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([revoked_at])
+  @@map("refresh_token")
+}
+
+// ============================================================
+// W2 — Attendance: Permit (izin/sakit online, prd04 §5.B.4)
+// ============================================================
+
+enum PermitType {
+  IZIN
+  SAKIT
+}
+
+enum PermitStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Permit {
+  id               String       @id @default(cuid())
+  student_id       String
+  class_subject_id String? // null = izin harian/umum
+  date             DateTime
+  type             PermitType
+  reason           String
+  attachment_url   String? // bucket `permits`
+  status           PermitStatus @default(PENDING)
+  verified_by      String?
+  verified_at      DateTime?
+  reject_reason    String?
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+
+  student          User?         @relation("PermitStudent", fields: [student_id], references: [id])
+  class_subject    ClassSubject? @relation(fields: [class_subject_id], references: [id])
+  verified_by_user User?         @relation("PermitVerifiedBy", fields: [verified_by], references: [id])
+
+  @@index([student_id, date])
+  @@index([class_subject_id, date])
+  @@index([status, verified_at])
+  @@map("permit")
+}
+
+// ============================================================
+// W2 — Academic: CurriculumReference (CP/TP/ATP, prd04 §5.A.3)
+// ============================================================
+
+enum CurriculumReferenceType {
+  CP
+  TP
+  ATP
+}
+
+model CurriculumReference {
+  id         String                  @id @default(cuid())
+  subject_id String
+  type       CurriculumReferenceType
+  code       String // "CP-FASE-E-MAT", "TP-10-MAT-01"
+  name       String
+  content    Json? // capaian/deskripsi; ATP = Json array
+  created_at DateTime                @default(now())
+  updated_at DateTime                @updatedAt
+
+  subject Subject @relation(fields: [subject_id], references: [id], onDelete: Cascade)
+
+  @@unique([subject_id, type, code])
+  @@index([subject_id, type])
+  @@map("curriculum_reference")
+}
+
+// ============================================================
+// W2 — Rollover: RolloverItem (rencana/eksekusi per siswa)
+// ============================================================
+
+model RolloverItem {
+  id                 String         @id @default(cuid())
+  rollover_run_id    String
+  student_id         String
+  old_class_id       String?
+  new_class_id       String?
+  old_enrollment_id  String?
+  new_enrollment_id  String?
+  action             RolloverAction
+  reason             String? // otomatis / manual override
+  override_by        String? // user yang melakukan override
+  override_reason    String?
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @updatedAt
+
+  rollover_run RolloverRun @relation(fields: [rollover_run_id], references: [id], onDelete: Cascade)
+  student      User        @relation("RolloverItemStudent", fields: [student_id], references: [id])
+
+  @@index([rollover_run_id])
+  @@index([student_id])
+  @@map("rollover_item")
+}
+
+// ============================================================
+// W2 — Payroll (prd04 §5.E; 05 W2-PAYROLL)
+// ============================================================
+
+enum PayrollRunStatus {
+  DRAFT
+  CALCULATED
+  VALIDATED
+  APPROVED_KEUANGAN
+  REKAP_KEPSEK
+  PAID
+}
+
+enum PayslipStatus {
+  DRAFT
+  ISSUED
+  ARCHIVED
+}
+
+model JobPosition {
+  id                       String   @id @default(cuid())
+  code                     String   @unique
+  name                     String
+  default_jabatan_allowance Decimal  @default(0) @db.Decimal(12, 2)
+  active                   Boolean  @default(true)
+  created_by               String
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  @@index([active])
+  @@map("job_position")
+}
+
+model PayrollComponent {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  name             String
+  category         String // TUNJANGAN_TETAP / POTONGAN / VARIABEL
+  kind             String // ADDITIVE / SUBTRACTIVE
+  is_taxable       Boolean  @default(true)
+  is_bpjs_applicable Boolean @default(true)
+  unit             String? // BULANAN / JAM / JTM
+  description      String?
+  active           Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([active])
+  @@map("payroll_component")
+}
+
+model SalaryStructure {
+  id                         String   @id @default(cuid())
+  staff_id                   String
+  effective_from             String // "YYYY-MM"
+  components                 Json // Record<code, Decimal>
+  attendance_allowance_per_day Decimal? @db.Decimal(12, 2)
+  created_by                 String
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @updatedAt
+
+  @@index([staff_id, effective_from])
+  @@map("salary_structure")
+}
+
+model PayrollPeriodConfig {
+  id                    String   @id @default(cuid())
+  period                String   @unique // "YYYY-MM"
+  umr                   Decimal  @db.Decimal(12, 2)
+  ter_monthly           Json // { A: TerMonthlyBracket[], B: [], C: [] }
+  ter_daily             Json // TerDailyBracket[]
+  honor_dpp_percent     Decimal  @default(50) @db.Decimal(12, 2)
+  pns_final_rate_percent Decimal @default(15) @db.Decimal(12, 2)
+  bpjs_kesehatan        Json
+  bpjs_jht              Json
+  bpjs_jp               Json
+  pasal17_rate_percent  Decimal  @default(30) @db.Decimal(12, 2)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("payroll_period_config")
+}
+
+model PayrollRun {
+  id                  String           @id @default(cuid())
+  period              String           @unique // "YYYY-MM" — satu run per periode
+  status              PayrollRunStatus @default(DRAFT)
+  total_gross         Decimal          @default(0) @db.Decimal(12, 2)
+  total_deductions    Decimal          @default(0) @db.Decimal(12, 2)
+  total_net           Decimal          @default(0) @db.Decimal(12, 2)
+  staff_count         Int              @default(0)
+  approved_by_keuangan String?
+  approved_by_kepsek  String?
+  paid_at             DateTime?
+  note                String?
+  created_by          String
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
+
+  items     PayrollRunItem[]
+  payslips  Payslip[]
+
+  @@index([status])
+  @@map("payroll_run")
+}
+
+model PayrollRunItem {
+  id                String   @id @default(cuid())
+  run_id            String
+  staff_id          String
+  gross             Decimal  @default(0) @db.Decimal(12, 2)
+  pph21             Decimal  @default(0) @db.Decimal(12, 2)
+  bpjs_kesehatan    Decimal  @default(0) @db.Decimal(12, 2)
+  bpjs_jht          Decimal  @default(0) @db.Decimal(12, 2)
+  bpjs_jp           Decimal  @default(0) @db.Decimal(12, 2)
+  other_deductions  Decimal  @default(0) @db.Decimal(12, 2)
+  total_deductions  Decimal  @default(0) @db.Decimal(12, 2)
+  net               Decimal  @default(0) @db.Decimal(12, 2)
+  attendance_days   Int      @default(0)
+  below_umr         Boolean  @default(false)
+  warnings          Json? // string[]
+  detail_components Json? // Array<{code,name,kind,amount}>
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  run PayrollRun @relation(fields: [run_id], references: [id], onDelete: Cascade)
+
+  @@unique([run_id, staff_id])
+  @@map("payroll_run_item")
+}
+
+model Payslip {
+  id         String        @id @default(cuid())
+  run_id     String
+  staff_id   String
+  period     String
+  status     PayslipStatus @default(ISSUED)
+  snapshots  Json // Array snapshot slip
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  run PayrollRun @relation(fields: [run_id], references: [id], onDelete: Cascade)
+
+  @@index([staff_id, period])
+  @@map("payslip")
+}
+
+// ============================================================
+// W2 — Finance (prd04 §5.F; 05 W2-PAYMENT)
+// ============================================================
+
+enum LateFeeRuleType {
+  NOMINAL
+  PERSEN_PER_HARI
+}
+
+enum RefundStatus {
+  DRAFT
+  PENDING
+  APPROVED_KEUANGAN
+  APPROVED_KEPSEK
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+enum RefundMethod {
+  TRANSFER
+  TUNAI
+}
+
+enum ReconciliationRowStatus {
+  MATCHED
+  UNMATCHED
+  RESOLVED
+}
+
+enum CashFlowDirection {
+  IN
+  OUT
+}
+
+enum CashFlowCategory {
+  PAYMENT_VERIFIED
+  REFUND
+  EXPENSE
+  OTHER
+}
+
+model LateFeeRule {
+  id          String         @id @default(cuid())
+  name        String
+  invoice_type InvoiceType
+  grace_days  Int            @default(0)
+  fee_type    LateFeeRuleType
+  value       Decimal        @db.Decimal(12, 2)
+  max_amount  Decimal?       @db.Decimal(12, 2)
+  enabled     Boolean        @default(true)
+  created_by  String
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  @@index([enabled])
+  @@map("late_fee_rule")
+}
+
+model DendaInvoice {
+  id                  String        @id @default(cuid())
+  invoice_no          String        @unique // DEN-{tahun}-{urutan}
+  original_invoice_id String
+  period              String // "YYYY-MM" — kunci idempotensi job harian
+  amount              Decimal       @db.Decimal(12, 2)
+  due_date            DateTime
+  status              PaymentStatus @default(PENDING)
+  note                String?
+  created_by          String
+  created_at          DateTime      @default(now())
+  updated_at          DateTime      @updatedAt
+  deleted_at          DateTime?
+  delete_reason       String?
+  deleted_by          String?
+
+  @@unique([original_invoice_id, period])
+  @@index([status])
+  @@map("denda_invoice")
+}
+
+model Refund {
+  id                    String       @id @default(cuid())
+  refund_no             String       @unique
+  payment_id            String?
+  invoice_id            String?
+  student_id            String?
+  amount                Decimal      @db.Decimal(12, 2)
+  reason                String
+  method                RefundMethod
+  status                RefundStatus @default(PENDING)
+  requires_kepsek_approval Boolean   @default(false)
+  approved_by_keuangan  String?
+  approved_by_kepsek    String?
+  paid_at               DateTime?
+  note                  String?
+  created_by            String
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
+
+  @@index([status, created_at])
+  @@map("refund")
+}
+
+model ReconciliationBatch {
+  id             String   @id @default(cuid())
+  period         String
+  file_name      String
+  imported_by    String
+  imported_at    DateTime @default(now())
+  total_rows     Int      @default(0)
+  matched_rows   Int      @default(0)
+  unmatched_rows Int      @default(0)
+
+  items ReconciliationItem[]
+
+  @@index([period])
+  @@map("reconciliation_batch")
+}
+
+model ReconciliationItem {
+  id               String                 @id @default(cuid())
+  batch_id         String
+  row_index        Int
+  tanggal          String
+  keterangan       String
+  referensi        String?
+  nominal          Decimal                @db.Decimal(12, 2)
+  tipe             String // DEBIT / KREDIT
+  status           ReconciliationRowStatus @default(UNMATCHED)
+  matched_payment_id String?
+  match_confidence Decimal                @default(0) @db.Decimal(5, 2)
+  resolution_note  String?
+  created_by       String?
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @updatedAt
+
+  batch ReconciliationBatch @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+
+  @@index([batch_id])
+  @@map("reconciliation_item")
+}
+
+model CashFlowRecord {
+  id           String            @id @default(cuid())
+  date         DateTime
+  direction    CashFlowDirection
+  amount       Decimal           @db.Decimal(12, 2)
+  category     CashFlowCategory
+  reference_id String?
+  note         String?
+  created_by   String
+  created_at   DateTime          @default(now())
+
+  @@index([date, direction])
+  @@map("cash_flow_record")
+}
+
+// ============================================================
+// W2 — Asset maintenance & audit (prd04 §5.G)
+// ============================================================
+
+enum AssetSourceFund {
+  BOS
+  APBD
+  SWADANA
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum AuditType {
+  FISIK
+  BOOK
+}
+
+enum AuditResultStatus {
+  MATCH
+  SELISIH
+  REKLASIFIKASI_RETIRED
+}
+
+model AssetMaintenance {
+  id           String           @id @default(cuid())
+  asset_id     String
+  scheduled_at DateTime
+  completed_at DateTime?
+  cost         Decimal          @default(0) @db.Decimal(12, 2)
+  description  String
+  status       MaintenanceStatus @default(SCHEDULED)
+  created_by   String
+  created_at   DateTime         @default(now())
+  updated_at   DateTime         @updatedAt
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id, scheduled_at])
+  @@map("asset_maintenance")
+}
+
+model AssetAudit {
+  id               String            @id @default(cuid())
+  asset_id         String
+  audit_date       DateTime
+  audit_type       AuditType
+  physical_qty     Int?
+  book_qty         Int              @default(0)
+  difference       Int              @default(0)
+  note             String?
+  propose_retired  Boolean          @default(false)
+  status           AuditResultStatus
+  approved_by_kepsek String?
+  approved_at      DateTime?
+  created_by       String
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id, audit_date])
+  @@map("asset_audit")
+}
+
+// ============================================================
+// Branding — identitas visual aplikasi (single-school)
+// ============================================================
+
+model BrandingConfig {
+  id              String   @id @default(cuid())
+  app_name        String
+  tagline         String?
+  logo_path       String? // path di bucket `branding` (mis. branding/logo.webp)
+  favicon_path    String? // path di bucket `branding` (mis. branding/favicon.webp)
+  primary_color   String
+  secondary_color String
+  accent_color    String
+  radius          Int? // border-radius (px); null = default
+  config_version  Int      @default(1) // ETag; naik tiap update
+  updated_by      String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  updated_by_user User? @relation("BrandingUpdatedBy", fields: [updated_by], references: [id])
+
+  @@map("branding_config")
+}
+
+// ============================================================
+// Prodi — jurusan/kompetensi keahlian (SMK; SMA tanpa jurusan)
+// ============================================================
+
+model Prodi {
+  id         String   @id @default(cuid())
+  code       String   @unique // "TKJ"
+  name       String // "Teknik Komputer dan Jaringan"
+  short_name String // "TKJ"
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  classes Class[]
+
+  @@map("prodi")
+}
+
+// ============================================================
+// Landing — konten landing page publik (single-school)
+// Dikelola SUPERADMIN/OPERATOR via /admin/landing (permission
+// landing:write:school); dibaca publik via /public/landing.
+// ============================================================
+
+model LandingContent {
+  id            String   @id @default(cuid())
+  slug          String   @unique // "hero", "tentang", "piagam", "kontak", ...
+  title         String
+  subtitle      String?
+  body          String
+  image_path    String? // path di bucket `landing` (opsional)
+  section_order Int      @default(0)
+  is_published  Boolean  @default(true)
+  updated_by    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  updated_by_user User? @relation("LandingUpdatedBy", fields: [updated_by], references: [id])
+
+  @@index([section_order])
+  @@map("landing_content")
+}
+
+// ============================================================
+// NewsArticle — berita sekolah di landing page publik
+// ============================================================
+
+model NewsArticle {
+  id               String    @id @default(cuid())
+  title            String
+  slug             String    @unique
+  excerpt          String?
+  body             String
+  cover_image_path String? // path di bucket `landing` (opsional)
+  author           String?
+  published_at     DateTime?
+  is_published     Boolean   @default(false)
+  updated_by       String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  updated_by_user User? @relation("NewsUpdatedBy", fields: [updated_by], references: [id])
+
+  @@index([is_published, published_at])
+  @@map("news_article")
+}

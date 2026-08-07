@@ -1,0 +1,43 @@
+{
+  "name": "openlms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "openlms — LMS+SIS super-app untuk SATU sekolah (SMA/SMK Indonesia). Monorepo Turborepo.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@11.12.1",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "dev": "turbo run dev",
+    "db:generate": "npm run db:generate --workspace=@openlms/database",
+    "db:migrate": "npm run db:migrate --workspace=@openlms/database",
+    "db:seed": "npm run db:seed --workspace=@openlms/database",
+    "db:validate": "npm run db:validate --workspace=@openlms/database",
+    "audit": "npm audit --audit-level=high"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.4.2",
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "overrides": {
+    "webpack": "^5.105.0",
+    "tmp": "^0.2.4",
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.3"
+  }
+}
