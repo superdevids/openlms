@@ -1,0 +1,143 @@
+# ============================================================
+# opensis — PROD overlay (full-stack: +api +web, nginx -> container)
+#
+# Digunakan BERSAMA docker-compose.yml (base = DEV infra-only):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Overlay menambah service `api` + `web` (di container) dan mengalihkan
+# nginx ke deploy/nginx.docker.conf (upstream web:3000 / api:3001).
+# Perhatian: anchor YAML TIDAK lintas file — x-logging diulang di sini.
+# JANGAN deklarasi ulang `ports` service nginx (Compose men-append -> duplikat).
+# ============================================================
+
+# Logging default semua service: json-file, rotasi 10MB x 3 file
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: opensis-api
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Host postgres/redis = nama service compose (bukan localhost)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-opensis}?schema=public
+      REDIS_URL: redis://redis:6379
+      TRUST_PROXY: "true"
+      STORAGE_LOCAL_DIR: /app/storage
+      # Origin default: web via Nginx :80 dan akses langsung :3000 (harus berisi origin pemakai nyata)
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:80,http://localhost:3000}
+    ports:
+      - "3001:3001"
+    volumes:
+      - opensis-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3001/api/v1/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1g
+        reservations:
+          cpus: "1"
+          memory: 512m
+    networks:
+      - opensis-net
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* ter-bake saat build image (client bundle)
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-opensis}
+        NEXT_PUBLIC_DEMO: ${NEXT_PUBLIC_DEMO:-0}
+    container_name: opensis-web
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 768m
+        reservations:
+          cpus: "0.5"
+          memory: 384m
+    networks:
+      - opensis-net
+
+  nginx:
+    # OVERRIDE service nginx dari base (dev):
+    # - mount konfigurasi production (upstream web:3000 / api:3001)
+    # - depends_on web+api (bukan postgres/redis)
+    # - healthcheck memakai / (web) bukan /_nginx_health
+    # - resource lebih besar
+    # JANGAN tambah `ports` di sini — base sudah `80:80`; overlay men-append.
+    volumes:
+      - ./deploy/nginx.docker.conf:/etc/nginx/conf.d/opensis.conf:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+        reservations:
+          cpus: "0.25"
+          memory: 128m
+
+volumes:
+  opensis-storage:

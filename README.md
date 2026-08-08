@@ -173,15 +173,63 @@ Setelah seed, login sebagai SUPERADMIN dev:
 
 > Kredensial dev didokumentasikan di `packages/database/prisma/seed.ts`. Jangan pernah memakai password ini di environment nyata.
 
-### Menjalankan PostgreSQL & Redis (Docker, opsional)
+### Menjalankan Aplikasi dengan Docker (split mode: DEV infra-only, PROD full-stack)
+
+Docker Compose dipakai **split mode**:
+
+- **DEV (default)** — `docker compose up -d` menjalankan HANYA infra di
+  container (postgres, redis, nginx). Aplikasi (`apps/api` + `apps/web`)
+  dijalankan di HOST via `npm run dev`; nginx mem-proxy ke app di host lewat
+  `host.docker.internal` (`deploy/nginx.dev.conf`).
+- **PROD** — overlay `docker-compose.prod.yml` menambah service `api` + `web`
+  di container dan mengalihkan nginx ke `deploy/nginx.docker.conf`
+  (upstream `web:3000` / `api:3001`).
+
+Prasyarat: Docker Engine + Docker Compose v2.
+
+**Mode DEV (ringan — infra Docker, app di host):**
 
 ```bash
-# PostgreSQL saja (default)
+# 1. Environment — salin lalu isi secret (JWT, POSTGRES_PASSWORD, dll)
+cp .env.example .env
+
+# 2. Start infra: postgres + redis + nginx (3 service)
 docker compose up -d
 
-# PostgreSQL + Redis (antrean BullMQ aktif)
-docker compose --profile full up -d
+# 3. Jalankan aplikasi di HOST (Turbo dev: api :3001 + web :3000)
+npm run dev
+
+# 4. Migrasi + seed dari HOST (postgres terekspos di localhost:5432)
+npm run db:migrate:deploy
+npm run db:seed
 ```
+
+**Mode PROD (full-stack, 5 service di container):**
+
+```bash
+# 1. Environment — isi secret production (JWT acak, CORS asli, COOKIE_SECURE=true)
+cp .env.example .env
+
+# 2. Build image & jalankan semua service (overlay)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# 3. Migrasi + seed dari HOST (pastikan DATABASE_URL di .env menunjuk localhost:5432)
+npm run db:migrate:deploy
+npm run db:seed
+
+# 4. Cek status & log
+docker compose ps
+docker compose logs -f api web nginx
+```
+
+Akses aplikasi di **http://localhost** (Nginx :80). Resource limits DEV/PROD
+diringkas di [deploy/README.deploy.md](deploy/README.deploy.md): DEV — postgres
+1 CPU/512 MB, redis 0,25/128 MB, nginx 0,25/128 MB (app di host); PROD — api
+2 CPU/1 GB, web 1 CPU/768 MB, nginx 0,5/256 MB. Storage unggahan: DEV di host
+(`STORAGE_LOCAL_DIR=./storage`); PROD di volume `opensis-storage`
+(`/app/storage`, terpisah dari container).
+
+Detail prasyarat, alur pertama kali, dan troubleshooting: [deploy/README.deploy.md](deploy/README.deploy.md).
 
 ## Variabel Environment
 
@@ -220,8 +268,12 @@ opensis/
 │   ├── ui/                     # komponen shared (shadcn/ui)
 │   └── types/                  # enum & tipe bersama
 ├── deploy/
-│   ├── nginx.conf              # reverse proxy production
-│   └── README.deploy.md        # panduan deployment
+│   ├── nginx.conf              # reverse proxy production (host)
+│   ├── nginx.docker.conf       # reverse proxy PROD container (web:3000/api:3001)
+│   ├── nginx.dev.conf          # reverse proxy DEV (host.docker.internal)
+│   └── README.deploy.md        # panduan deployment (mode DEV & PROD)
+│
+│   # docker-compose.yml (DEV infra-only) + docker-compose.prod.yml (overlay PROD) di root
 ├── docs/                       # PRD, arsitektur, ERD, kontrak API, riset, UX, KB
 │   ├── 01-master-prd.md … 07-ux-design.md
 │   └── prd/                    # prd01–prd07
@@ -288,9 +340,51 @@ Otoritas role adalah tabel `UserRole` (bukan klaim JWT), sehingga perubahan role
 
 Panduan lengkap: [deploy/README.deploy.md](deploy/README.deploy.md).
 
-1. **Siapkan infrastruktur**: PostgreSQL 16 (wajib) dan Redis (opsional) — `docker compose up -d` / `docker compose --profile full up -d`.
-2. **Build & jalankan aplikasi**: `npm ci`, `npm run build`, lalu jalankan API (`:3001`) dan Web (`:3000`) sebagai service (systemd/PM2/docker). Catatan: Dockerfile aplikasi belum tersedia (lihat [prd05 G-62](docs/prd/prd05.md) dan [riview04 Rv4-10](docs/riview/riview04.md)); service `api`/`web` di `docker-compose.yml` dikomentari sampai Dockerfile dibuat.
-3. **Pasang reverse proxy**:
+### Opsi A — Docker Compose (split mode: DEV infra-only / PROD full-stack)
+
+Prasyarat: Docker Engine + Compose v2, dan file `.env` hasil `cp .env.example .env`.
+
+**A.1 — Mode DEV (ringan, direkomendasikan untuk pengembangan):** infra di
+container, aplikasi di host.
+
+```bash
+# Infra saja: postgres + redis + nginx (3 service)
+docker compose up -d
+
+# Aplikasi di HOST (api :3001 + web :3000)
+npm run dev
+
+# Migrasi & seed dari host (postgres terekspos di localhost:5432)
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+**A.2 — Mode PROD (full-stack, 5 service di container):**
+
+```bash
+# Build + start semua service (overlay prod menambah api + web)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+
+# Migrasi & seed dari host
+npm run db:migrate:deploy
+npm run db:seed
+
+# Log
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f api web nginx
+```
+
+Akses: **http://localhost** (Nginx :80). DEV memuat `deploy/nginx.dev.conf`
+(upstream `host.docker.internal:3000/:3001`); PROD memuat
+`deploy/nginx.docker.conf` (upstream `web:3000` / `api:3001`). Keduanya:
+rate limit per-IP API & login, security headers, gzip, cache immutable
+`/_next/static`, proxy WebSocket `/socket.io/` + `/ws` (versi dev menambah
+`/_nginx_health` untuk healthcheck). Resource limits DEV/PROD:
+[deploy/README.deploy.md](deploy/README.deploy.md).
+
+### Opsi B — Host langsung + Nginx (tanpa Docker untuk aplikasi)
+
+1. **Build & jalankan aplikasi**: `npm ci`, `npm run build`, lalu jalankan API (`:3001`) dan Web (`:3000`) sebagai service (systemd/PM2). PostgreSQL/Redis tetap bisa memakai `docker compose up -d postgres redis` (service pendukung tetap tersedia di compose).
+2. **Pasang reverse proxy**:
 
    ```bash
    cp deploy/nginx.conf /etc/nginx/conf.d/opensis.conf
@@ -300,8 +394,8 @@ Panduan lengkap: [deploy/README.deploy.md](deploy/README.deploy.md).
 
    File ini mengatur: rate limit per-IP (API & login), security headers, gzip, cache immutable `/_next/static`, dan proxy WebSocket `/socket.io/` + `/ws`.
 
-4. **TLS**: tambahkan blok `:443` (mis. certbot) dan set `COOKIE_SECURE=true`; tambahkan `Strict-Transport-Security` di blok HTTPS.
-5. **(Opsional) Redis untuk BullMQ**: `docker compose --profile full up -d redis` — tanpa `REDIS_URL`, `QueueModule` memakai in-process fallback (single-instance).
+3. **TLS**: tambahkan blok `:443` (mis. certbot) dan set `COOKIE_SECURE=true`; tambahkan `Strict-Transport-Security` di blok HTTPS.
+4. **Redis untuk BullMQ**: `docker compose up -d redis` — tanpa `REDIS_URL`, `QueueModule` memakai in-process fallback (single-instance).
 
 ## Keamanan
 

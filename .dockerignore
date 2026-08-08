@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+.next
+**/.next
+out
+coverage
+.turbo
+*.tsbuildinfo
+
+# Environment — jangan pernah masuk build context
+.env
+.env.*
+!.env.example
+
+# Git & CI
+.git
+.github
+
+# Storage lokal upload (mount volume runtime)
+storage
+**/storage
+
+# Logs
+*.log
+logs
+
+# Dokumentasi & catatan (tidak dibutuhkan runtime/build)
+docs
+note
+*.md
+
+# Secret scanning report
+gitleaks-report.json
+
+# Swarm artifacts
+.swarm

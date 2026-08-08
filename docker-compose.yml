@@ -1,15 +1,41 @@
-# opensis — compose untuk layanan pendukung (PostgreSQL + Redis opsional).
-# Jalankan: docker compose up -d
-# Redis dipakai antrean BullMQ (REDIS_URL) — layanan app tetap jalan tanpa Redis
-# (QueueModule fallback in-process). Aktifkan Redis:
-#   docker compose --profile full up -d
-# Nilai env diambil dari .env (interpolasi ${VAR:-default}).
+# ============================================================
+# opensis — DEV mode Docker Compose (infra-only)
+#
+# Mode DEV: HANYA infra di container (postgres + redis + nginx);
+# aplikasi (apps/api + apps/web) dijalankan di HOST via `npm run dev`.
+# Nginx mem-proxy ke app di host lewat host.docker.internal
+# (deploy/nginx.dev.conf; extra_hosts host-gateway).
+#
+# Jalankan:
+#   cp .env.example .env        # lalu isi secret (JWT, DATABASE_URL, dll)
+#   docker compose up -d        # hanya postgres + redis + nginx
+#   npm run dev                 # Turbo dev: api :3001 + web :3000 di HOST
+#   # migrasi + seed dari host (postgres terekspos di localhost:5432)
+#   npm run db:migrate:deploy
+#   npm run db:seed
+# Akses aplikasi: http://localhost (Nginx :80 -> host.docker.internal)
+#
+# Mode PROD (full-stack, 5 service di container):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   (overlay prod menambah api + web dan mengalihkan nginx ke nginx.docker.conf)
+# ============================================================
+
+name: opensis
+
+# Logging default semua service: json-file, rotasi 10MB x 3 file
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   postgres:
     image: postgres:16-alpine
     container_name: opensis-postgres
     restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -23,60 +49,89 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+    networks:
+      - opensis-net
 
   redis:
     image: redis:7-alpine
     container_name: opensis-redis
     restart: unless-stopped
-    profiles: ["full"]
+    init: true
+    stop_grace_period: 30s
+    # AOF aktif — antrean BullMQ tidak boleh hilang saat restart
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 5s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
+        reservations:
+          cpus: "0.10"
+          memory: 64m
+    networks:
+      - opensis-net
 
-  # --- Layanan aplikasi (opsional, profile "full") ---
-  # NOTE: Dockerfile belum tersedia di apps/api & apps/web — aktifkan setelah
-  # Dockerfile dibuat. Package dipakai sesuai nama workspace @opensis/*.
-  #
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: apps/api/Dockerfile
-  #   container_name: opensis-api
-  #   restart: unless-stopped
-  #   profiles: ["full"]
-  #   env_file: .env
-  #   environment:
-  #     PORT: 3001
-  #     DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-opensis}?schema=public
-  #     REDIS_URL: redis://redis:6379
-  #   ports:
-  #     - "3001:3001"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   command: npm run start --workspace=@opensis/api
-  #
-  # web:
-  #   build:
-  #     context: .
-  #     dockerfile: apps/web/Dockerfile
-  #   container_name: opensis-web
-  #   restart: unless-stopped
-  #   profiles: ["full"]
-  #   env_file: .env
-  #   environment:
-  #     PORT: 3000
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - api
-  #   command: npm run start --workspace=@opensis/web
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: opensis-nginx
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    ports:
+      - "80:80"
+    extra_hosts:
+      # Akses aplikasi yang berjalan di HOST (bukan di container)
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./deploy/nginx.dev.conf:/etc/nginx/conf.d/opensis.conf:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/_nginx_health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
+        reservations:
+          cpus: "0.10"
+          memory: 64m
+    networks:
+      - opensis-net
 
 volumes:
   postgres-data:
+  redis-data:
+
+networks:
+  opensis-net:
+    driver: bridge
