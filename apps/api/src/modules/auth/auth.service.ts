@@ -108,6 +108,18 @@ export class AuthService {
       include: { roles: { where: { status: MembershipStatus.ACTIVE } } }
     });
     if (!user) {
+      // Audit login gagal untuk identifier tak dikenal (tanpa bocorkan detail ke
+      // response — tetap 401 generik). entity_id diisi identifier percobaan.
+      await this.audit(
+        null,
+        undefined,
+        AuditAction.LOGIN,
+        "user",
+        identifier.slice(0, 100),
+        undefined,
+        { reason: "LOGIN_FAILED_UNKNOWN" },
+        meta.ip
+      );
       throw new UnauthorizedException("Email/Username atau password salah");
     }
 

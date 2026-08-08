@@ -1,6 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { prisma } from "@opensis/database";
 import type { RequestContext } from "@opensis/types";
 import { assertCanManageClass, assertCanAccessStudent, scopeOf } from "../lms-scope";
@@ -12,6 +12,20 @@ export interface ExportResult {
   filePath: string;
   fileUrl: string;
   recordCount: number;
+}
+
+/**
+ * Resolve path file ekspor di dalam exportDir (containment check).
+ * Dipisah agar bisa diuji unit: menolak filename yang keluar dari direktori
+ * (path traversal `..`/`/`/`\`) — lapisan kedua setelah validasi DTO.
+ */
+export function resolveExportPath(exportDir: string, filename: string): string {
+  const root = resolve(exportDir);
+  const filePath = resolve(root, filename);
+  if (!filePath.startsWith(root + sep)) {
+    throw new BadRequestException("Nama file ekspor tidak valid");
+  }
+  return filePath;
 }
 
 /**
@@ -99,8 +113,10 @@ export class GradeExportService {
     ctx: RequestContext
   ): Promise<ExportResult> {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const filename = `nilai_${filter.semester ?? "all"}_${stamp}.${ext}`;
-    const filePath = join(this.exportDir, filename);
+    // Sanitasi semester agar tidak membentuk sub-path/ traversal (`/`/`\` -> `-`).
+    const safeSemester = (filter.semester ?? "all").replace(/[/\\]/g, "-");
+    const filename = `nilai_${safeSemester}_${stamp}.${ext}`;
+    const filePath = resolveExportPath(this.exportDir, filename);
     writeFileSync(filePath, content);
 
     const fileUrl = `exports/${filename}`;

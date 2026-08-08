@@ -10,6 +10,7 @@
  * (ppdb:read:self); verify/select/waitlist/enroll = ppdb:verify:school /
  * ppdb:select:school / ppdb:enroll:school (OPERATOR/SUPERADMIN).
  */
+import { randomBytes } from "node:crypto";
 import {
   BadRequestException,
   ConflictException,
@@ -79,10 +80,11 @@ export class PpdbService {
       }
     });
 
+    // Token tracking: 16 hex karakter dari CSPRNG (128-bit) — bukan Math.random.
     const registrationNo = `PPDB-${new Date()
       .toISOString()
       .slice(0, 10)
-      .replace(/-/g, "")}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+      .replace(/-/g, "")}-${randomBytes(8).toString("hex").toUpperCase()}`;
 
     const applicant = await this.db.ppdbApplicant.create({
       data: {

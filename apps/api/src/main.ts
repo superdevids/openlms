@@ -2,7 +2,9 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import compression from "compression";
 import helmet from "helmet";
+import hpp from "hpp";
 import { Logger } from "nestjs-pino";
+import { json, urlencoded } from "express";
 import type { NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
@@ -15,7 +17,13 @@ async function bootstrap(): Promise<void> {
   if (isProduction) {
     allowedOrigins(); // fail-fast saat boot bila CORS_ORIGINS kosong di production
   }
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  // bodyParser express dimatikan; dipasang manual di bawah dengan limit eksplisit.
+  // Upload file TIDAK terpengaruh: multer (FileInterceptor) mem-parsing multipart
+  // sendiri tanpa body-parser express.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+    bufferLogs: true
+  });
 
   // Trust proxy: Nginx di depan (X-Forwarded-*) — req.ip akurat untuk rate limit.
   if (process.env.TRUST_PROXY === "true") {
@@ -67,6 +75,15 @@ async function bootstrap(): Promise<void> {
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     next();
   });
+
+  // Body parser dengan batas ukuran eksplisit (50kb) — cegah request JSON/form
+  // besar. Multipart upload tetap ditangani multer (limit terpisah di storage).
+  app.use(json({ limit: "50kb" }));
+  app.use(urlencoded({ extended: true, limit: "50kb" }));
+
+  // HPP: cegah parameter pollution di query string (duplikat di-merge jadi array
+  // oleh hpp; body hanya diperiksa untuk content-type urlencoded).
+  app.use(hpp());
 
   // Kompresi respons (gzip/br) — "lebih banyak middleware" (F0 hardening).
   // Dipasang sebelum global prefix; respon JSON besar (rapor, rekap) terkompresi.

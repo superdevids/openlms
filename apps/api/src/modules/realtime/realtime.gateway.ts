@@ -86,6 +86,8 @@ export function examRoom(examSessionId: string): string {
  */
 @WebSocketGateway({
   namespace: REALTIME_NAMESPACE,
+  // Batasi ukuran frame WS (~1MB) — cegah memori bomb via event besar.
+  maxHttpBufferSize: 1_000_000,
   cors: {
     // Dievaluasi per-koneksi agar CORS_ORIGINS (termasuk dari .env via ConfigModule) berlaku.
     origin: (

@@ -1,4 +1,12 @@
-import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength
+} from "class-validator";
 import { ROLE_VALUES } from "@opensis/types";
 
 /**
@@ -12,6 +20,9 @@ export class InvitationDto {
 
   @IsOptional()
   @IsString()
+  // Username dipakai sebagai identifier akun — batasi karakter aman.
+  @MaxLength(50, { message: "Username maksimal 50 karakter" })
+  @Matches(/^[a-zA-Z0-9._-]+$/, { message: "Username hanya huruf/angka/._-" })
   username?: string;
 
   @IsString()

@@ -16,6 +16,7 @@ import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/mo
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { brandingApiUrl, type BrandingView } from "@/lib/api-client";
+import { safeUrl } from "@/lib/safe-url";
 import {
   API_BASE_FALLBACK,
   API_TIMEOUT_MS,
@@ -151,6 +152,27 @@ export default async function HomePage(): Promise<JSX.Element> {
   const ppdbJalur = Array.isArray(ppdbCta?.extra?.jalur) ? (ppdbCta.extra.jalur as string[]) : [];
   const ppdbInfo = extraOf(ppdbCta, "info");
   const misi = Array.isArray(visiMisi?.extra?.misi) ? (visiMisi.extra.misi as string[]) : [];
+
+  // URL dari CMS disanitasi (safeUrl): hanya http(s)/relative, tolak javascript:/data:.
+  const programLink = safeUrl(program?.linkUrl);
+  const ppdbCtaLink = safeUrl(ppdbCta?.linkUrl);
+  const kontakWhatsapp = str(
+    kontak?.extra as Record<string, unknown> | undefined,
+    "whatsapp"
+  ).replace(/[^0-9]/g, "");
+  const kontakInstagram = safeUrl(
+    str(kontak?.extra as Record<string, unknown> | undefined, "instagram")
+  );
+  const kontakFacebook = safeUrl(
+    str(kontak?.extra as Record<string, unknown> | undefined, "facebook")
+  );
+  const kontakYoutube = safeUrl(
+    str(kontak?.extra as Record<string, unknown> | undefined, "youtube")
+  );
+  const kontakMapsEmbed = safeUrl(
+    str(kontak?.extra as Record<string, unknown> | undefined, "mapsEmbedUrl")
+  );
+  const kontakLink = safeUrl(kontak?.linkUrl);
 
   return (
     <div className="min-h-screen bg-background">
@@ -468,9 +490,9 @@ export default async function HomePage(): Promise<JSX.Element> {
                 </StaggerItem>
               ))}
             </StaggerContainer>
-            {program.linkUrl ? (
+            {programLink ? (
               <FadeInUp className="mt-8 text-center">
-                <Link href={program.linkUrl}>
+                <Link href={programLink}>
                   <Button size="lg">{program.linkLabel ?? "Daftar Sekarang"}</Button>
                 </Link>
               </FadeInUp>
@@ -843,9 +865,9 @@ export default async function HomePage(): Promise<JSX.Element> {
                       ))}
                     </dl>
                   ) : null}
-                  {ppdbCta.linkUrl ? (
+                  {ppdbCtaLink ? (
                     <div className="mt-8">
-                      <Link href={ppdbCta.linkUrl}>
+                      <Link href={ppdbCtaLink}>
                         <Button
                           size="lg"
                           className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
@@ -905,17 +927,11 @@ export default async function HomePage(): Promise<JSX.Element> {
                       </div>
                     ) : null}
                   </dl>
-                  {str(kontak.extra as Record<string, unknown> | undefined, "whatsapp") ||
-                  str(kontak.extra as Record<string, unknown> | undefined, "instagram") ||
-                  str(kontak.extra as Record<string, unknown> | undefined, "facebook") ||
-                  str(kontak.extra as Record<string, unknown> | undefined, "youtube") ? (
+                  {kontakWhatsapp || kontakInstagram || kontakFacebook || kontakYoutube ? (
                     <div className="flex flex-wrap justify-center gap-2 pt-4">
-                      {str(kontak.extra as Record<string, unknown> | undefined, "whatsapp") ? (
+                      {kontakWhatsapp ? (
                         <a
-                          href={`https://wa.me/${str(
-                            kontak.extra as Record<string, unknown>,
-                            "whatsapp"
-                          )}`}
+                          href={`https://wa.me/${kontakWhatsapp}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -923,9 +939,9 @@ export default async function HomePage(): Promise<JSX.Element> {
                           WhatsApp
                         </a>
                       ) : null}
-                      {str(kontak.extra as Record<string, unknown> | undefined, "instagram") ? (
+                      {kontakInstagram ? (
                         <a
-                          href={str(kontak.extra as Record<string, unknown>, "instagram")}
+                          href={kontakInstagram}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -933,9 +949,9 @@ export default async function HomePage(): Promise<JSX.Element> {
                           Instagram
                         </a>
                       ) : null}
-                      {str(kontak.extra as Record<string, unknown> | undefined, "facebook") ? (
+                      {kontakFacebook ? (
                         <a
-                          href={str(kontak.extra as Record<string, unknown>, "facebook")}
+                          href={kontakFacebook}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -943,9 +959,9 @@ export default async function HomePage(): Promise<JSX.Element> {
                           Facebook
                         </a>
                       ) : null}
-                      {str(kontak.extra as Record<string, unknown> | undefined, "youtube") ? (
+                      {kontakYoutube ? (
                         <a
-                          href={str(kontak.extra as Record<string, unknown>, "youtube")}
+                          href={kontakYoutube}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -955,19 +971,19 @@ export default async function HomePage(): Promise<JSX.Element> {
                       ) : null}
                     </div>
                   ) : null}
-                  {kontak.linkUrl ? (
+                  {kontakLink ? (
                     <div className="pt-4 text-center">
-                      <Link href={kontak.linkUrl}>
+                      <Link href={kontakLink}>
                         <Button size="lg">{kontak.linkLabel ?? "Daftar PPDB"}</Button>
                       </Link>
                     </div>
                   ) : null}
                 </CardContent>
               </Card>
-              {str(kontak.extra as Record<string, unknown> | undefined, "mapsEmbedUrl") ? (
+              {kontakMapsEmbed ? (
                 <div className="mx-auto mt-6 max-w-xl overflow-hidden rounded-lg border border-border">
                   <iframe
-                    src={str(kontak.extra as Record<string, unknown>, "mapsEmbedUrl")}
+                    src={kontakMapsEmbed}
                     title="Lokasi sekolah"
                     className="h-64 w-full border-0"
                     loading="lazy"

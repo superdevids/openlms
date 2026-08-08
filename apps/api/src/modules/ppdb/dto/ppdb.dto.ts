@@ -7,7 +7,9 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Max,
+  MaxLength,
   Min,
   MinLength,
   ValidateNested
@@ -16,6 +18,9 @@ import { Type } from "class-transformer";
 
 /** Type lokal — @opensis/types belum mengekspor Gender (ISSUES). */
 export type Gender = "L" | "P";
+
+/** Nomor telepon: digit/spasi/tanda baca pemisah, maksimal 20 karakter. */
+const PHONE_PATTERN = /^\+?[0-9][0-9\s()-]{8,18}$/;
 
 export class ConsentProofDto {
   @IsString()
@@ -59,6 +64,8 @@ export class RegisterPpdbDto {
 
   @IsString()
   @MinLength(9)
+  @MaxLength(20)
+  @Matches(PHONE_PATTERN, { message: "phone berisi karakter tidak valid" })
   phone!: string;
 
   @IsOptional()
@@ -69,6 +76,8 @@ export class RegisterPpdbDto {
   parentName!: string;
 
   @IsString()
+  @MaxLength(20)
+  @Matches(PHONE_PATTERN, { message: "parentPhone berisi karakter tidak valid" })
   parentPhone!: string;
 
   @IsOptional()

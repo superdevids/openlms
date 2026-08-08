@@ -6,7 +6,10 @@
 
 export function buildCsv(rows: string[][], header: string[]): string {
   const escape = (value: unknown): string => {
-    const s = String(value ?? "");
+    let s = String(value ?? "");
+    // Formula injection (CSV injection): nilai diawali = + - @ dianggap formula
+    // oleh spreadsheet. Awali dengan apostrof agar dirender sebagai teks.
+    if (/^[=+\-@]/.test(s)) s = `'${s}`;
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const lines = [header, ...rows].map((row) => row.map(escape).join(","));

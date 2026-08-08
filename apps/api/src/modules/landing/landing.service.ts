@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException
+} from "@nestjs/common";
 import { AuditAction, Prisma } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
 import { readCacheTtlMs, pruneExpiredCache } from "../../common/cache.util";
@@ -88,6 +94,18 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 120);
+}
+
+/**
+ * Allowlist URL konten landing: hanya http(s) atau path relatif (diawali `/`).
+ * Menolak protokol berbahaya (javascript:, data:, vbscript:) dan URL absolut
+ * non-http(s). Dipakai saat simpan konten (linkUrl, social, mapsEmbedUrl).
+ */
+export function isSafeUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("/")) return true;
+  return /^https?:\/\//i.test(trimmed);
 }
 
 /**
@@ -210,6 +228,7 @@ export class LandingService {
     actorId: string,
     ip?: string
   ): Promise<LandingContentView> {
+    this.assertSafeLinks(dto);
     const existing = await this.db.landingContent.findUnique({ where: { slug } });
     if (existing) {
       const before = this.toLandingPublic(existing);
@@ -380,6 +399,28 @@ export class LandingService {
       candidate = `${root}-${n}`;
       if (n > 50) {
         throw new ConflictException("Gagal membuat slug unik untuk berita.");
+      }
+    }
+  }
+
+  /**
+   * Validasi URL pada konten landing sebelum disimpan: linkUrl DTO + field
+   * social/maps di dalam `extra`. URL tidak aman (javascript:/data:/selain
+   * http(s) dan path relatif) ditolak untuk mencegah XSS via tautan CMS.
+   */
+  private assertSafeLinks(dto: UpsertLandingContentDto): void {
+    const fields: Array<[string, unknown]> = [
+      ["linkUrl", dto.linkUrl],
+      ["extra.linkUrl", dto.extra?.linkUrl],
+      ["extra.whatsapp", dto.extra?.whatsapp],
+      ["extra.instagram", dto.extra?.instagram],
+      ["extra.facebook", dto.extra?.facebook],
+      ["extra.youtube", dto.extra?.youtube],
+      ["extra.mapsEmbedUrl", dto.extra?.mapsEmbedUrl]
+    ];
+    for (const [field, value] of fields) {
+      if (typeof value === "string" && value.trim().length > 0 && !isSafeUrl(value)) {
+        throw new BadRequestException(`URL tidak aman pada ${field}`);
       }
     }
   }

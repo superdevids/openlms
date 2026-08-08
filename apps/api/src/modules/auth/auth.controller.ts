@@ -74,7 +74,9 @@ export class AuthController {
 
   @Get("me")
   @RequirePermission("auth:me:self")
-  me(@CurrentUser() user: AuthUser) {
+  me(@CurrentUser() user: AuthUser, @Res({ passthrough: true }) res: Response) {
+    // Data pribadi tidak boleh di-cache (proxy/browser) — no-store.
+    res.setHeader("Cache-Control", "no-store");
     return this.authService.me(user.id, user.requestId);
   }
 

@@ -1,5 +1,14 @@
 import { Type } from "class-transformer";
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min
+} from "class-validator";
 import { GradeType } from "@prisma/client";
 
 export class RecordGradeDto {
@@ -99,5 +108,9 @@ export class ExportGradesDto {
 
   @IsOptional()
   @IsString()
+  // Keamanan: semester dipakai pada nama file ekspor (grade-export.service).
+  // Batasi karakter + panjang agar tidak bisa jadi path traversal (`..`/`\` ditolak);
+  // slash diperbolehkan untuk format "2025/2026" dan disanitasi di service.
+  @Matches(/^[\w/-]{0,32}$/, { message: "semester mengandung karakter tidak aman" })
   semester?: string;
 }
