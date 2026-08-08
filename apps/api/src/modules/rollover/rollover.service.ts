@@ -25,6 +25,7 @@ import type {
   RolloverRunStatus
 } from "@openlms/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { resolveActorRole } from "../lms/lms-audit";
 import { ArchivedYearException } from "../academic/academic-year.guard";
 import {
   buildPromotionPlan,
@@ -330,9 +331,17 @@ export class RolloverService {
       );
     }
 
+    // R-13: actor_role diambil dari role aktif user (primer), bukan roles[0] DB.
+    const actorRoles = await this.db.userRole.findMany({
+      where: { user_id: actorId, status: "ACTIVE" },
+      select: { role: true }
+    });
+    const actorRole = resolveActorRole(actorRoles.map((r) => r.role as string));
+
     await this.db.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: actorRole ?? undefined,
         action: "UPDATE",
         entity: "RolloverRun",
         entity_id: run.id,

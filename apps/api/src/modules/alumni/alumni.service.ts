@@ -8,6 +8,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from "@nes
 import type { Alumni } from "@prisma/client";
 import type { AlumniStatus } from "@openlms/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
 export interface AlumniFilter {
   graduationYearId?: string;
@@ -72,17 +73,31 @@ export class AlumniService {
     });
   }
 
-  async archive(id: string): Promise<Alumni> {
-    return this.updateStatus(id, "ARCHIVED");
+  async archive(id: string, actor: AuditActorContext): Promise<Alumni> {
+    return this.updateStatus(id, "ARCHIVED", actor);
   }
 
-  async unarchive(id: string): Promise<Alumni> {
-    return this.updateStatus(id, "ACTIVE");
+  async unarchive(id: string, actor: AuditActorContext): Promise<Alumni> {
+    return this.updateStatus(id, "ACTIVE", actor);
   }
 
-  private async updateStatus(id: string, status: AlumniStatus): Promise<Alumni> {
+  private async updateStatus(
+    id: string,
+    status: AlumniStatus,
+    actor: AuditActorContext
+  ): Promise<Alumni> {
     const alumni = await this.db.alumni.findUnique({ where: { id } });
     if (!alumni) throw new NotFoundException("Alumni tidak ditemukan");
-    return this.db.alumni.update({ where: { id }, data: { status } });
+    if (alumni.status === status) return alumni;
+    const updated = await this.db.alumni.update({ where: { id }, data: { status } });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "alumni",
+      entityId: id,
+      before: { status: alumni.status },
+      after: { status }
+    });
+    return updated;
   }
 }

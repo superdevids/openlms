@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
-import { DATABASE_CLIENT } from "../database/database.constants";
+import { DatabaseModule } from "../../common/database/database.module";
 import { AlumniController } from "./alumni.controller";
 import { AlumniService } from "./alumni.service";
 
 @Module({
+  imports: [DatabaseModule],
   controllers: [AlumniController],
-  providers: [AlumniService, { provide: DATABASE_CLIENT, useFactory: () => new PrismaClient() }],
+  providers: [AlumniService],
   exports: [AlumniService]
 })
 export class AlumniModule {}

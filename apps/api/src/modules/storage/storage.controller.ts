@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Param,
@@ -15,7 +16,7 @@ import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import { extname } from "path";
 import { StorageService } from "./storage.service";
-import { MAX_FILE_SIZE } from "./storage.constants";
+import { MAX_FILE_SIZE, PUBLIC_UPLOAD_BUCKETS } from "./storage.constants";
 import { CurrentUser } from "../../common/current-user.decorator";
 import { Public } from "../../common/public.decorator";
 import { RequirePermission } from "../../common/require-permission.decorator";
@@ -25,14 +26,21 @@ const MIME_BY_EXT: Record<string, string> = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".webp": "image/webp"
+  ".webp": "image/webp",
+  ".pdf": "application/pdf"
 };
 
 /**
- * StorageController — serve file lokal + upload (branding/avatars).
- * - GET /storage/files/branding|avatars/* → @Public() (pre-login; logo/favicon web).
- * - GET /storage/files/:bucket/* → protected (materials class-scoped, exports admin).
- * - Upload memakai multer memoryStorage (2MB, allowlist mimetype di provider).
+ * StorageController — serve file lokal + upload.
+ * - GET /storage/files/branding|avatars|landing/* → @Public() (pre-login; web publik).
+ * - GET /storage/files/:bucket/* → protected (materials/submissions class-scoped,
+ *   exports admin, ppdb-* staff).
+ * - POST /storage/files/:bucket → upload terautentikasi (branding/avatars/landing/
+ *   materials/submissions); RBAC per bucket di StorageService (R-16).
+ * - POST /storage/files/public/:bucket → upload publik PPDB (ppdb-documents/
+ *   ppdb-consents), wizard PPDB tanpa login (R-17).
+ * - Ceiling multer = batas terbesar antar bucket; limit presisi per bucket
+ *   di LocalStorageProvider (R-18). Verifikasi magic bytes (R-15).
  * Path wildcard memakai syntax Express 5 (path-to-regexp v8): `*splat`.
  */
 @Controller("storage")
@@ -52,9 +60,16 @@ export class StorageController {
     await this.serveFile("avatars", (req.params.splat as string | undefined) ?? "", res);
   }
 
-  /** Serve bucket terproteksi (materials class-scoped, exports requester+admin). */
+  /** Serve bucket landing (image landing page + cover berita) — publik (R-19). */
+  @Get("files/landing/*splat")
+  @Public()
+  async serveLanding(@Req() req: Request, @Res() res: Response): Promise<void> {
+    await this.serveFile("landing", (req.params.splat as string | undefined) ?? "", res);
+  }
+
+  /** Serve bucket terproteksi (materials/submissions class-scoped, exports admin). */
   @Get("files/:bucket/*splat")
-  @RequirePermission("material:read:class", "export:read:school")
+  @RequirePermission("material:read:class", "export:read:school", "ppdb:verify:school")
   async serveProtected(
     @Param("bucket") bucket: string,
     @Req() req: Request,
@@ -65,9 +80,18 @@ export class StorageController {
     await this.serveFile(bucket, (req.params.splat as string | undefined) ?? "", res);
   }
 
-  /** Upload file ke bucket branding/avatars (multipart, field "file"). */
+  /**
+   * Upload file ke bucket (multipart, field "file").
+   * Terautentikasi — RBAC per bucket di StorageService (materials: guru pengampu,
+   * submissions: siswa kelas/role mengajar, branding/avatars/landing: admin).
+   */
   @Post("files/:bucket")
-  @RequirePermission("app:write:school")
+  @RequirePermission(
+    "material:write:class",
+    "submission:submit:self",
+    "app:write:school",
+    "landing:write:school"
+  )
   @UseInterceptors(
     FileInterceptor("file", {
       storage: memoryStorage(),
@@ -80,9 +104,34 @@ export class StorageController {
     @CurrentUser() user: AuthUser
   ): Promise<{ path: string }> {
     if (!file) {
-      return { path: "" };
+      throw new BadRequestException("File tidak ditemukan di field 'file'.");
     }
     return this.storageService.upload(bucket, file, user);
+  }
+
+  /**
+   * Upload publik PPDB (tanpa login) — hanya bucket ppdb-documents/ppdb-consents.
+   * Rate limit per-IP di RateLimitMiddleware (R-22); magic bytes + size di provider.
+   */
+  @Post("files/public/:bucket")
+  @Public()
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_FILE_SIZE }
+    })
+  )
+  async uploadPublic(
+    @Param("bucket") bucket: string,
+    @UploadedFile() file: Express.Multer.File | undefined
+  ): Promise<{ path: string }> {
+    if (!PUBLIC_UPLOAD_BUCKETS.has(bucket)) {
+      throw new BadRequestException("Bucket tidak diizinkan untuk upload publik.");
+    }
+    if (!file) {
+      throw new BadRequestException("File tidak ditemukan di field 'file'.");
+    }
+    return this.storageService.upload(bucket, file, undefined);
   }
 
   /** Stream file dengan Content-Type + Cache-Control (immutable karena nama UUID). */

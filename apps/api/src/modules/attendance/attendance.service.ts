@@ -34,6 +34,7 @@ import type {
   ScanResponse
 } from "./attendance.types";
 import { clampInt, generateRawToken, hashToken, isWithinRadiusMeters } from "./attendance.utils";
+import { writeAudit } from "../lms/lms-audit";
 
 const PERMIT_VERIFIER_ROLES = new Set(["GURU", "GURU_BK", "WAKEPSEK", "KEPSEK", "SUPERADMIN"]);
 
@@ -212,7 +213,7 @@ export class AttendanceService {
     }
     this.assertClassSubjectInScope(dto.class_subject_id ?? null, actor);
 
-    return this.prisma.attendanceSession.create({
+    const session = await this.prisma.attendanceSession.create({
       data: {
         class_subject_id: dto.class_subject_id ?? null,
         title: dto.title,
@@ -222,6 +223,14 @@ export class AttendanceService {
         created_by: actor.userId
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "attendance_session",
+      entityId: session.id,
+      after: { title: session.title, method: session.method, starts_at: startsAt, ends_at: endsAt }
+    });
+    return session;
   }
 
   /** Detail sesi + hasil scan (status live untuk guru). */
@@ -389,6 +398,18 @@ export class AttendanceService {
           }
         });
       });
+      await writeAudit({
+        ctx: actor,
+        action: "CREATE",
+        entity: "attendance_record",
+        entityId: record.id,
+        after: {
+          attendance_session_id: session.id,
+          student_id: studentId,
+          status: "HADIR",
+          method
+        }
+      });
       return this.toScanResponse(record, false);
     } catch (err) {
       // Race: unique (session, student) — kembalikan record yang sudah ada
@@ -488,6 +509,13 @@ export class AttendanceService {
         where: { id: existing.id },
         data: { status: dto.type, note: JSON.stringify(payload) }
       });
+      await writeAudit({
+        ctx: actor,
+        action: "UPDATE",
+        entity: "attendance_permit",
+        entityId: existing.id,
+        after: { status: dto.type, permitStatus: "PENDING" }
+      });
       return { ...updated, note: payload };
     }
 
@@ -501,6 +529,13 @@ export class AttendanceService {
         method: "MANUAL",
         recorded_by: actor.userId
       }
+    });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "attendance_permit",
+      entityId: created.id,
+      after: { status: dto.type, permitStatus: "PENDING" }
     });
     return { ...created, note: payload };
   }
@@ -540,6 +575,14 @@ export class AttendanceService {
     const updated = await this.prisma.attendance.update({
       where: { id: record.id },
       data: { status: dto.approved ? note.type : "ALPA", note: JSON.stringify(updatedNote) }
+    });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "attendance_permit",
+      entityId: record.id,
+      before: { permitStatus: "PENDING", status: record.status },
+      after: { permitStatus: updatedNote.status, status: updated.status }
     });
     return { ...updated, note: updatedNote };
   }

@@ -1,15 +1,12 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
-import { DATABASE_CLIENT } from "../database/database.constants";
+import { DatabaseModule } from "../../common/database/database.module";
 import { ParentPortalController } from "./parent-portal.controller";
 import { ParentPortalService } from "./parent-portal.service";
 
 @Module({
+  imports: [DatabaseModule],
   controllers: [ParentPortalController],
-  providers: [
-    ParentPortalService,
-    { provide: DATABASE_CLIENT, useFactory: () => new PrismaClient() }
-  ],
+  providers: [ParentPortalService],
   exports: [ParentPortalService]
 })
 export class ParentPortalModule {}

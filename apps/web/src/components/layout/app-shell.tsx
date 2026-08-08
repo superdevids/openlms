@@ -18,7 +18,9 @@ import { DEMO_MODE } from "@/lib/api-client";
 import { APP_NAME } from "@/lib/constants";
 import { DEMO_ROLES } from "@/lib/demo";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
-import { useApi } from "@/lib/use-api";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { useUnreadNotifications } from "@/lib/use-socket";
+import { NotificationPanel } from "./notification-panel";
 import {
   IconBell,
   IconHome,
@@ -66,7 +68,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 function unreadFallback(): number {
-  return 2;
+  return 0;
 }
 
 export function AppShell({
@@ -82,17 +84,24 @@ export function AppShell({
   const router = useRouter();
   const demo = useDemoRoleSwitch();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [notifOpen, setNotifOpen] = React.useState(false);
 
-  const { data: unread } = useApi<number>(
-    async () => {
-      const res = await fetch("/api/v1/notifications/unread-count", { credentials: "include" });
-      if (!res.ok) throw new Error("notif");
-      const json = (await res.json()) as { count?: number };
-      return json.count ?? 0;
-    },
-    [],
-    { fallbackData: unreadFallback() }
-  );
+  // Badge unread live via Socket.IO (R-27): nilai awal REST + event notification:new.
+  const { unread, refresh: refreshUnread } = useUnreadNotifications();
+  const badgeCount = unread ?? unreadFallback();
+
+  // Deep link ?notif=1 (dari badge) → buka panel notifikasi, lalu bersihkan URL.
+  // Dipakai window.location (bukan useSearchParams) agar tidak wajib Suspense
+  // boundary saat prerender statis (R-46).
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notif") === "1") {
+      setNotifOpen(true);
+      params.delete("notif");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    }
+  }, [pathname, router]);
 
   React.useEffect(() => {
     if (status === "error" && !DEMO_MODE) {
@@ -115,7 +124,7 @@ export function AppShell({
   if (status === "loading") {
     return (
       <div
-        className="flex min-h-screen items-center justify-center text-sm text-neutral-600"
+        className="flex min-h-screen items-center justify-center text-sm text-muted-foreground"
         aria-busy="true"
       >
         Memuat sesi...
@@ -126,7 +135,7 @@ export function AppShell({
   if (status === "error" || !user) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
-        <p className="text-base text-neutral-900">Sesi tidak ditemukan.</p>
+        <p className="text-base text-foreground">Sesi tidak ditemukan.</p>
         <Link href="/login" className="text-base font-medium text-primary-600 underline">
           Masuk kembali
         </Link>
@@ -139,7 +148,7 @@ export function AppShell({
     // Menunggu redirect (useEffect di atas) — jangan render shell grup yang tidak berhak.
     return (
       <div
-        className="flex min-h-screen items-center justify-center text-sm text-neutral-600"
+        className="flex min-h-screen items-center justify-center text-sm text-muted-foreground"
         aria-busy="true"
       >
         Mengalihkan...
@@ -148,18 +157,21 @@ export function AppShell({
   }
 
   const primaryRole = user.primaryRole ?? user.roles[0];
-  const items = visibleNav(roleGroup, flags);
-  const bottomItems = items.slice(0, 5);
+  const items = visibleNav(roleGroup, flags, user.roles);
+  // Bottom nav dinamis (R-46): jumlah kolom mengikuti item, maks 6 agar tetap
+  // ergonomis di layar sempit — bukan grid-cols-5 tetap.
+  const bottomItems = items.slice(0, 6);
+  const bottomCols = Math.max(1, bottomItems.length);
   const isActive = (href: string): boolean => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="touch-target rounded-md text-neutral-700 hover:bg-neutral-100 md:hidden"
+              className="touch-target rounded-md text-muted-foreground hover:bg-muted md:hidden"
               aria-label="Buka menu"
               onClick={() => setMobileOpen((v) => !v)}
             >
@@ -168,13 +180,13 @@ export function AppShell({
             <Link href={`/${roleGroup}/dashboard`} className="text-lg font-bold text-primary-700">
               {APP_NAME}
             </Link>
-            <span className="hidden text-sm text-neutral-500 sm:inline">
+            <span className="hidden text-sm text-muted-foreground sm:inline">
               · {ROLE_GROUP_LABEL[roleGroup]}
             </span>
           </div>
           <div className="flex items-center gap-1">
             {demo.enabled ? (
-              <label className="mr-1 hidden items-center gap-1 text-xs text-neutral-500 sm:flex">
+              <label className="mr-1 hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
                 Demo role
                 <Select
                   aria-label="Ganti role demo"
@@ -185,28 +197,30 @@ export function AppShell({
                 />
               </label>
             ) : null}
-            <Link
-              href={`/${roleGroup}/dashboard?notif=1`}
-              className="touch-target relative rounded-md text-neutral-700 hover:bg-neutral-100"
-              aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ""}`}
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => setNotifOpen((v) => !v)}
+              className="touch-target relative rounded-md text-muted-foreground hover:bg-muted"
+              aria-label={`Notifikasi${badgeCount ? `, ${badgeCount} belum dibaca` : ""}`}
             >
               <IconBell className="h-5 w-5" />
-              {unread && unread > 0 ? (
+              {badgeCount && badgeCount > 0 ? (
                 <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-600 px-1 text-[10px] font-semibold text-white">
-                  {unread > 9 ? "9+" : unread}
+                  {badgeCount > 9 ? "9+" : badgeCount}
                 </span>
               ) : null}
-            </Link>
-            <span className="ml-1 hidden max-w-[180px] truncate text-sm font-medium text-neutral-800 sm:inline">
+            </button>
+            <span className="ml-1 hidden max-w-[180px] truncate text-sm font-medium text-foreground sm:inline">
               {user.fullName}
             </span>
-            <span className="hidden text-xs text-neutral-500 sm:inline">
+            <span className="hidden text-xs text-muted-foreground sm:inline">
               {roleLabel(primaryRole ?? "SISWA")}
             </span>
             <button
               type="button"
               onClick={() => void logout()}
-              className="touch-target ml-1 rounded-md text-neutral-700 hover:bg-neutral-100"
+              className="touch-target ml-1 rounded-md text-muted-foreground hover:bg-muted"
               aria-label="Keluar"
             >
               <IconLogout className="h-5 w-5" />
@@ -229,7 +243,7 @@ export function AppShell({
                       "flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors",
                       isActive(item.href)
                         ? "bg-primary-100 text-primary-800"
-                        : "text-neutral-700 hover:bg-neutral-100"
+                        : "text-foreground hover:bg-muted"
                     )}
                   >
                     <Icon className="h-5 w-5" />
@@ -241,7 +255,7 @@ export function AppShell({
             <li>
               <Link
                 href="/support"
-                className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-100"
+                className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground hover:bg-muted"
               >
                 Bantuan & FAQ
               </Link>
@@ -256,12 +270,9 @@ export function AppShell({
             aria-modal="true"
             aria-label="Menu navigasi"
           >
-            <div
-              className="absolute inset-0 bg-neutral-900/40"
-              onClick={() => setMobileOpen(false)}
-            />
-            <nav className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-white p-4 shadow-lg">
-              <p className="mb-2 px-3 text-sm font-semibold text-neutral-500">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+            <nav className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-background p-4 shadow-lg">
+              <p className="mb-2 px-3 text-sm font-semibold text-muted-foreground">
                 Menu {ROLE_GROUP_LABEL[roleGroup]}
               </p>
               <ul className="space-y-1">
@@ -277,7 +288,7 @@ export function AppShell({
                           "flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-base font-medium",
                           isActive(item.href)
                             ? "bg-primary-100 text-primary-800"
-                            : "text-neutral-700 hover:bg-neutral-100"
+                            : "text-foreground hover:bg-muted"
                         )}
                       >
                         <Icon className="h-5 w-5" />
@@ -290,7 +301,7 @@ export function AppShell({
                   <Link
                     href="/support"
                     onClick={() => setMobileOpen(false)}
-                    className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-neutral-700 hover:bg-neutral-100"
+                    className="flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-base font-medium text-foreground hover:bg-muted"
                   >
                     Bantuan & FAQ
                   </Link>
@@ -307,9 +318,12 @@ export function AppShell({
 
       <nav
         aria-label="Navigasi bawah"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background md:hidden"
       >
-        <ul className="grid grid-cols-5">
+        <ul
+          className="grid"
+          style={{ gridTemplateColumns: `repeat(${bottomCols}, minmax(0, 1fr))` }}
+        >
           {bottomItems.map((item) => {
             const Icon = ICON_MAP[item.icon] ?? IconHome;
             return (
@@ -317,7 +331,7 @@ export function AppShell({
                 <Link
                   href={item.href}
                   aria-current={isActive(item.href) ? "page" : undefined}
-                  className="flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium text-neutral-600"
+                  className="flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium text-muted-foreground"
                 >
                   <Icon className="h-5 w-5" />
                   {item.label}
@@ -327,6 +341,12 @@ export function AppShell({
           })}
         </ul>
       </nav>
+
+      <NotificationPanel
+        open={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        onUnreadChanged={refreshUnread}
+      />
 
       <OnboardingTour />
     </div>

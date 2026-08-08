@@ -157,6 +157,7 @@ describe("RolloverService", () => {
     mockFn(db, "enrollment", "create").mockResolvedValue({ ...ENROLLMENT, id: "enroll-new" });
     mockFn(db, "dataExportLog", "create").mockResolvedValue({ id: "export-1" });
     mockFn(db, "userRole", "findFirst").mockResolvedValue(null);
+    mockFn(db, "userRole", "findMany").mockResolvedValue([{ role: "SUPERADMIN" }]);
     mockFn(db, "userRole", "create").mockResolvedValue({ id: "role-1" });
     mockFn(db, "ppdbApplicant", "findMany").mockResolvedValue([]);
     mockFn(db, "schoolProfile", "updateMany").mockResolvedValue({ count: 1 });

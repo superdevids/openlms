@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import type { ParentStudentLink } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
 export interface LinkChildInput {
   parentGuardianId: string;
@@ -40,7 +41,12 @@ export class ParentPortalService {
     });
   }
 
-  async linkChild(input: LinkChildInput): Promise<ParentStudentLink> {
+  /** ParentGuardian milik user login (R-08 — kontrak ortu dashboard). */
+  async getMyParentGuardian(userId: string) {
+    return this.db.parentGuardian.findFirst({ where: { user_id: userId } });
+  }
+
+  async linkChild(input: LinkChildInput, actor: AuditActorContext): Promise<ParentStudentLink> {
     const parent = await this.db.parentGuardian.findUnique({
       where: { id: input.parentGuardianId }
     });
@@ -58,13 +64,25 @@ export class ParentPortalService {
     });
     if (existing) throw new ConflictException("Relasi wali-anak sudah ada");
 
-    return this.db.parentStudentLink.create({
+    const link = await this.db.parentStudentLink.create({
       data: {
         parent_id: input.parentGuardianId,
         student_id: input.studentId,
         relationship: input.relationship
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "parent_student_link",
+      entityId: link.id,
+      after: {
+        parent_id: input.parentGuardianId,
+        student_id: input.studentId,
+        relationship: input.relationship
+      }
+    });
+    return link;
   }
 
   async listChildren(parentGuardianId: string) {

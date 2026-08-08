@@ -110,8 +110,8 @@ describe("MaterialsService — scope guru pengampu (F2-T5)", () => {
       { filename: "bahan ajar.pdf", classSubjectId: "cs_1", contentType: "application/pdf" },
       teacherOfCs1
     );
-    expect(res.method).toBe("PUT");
+    expect(res.method).toBe("POST");
     expect(res.objectPath).toMatch(/^materials\/cs_1\//);
-    expect(res.uploadUrl).toContain("/api/v1/files/upload");
+    expect(res.uploadUrl).toContain("/api/v1/storage/files/materials");
   });
 });

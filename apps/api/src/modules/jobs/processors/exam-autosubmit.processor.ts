@@ -67,10 +67,14 @@ export class ExamAutoSubmitProcessor {
   }
 
   private async runNow(): Promise<void> {
-    const [exam, quiz] = await Promise.all([
+    const [exam, quiz, tick] = await Promise.all([
       this.examAttemptService.autoSubmitExpired(),
-      this.quizAttemptService.autoSubmitExpired()
+      this.quizAttemptService.autoSubmitExpired(),
+      // R-29: push exam:tick (ambang 60/30/10/0) di cron yang sama.
+      this.examAttemptService.tickActiveExams()
     ]);
-    this.logger.log(`auto-submit expired: exam=${exam.submitted}, quiz=${quiz.submitted}`);
+    this.logger.log(
+      `auto-submit expired: exam=${exam.submitted}, quiz=${quiz.submitted}, tick=${tick.ticked}`
+    );
   }
 }

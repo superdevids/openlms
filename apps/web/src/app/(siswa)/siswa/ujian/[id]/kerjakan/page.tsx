@@ -16,9 +16,11 @@ import {
 
 import { formatDuration } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { EXAM_FORCE_SUBMIT_EVENT, EXAM_TICK_EVENT, getSocket } from "@/lib/use-socket";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
 import { cn } from "@openlms/ui";
+import { STORAGE_KEYS, safeGet, safeRemove } from "@/lib/storage";
 
 interface ExamQuestion {
   id: string;
@@ -27,12 +29,26 @@ interface ExamQuestion {
   options?: Array<{ id: string; text: string }>;
 }
 
+interface ExamAttemptDraft {
+  examId: string;
+  attemptId: string;
+  remainingSeconds: number;
+  token: string;
+}
+
 type SaveStatus = "idle" | "saving" | "saved" | "offline";
 
 export default function SiswaUjianKerjakanPage(): React.JSX.Element {
   const search = useSearchParams();
   const router = useRouter();
-  const attemptId = search.get("attempt") ?? "";
+  // Resume: prioritas attemptId dari URL; fallback ke draft sessionStorage
+  // (ditulis oleh halaman token di [id]/page.tsx — R-23).
+  const [attemptId] = React.useState<string>(
+    () =>
+      search.get("attempt") ??
+      safeGet<ExamAttemptDraft>(STORAGE_KEYS.examAttempt, "session")?.attemptId ??
+      ""
+  );
 
   const [questions, setQuestions] = React.useState<ExamQuestion[]>([]);
   const [answers, setAnswers] = React.useState<Record<string, string>>({});
@@ -50,9 +66,16 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
     submitted: boolean;
     auto: boolean;
   } | null>(null);
+  const [sessionId, setSessionId] = React.useState<string | null>(null);
 
   const answersRef = React.useRef(answers);
   answersRef.current = answers;
+
+  // 0) Hapus draft attempt sesaat sesi berakhir (submit/manual/auto) agar
+  //    reload berikutnya tidak me-resume sesi yang sudah dikumpulkan.
+  React.useEffect(() => {
+    if (finalResult) safeRemove(STORAGE_KEYS.examAttempt, "session");
+  }, [finalResult]);
 
   // 1) Muat attempt (start attempt bila belum ada / demo fallback)
   React.useEffect(() => {
@@ -71,6 +94,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
             id: string;
             status: string;
             remaining_seconds: number;
+            exam_session_id?: string;
           };
           questions: ExamQuestion[];
         }>(`/exam/attempts/${attemptId}`);
@@ -78,6 +102,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
           setFinalResult({ submitted: true, auto: res.attempt.status === "AUTO_SUBMITTED" });
           return;
         }
+        setSessionId(res.attempt.exam_session_id ?? null);
         setQuestions(res.questions ?? []);
         setRemaining(res.attempt.remaining_seconds);
         // Prefill jawaban yang sudah tersimpan di server (resume sesi).
@@ -212,6 +237,35 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
     document.addEventListener("visibilitychange", onVis);
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [attemptId, finalResult]);
+
+  // 5) Realtime exam room (R-29): join `exam:{sessionId}`, terima
+  //    exam:force-submit (waktu habis server-side) + exam:tick (sisa waktu
+  //    server-authoritative). Best-effort; REST tetap fallback utama.
+  React.useEffect(() => {
+    if (!attemptId || !sessionId || finalResult || DEMO_MODE) return;
+    const socket = getSocket();
+    const room = `exam:${sessionId}`;
+    socket.emit("room:join", { room });
+
+    const onForceSubmit = (payload: { attemptId?: string }): void => {
+      if (payload?.attemptId && payload.attemptId === attemptId) {
+        void autosubmit();
+      }
+    };
+    const onTick = (payload: { attemptId?: string; remainingSeconds?: number }): void => {
+      if (payload?.attemptId === attemptId && typeof payload.remainingSeconds === "number") {
+        setRemaining(Math.max(0, Math.floor(payload.remainingSeconds)));
+      }
+    };
+
+    socket.on(EXAM_FORCE_SUBMIT_EVENT, onForceSubmit);
+    socket.on(EXAM_TICK_EVENT, onTick);
+    return () => {
+      socket.off(EXAM_FORCE_SUBMIT_EVENT, onForceSubmit);
+      socket.off(EXAM_TICK_EVENT, onTick);
+      socket.emit("room:leave", { room });
+    };
+  }, [attemptId, sessionId, finalResult, autosubmit]);
 
   const current = questions[index];
   const unanswered = questions.filter((q) => !answers[q.id]).length;

@@ -496,6 +496,7 @@ model User {
   landing_content_updated     LandingContent[]              @relation("LandingUpdatedBy")
   news_updated                NewsArticle[]                 @relation("NewsUpdatedBy")
   system_status_updated       SystemStatus[]                @relation("SystemStatusUpdatedBy")
+  dashboard_configs_updated   RoleDashboardConfig[]         @relation("DashboardConfigUpdatedBy")
   onboarding                  UserOnboarding?
 
   @@index([username, is_active])
@@ -803,6 +804,7 @@ model QuizAttempt {
   quiz    Quiz @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
   student User @relation("QuizAttemptStudent", fields: [student_id], references: [id])
 
+  @@index([status, submitted_at]) // rekap status attempt kuis
   @@map("quiz_attempt")
 }
 
@@ -1051,6 +1053,7 @@ model ExamAttempt {
   answer_logs  ExamAnswerLog[]
 
   @@unique([exam_session_id, student_id]) // satu siswa satu attempt per sesi
+  @@index([status, submitted_at]) // rekap status attempt ujian
   @@map("exam_attempt")
 }
 
@@ -1312,6 +1315,7 @@ model StaffAttendance {
   staff Staff @relation(fields: [staff_id], references: [id], onDelete: Cascade)
 
   @@unique([staff_id, date])
+  @@index([staff_id, date]) // rekap absensi staf per periode
   @@map("staff_attendance")
 }
 
@@ -1776,6 +1780,7 @@ model AuditLog {
 
   @@index([entity, entity_id, created_at]) // jejak audit per record
   @@index([actor_id, created_at])
+  @@index([action, created_at]) // rekap aktivitas / dashboard stats
   @@map("audit_log")
 }
 
@@ -2494,6 +2499,9 @@ model LandingContent {
   subtitle      String?
   body          String
   image_path    String? // path di bucket `landing` (opsional)
+  link_url      String? // URL CTA section (mis. "/ppdb" pada hero/kontak)
+  link_label    String? // label tombol CTA
+  extra         Json? // data terstruktur per slug (programs/items/faq/images[])
   section_order Int      @default(0)
   is_published  Boolean  @default(true)
   updated_by    String?
@@ -2517,6 +2525,7 @@ model NewsArticle {
   excerpt          String?
   body             String
   cover_image_path String? // path di bucket `landing` (opsional)
+  category         String? // filter berita (pengumuman, prestasi, kegiatan, dst.)
   author           String?
   published_at     DateTime?
   is_published     Boolean   @default(false)
@@ -2527,7 +2536,37 @@ model NewsArticle {
   updated_by_user User? @relation("NewsUpdatedBy", fields: [updated_by], references: [id])
 
   @@index([is_published, published_at])
+  @@index([category, is_published, published_at])
   @@map("news_article")
+}
+
+// ============================================================
+// RoleDashboardConfig — kartu dashboard per role (SUPERADMIN-configurable).
+// Kontrak: GET /admin/dashboard-config (read), PUT /admin/dashboard-config/:role
+// (write, transaksional upsert-by-(role,feature_key) + delete-missing),
+// GET /dashboard/me (kartu aktif per role, cache TTL 30s, invalidate saat PUT).
+// ============================================================
+
+model RoleDashboardConfig {
+  id                  String   @id @default(cuid())
+  role                Role
+  feature_key         String // kunci unik per role, mis. "siswa:kelas"
+  label               String
+  description         String?
+  icon                String? // nama ikon (katalog components/dashboard/icons)
+  href                String
+  section_order       Int      @default(0)
+  is_enabled          Boolean  @default(true)
+  required_permission String? // permission wajib untuk menampilkan kartu (null = semua)
+  updated_by          String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  updated_by_user User? @relation("DashboardConfigUpdatedBy", fields: [updated_by], references: [id])
+
+  @@unique([role, feature_key])
+  @@index([role, is_enabled, section_order])
+  @@map("role_dashboard_config")
 }
 
 // ============================================================

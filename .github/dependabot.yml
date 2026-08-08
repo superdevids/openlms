@@ -1,0 +1,46 @@
+# Dependabot — openlms monorepo (npm workspaces)
+# Jadwal: mingguan. Batas PR terbuka: 10. Tanpa rule ignore tambahan (keep simple).
+
+version: 2
+updates:
+  # Root: lockfile + deps dev (turbo, typescript, eslint, prettier)
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # apps/api (NestJS backend)
+  - package-ecosystem: npm
+    directory: "/apps/api"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # apps/web (Next.js frontend)
+  - package-ecosystem: npm
+    directory: "/apps/web"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # packages/types (shared types)
+  - package-ecosystem: npm
+    directory: "/packages/types"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # packages/database (Prisma schema, migrasi, seed)
+  - package-ecosystem: npm
+    directory: "/packages/database"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+
+  # packages/ui (shadcn/ui + tailwind)
+  - package-ecosystem: npm
+    directory: "/packages/ui"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10

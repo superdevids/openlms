@@ -59,16 +59,22 @@ describe("ParentPortalService — scope SENDIRI", () => {
   it("membuat tautan anak dan menolak duplikat -> 409", async () => {
     mockFn(db, "parentStudentLink", "findUnique").mockResolvedValue(null);
     mockFn(db, "parentStudentLink", "create").mockResolvedValue({ id: "link-1" });
-    const link = await service.linkChild({
-      parentGuardianId: "parent-1",
-      studentId: "stu-1",
-      relationship: "AYAH"
-    });
+    const link = await service.linkChild(
+      {
+        parentGuardianId: "parent-1",
+        studentId: "stu-1",
+        relationship: "AYAH"
+      },
+      { userId: "parent-1", roles: ["WALI_MURID"] }
+    );
     expect(link.id).toBe("link-1");
 
     mockFn(db, "parentStudentLink", "findUnique").mockResolvedValue({ id: "link-1" });
     await expect(
-      service.linkChild({ parentGuardianId: "parent-1", studentId: "stu-1", relationship: "IBU" })
+      service.linkChild(
+        { parentGuardianId: "parent-1", studentId: "stu-1", relationship: "IBU" },
+        { userId: "parent-1", roles: ["WALI_MURID"] }
+      )
     ).rejects.toThrow();
   });
 });

@@ -1,0 +1,12 @@
+# openlms — Konfigurasi template issue GitHub
+# blank_issues_enabled: false → semua issue harus lewat template yang tersedia.
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: Laporan Keamanan (Security) — openlms
+    url: https://github.com/superdevids/openlms/blob/main/SECURITY.md
+    about: >
+      Jangan buka issue publik untuk masalah keamanan.
+      Gunakan Private Vulnerability Reporting di GitHub Security Advisories,
+      atau ikuti instruksi di SECURITY.md (kanal email cadangan).

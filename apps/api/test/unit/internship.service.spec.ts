@@ -45,7 +45,10 @@ describe("InternshipService — scope bimbingan", () => {
       id: "journal-1",
       verified_by_mentor: true
     });
-    const journal = await service.verifyJournal("journal-1", "mentor-industri-user");
+    const journal = await service.verifyJournal("journal-1", "mentor-industri-user", {
+      userId: "mentor-industri-user",
+      roles: ["PEMBIMBING_INDUSTRI"]
+    });
     expect(journal.verified_by_mentor).toBe(true);
   });
 
@@ -58,9 +61,12 @@ describe("InternshipService — scope bimbingan", () => {
         industry_mentor: { user_id: "mentor-industri-user" }
       }
     });
-    await expect(service.verifyJournal("journal-1", "orang-luar")).rejects.toThrow(
-      ForbiddenException
-    );
+    await expect(
+      service.verifyJournal("journal-1", "orang-luar", {
+        userId: "orang-luar",
+        roles: ["GURU"]
+      })
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it("pembimbing industri berhak menutup PKL (COMPLETED)", async () => {
@@ -70,7 +76,10 @@ describe("InternshipService — scope bimbingan", () => {
       industry_mentor: { user_id: "mentor-industri-user" }
     });
     mockFn(db, "internship", "update").mockResolvedValue(internship({ status: "COMPLETED" }));
-    const done = await service.complete("intern-1", "mentor-industri-user");
+    const done = await service.complete("intern-1", "mentor-industri-user", {
+      userId: "mentor-industri-user",
+      roles: ["PEMBIMBING_INDUSTRI"]
+    });
     expect(done.status).toBe("COMPLETED");
   });
 

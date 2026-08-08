@@ -15,6 +15,8 @@ export const EXAM_START_EVENT = "exam:start";
 export const EXAM_TIME_WARNING_EVENT = "exam:time-warning";
 export const EXAM_AUTOSAVE_OK_EVENT = "exam:autosave-ok";
 export const EXAM_FORCE_SUBMIT_EVENT = "exam:force-submit";
+/** Sisa waktu server-authoritative untuk room ujian (R-29; dikirim per ambang 60/30/10/0). */
+export const EXAM_TICK_EVENT = "exam:tick";
 export const ATTENDANCE_ALPA_EVENT = "attendance:alpa";
 export const ATTENDANCE_SESSION_CLOSED_EVENT = "attendance:session-closed";
 export const INVOICE_DUE_EVENT = "invoice:due";
@@ -67,6 +69,7 @@ export const SERVER_EVENTS: readonly string[] = [
   EXAM_TIME_WARNING_EVENT,
   EXAM_AUTOSAVE_OK_EVENT,
   EXAM_FORCE_SUBMIT_EVENT,
+  EXAM_TICK_EVENT,
   ATTENDANCE_ALPA_EVENT,
   ATTENDANCE_SESSION_CLOSED_EVENT,
   INVOICE_DUE_EVENT,

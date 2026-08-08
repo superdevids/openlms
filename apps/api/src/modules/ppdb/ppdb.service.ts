@@ -20,6 +20,7 @@ import {
 } from "@nestjs/common";
 import type { PpdbApplicant } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 import { AcademicYearGuard } from "../academic/academic-year.guard";
 
 export interface ConsentProofInput {
@@ -114,21 +115,39 @@ export class PpdbService {
   }
 
   /** Verifikasi OPERATOR: VERIFIED atau REJECTED (dengan alasan opsional). */
-  async verify(applicantId: string, approve: boolean): Promise<PpdbApplicant> {
+  async verify(
+    applicantId: string,
+    approve: boolean,
+    actor: AuditActorContext
+  ): Promise<PpdbApplicant> {
     const applicant = await this.requireApplicant(applicantId);
     if (!["SUBMITTED"].includes(applicant.status)) {
       throw new ConflictException(
         `Verifikasi hanya untuk status SUBMITTED (saat ini ${applicant.status})`
       );
     }
-    return this.db.ppdbApplicant.update({
+    const status = approve ? "VERIFIED" : "REJECTED";
+    const updated = await this.db.ppdbApplicant.update({
       where: { id: applicant.id },
-      data: { status: approve ? "VERIFIED" : "REJECTED" }
+      data: { status }
     });
+    await writeAudit({
+      ctx: actor,
+      action: approve ? "UPDATE" : "DELETE",
+      entity: "ppdb_applicant",
+      entityId: applicant.id,
+      before: { status: applicant.status, registration_no: applicant.registration_no },
+      after: { status, registration_no: applicant.registration_no }
+    });
+    return updated;
   }
 
   /** Seleksi: SELECTED (lolos) atau WAITLIST berdasarkan skor. */
-  async select(applicantId: string, input: SelectionInput): Promise<PpdbApplicant> {
+  async select(
+    applicantId: string,
+    input: SelectionInput,
+    actor: AuditActorContext
+  ): Promise<PpdbApplicant> {
     const applicant = await this.requireApplicant(applicantId);
     if (applicant.status !== "VERIFIED") {
       throw new ConflictException("Seleksi hanya untuk pendaftar VERIFIED");
@@ -136,21 +155,43 @@ export class PpdbService {
     if (input.selectionScore < 0 || input.selectionScore > 100) {
       throw new BadRequestException("selectionScore harus 0-100");
     }
-    return this.db.ppdbApplicant.update({
+    const updated = await this.db.ppdbApplicant.update({
       where: { id: applicant.id },
       data: { selection_score: input.selectionScore, status: "SELECTED" }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "ppdb_applicant",
+      entityId: applicant.id,
+      before: { status: applicant.status },
+      after: { status: "SELECTED", selection_score: input.selectionScore }
+    });
+    return updated;
   }
 
-  async waitlist(applicantId: string, input: SelectionInput): Promise<PpdbApplicant> {
+  async waitlist(
+    applicantId: string,
+    input: SelectionInput,
+    actor: AuditActorContext
+  ): Promise<PpdbApplicant> {
     const applicant = await this.requireApplicant(applicantId);
     if (applicant.status !== "VERIFIED") {
       throw new ConflictException("Seleksi hanya untuk pendaftar VERIFIED");
     }
-    return this.db.ppdbApplicant.update({
+    const updated = await this.db.ppdbApplicant.update({
       where: { id: applicant.id },
       data: { selection_score: input.selectionScore, status: "WAITLIST" }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "ppdb_applicant",
+      entityId: applicant.id,
+      before: { status: applicant.status },
+      after: { status: "WAITLIST", selection_score: input.selectionScore }
+    });
+    return updated;
   }
 
   /** Pengumuman: daftar pendaftar lolos seleksi. */
@@ -165,7 +206,8 @@ export class PpdbService {
   async enroll(
     applicantId: string,
     academicYearId: string,
-    classId: string
+    classId: string,
+    actor: AuditActorContext
   ): Promise<PpdbApplicant> {
     const applicant = await this.requireApplicant(applicantId);
     if (applicant.status !== "SELECTED") {
@@ -214,10 +256,24 @@ export class PpdbService {
       });
     }
 
-    return this.db.ppdbApplicant.update({
+    const updated = await this.db.ppdbApplicant.update({
       where: { id: applicant.id },
       data: { status: "ENROLLED" }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "ppdb_applicant",
+      entityId: applicant.id,
+      before: { status: applicant.status },
+      after: {
+        status: "ENROLLED",
+        student_id: user.id,
+        class_id: classId,
+        academic_year_id: academicYearId
+      }
+    });
+    return updated;
   }
 
   private async requireApplicant(applicantId: string): Promise<PpdbApplicant> {

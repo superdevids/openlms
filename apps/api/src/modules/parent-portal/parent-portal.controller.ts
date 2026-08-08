@@ -23,15 +23,29 @@ export class ParentPortalController {
     return this.parentPortalService.ensureParent(this.actorId(req), dto.fullName, dto.phone);
   }
 
+  @Get("me")
+  @Roles(Role.WALI_MURID)
+  @RequirePermission("report:read:self")
+  getMyParent(@Req() req: AuthenticatedRequest) {
+    return this.parentPortalService.getMyParentGuardian(this.actorId(req));
+  }
+
   @Post(":parentGuardianId/children")
   @Roles(Role.WALI_MURID)
   @RequirePermission("user:write:self")
-  linkChild(@Param("parentGuardianId") parentGuardianId: string, @Body() dto: LinkChildDto) {
-    return this.parentPortalService.linkChild({
-      parentGuardianId,
-      studentId: dto.studentId,
-      relationship: dto.relationship
-    });
+  linkChild(
+    @Param("parentGuardianId") parentGuardianId: string,
+    @Body() dto: LinkChildDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.parentPortalService.linkChild(
+      {
+        parentGuardianId,
+        studentId: dto.studentId,
+        relationship: dto.relationship
+      },
+      { userId: this.actorId(req), roles: this.actorRoles(req) }
+    );
   }
 
   @Get(":parentGuardianId/children")
@@ -67,5 +81,13 @@ export class ParentPortalController {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
     return ctx.userId;
+  }
+
+  private actorRoles(req: AuthenticatedRequest): string[] {
+    const ctx = req.requestContext;
+    if (!ctx) {
+      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
+    }
+    return ctx.roles;
   }
 }

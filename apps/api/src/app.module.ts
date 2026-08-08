@@ -32,6 +32,10 @@ import { LandingModule } from "./modules/landing/landing.module";
 import { RbacAdminModule } from "./modules/rbac-admin/rbac-admin.module";
 import { QueueModule } from "./modules/queue/queue.module";
 import { JobsModule } from "./modules/jobs/jobs.module";
+import { AuditLogModule } from "./modules/audit/audit-log.module";
+import { AdminStatsModule } from "./modules/admin-stats/admin-stats.module";
+import { DashboardConfigModule } from "./modules/dashboard-config/dashboard-config.module";
+import { UsersAdminModule } from "./modules/users-admin/users-admin.module";
 
 @Module({
   imports: [
@@ -72,6 +76,10 @@ import { JobsModule } from "./modules/jobs/jobs.module";
     RbacAdminModule, // CRUD RBAC SUPERADMIN (/rbac/*) — controller menyusul
     QueueModule, // antrean job opsional (BullMQ bila REDIS_URL, else in-process)
     JobsModule, // processor job + cron SPP bulanan (@nestjs/schedule)
+    AuditLogModule, // change-log sistem (GET /admin/change-logs — SUPERADMIN/KEPSEK)
+    AdminStatsModule, // statistik dashboard (GET /admin/dashboard/stats)
+    DashboardConfigModule, // kartu dashboard per role (GET/PUT /admin/dashboard-config, GET /dashboard/me)
+    UsersAdminModule, // daftar user Admin Sistem (GET /admin/users)
     // Pengaturan & onboarding
     FeatureFlagsModule,
     AppSettingsModule,

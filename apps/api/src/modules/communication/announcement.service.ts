@@ -14,6 +14,7 @@ import {
 import type { Announcement } from "@prisma/client";
 import type { Role } from "@openlms/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
 export interface CreateAnnouncementInput {
   title: string;
@@ -28,14 +29,14 @@ export interface CreateAnnouncementInput {
 export class AnnouncementService {
   constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
 
-  async create(input: CreateAnnouncementInput): Promise<Announcement> {
+  async create(input: CreateAnnouncementInput, actor: AuditActorContext): Promise<Announcement> {
     if (!input.title || !input.body) {
       throw new BadRequestException("title dan body wajib diisi");
     }
     if (!input.targetRoles || input.targetRoles.length === 0) {
       throw new BadRequestException("targetRoles minimal satu role");
     }
-    return this.db.announcement.create({
+    const announcement = await this.db.announcement.create({
       data: {
         title: input.title,
         body: input.body,
@@ -45,6 +46,18 @@ export class AnnouncementService {
         created_by: input.createdBy
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "announcement",
+      entityId: announcement.id,
+      after: {
+        title: announcement.title,
+        target_role: announcement.target_role,
+        published_at: announcement.published_at
+      }
+    });
+    return announcement;
   }
 
   /** Broadcast read: hanya pengumuman terbit untuk role pemanggil. */

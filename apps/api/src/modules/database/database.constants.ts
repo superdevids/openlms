@@ -1,9 +1,11 @@
 /**
  * Token injeksi + tipe klien database untuk modul fitur.
  *
- * Alasan dibuat di sini: app.module.ts/common/** tidak boleh diubah,
- * sementara service modul butuh akses Prisma. Setiap modul fitur menyediakan
- * provider dengan token ini (useFactory: () => new PrismaClient()).
+ * Modul fitur mengimpor DatabaseModule (common/database — GLOBAL) yang
+ * menyediakan instance PrismaClient singleton (@openlms/database) dengan
+ * dua token: `PrismaClient` (class) dan `DATABASE_CLIENT` (Symbol).
+ * Service cukup `@Inject(DATABASE_CLIENT)`. TIDAK ada lagi `new PrismaClient()`
+ * per modul — satu koneksi pool untuk seluruh aplikasi.
  *
  * Unit test menginjeksi mock yang mengikuti kontrak DatabaseClient.
  */

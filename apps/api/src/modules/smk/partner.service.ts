@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import type { IndustryMentor, InternshipPartner } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
 export interface CreatePartnerInput {
   name: string;
@@ -53,11 +54,11 @@ export class PartnerService {
     });
   }
 
-  async create(input: CreatePartnerInput): Promise<InternshipPartner> {
+  async create(input: CreatePartnerInput, actor: AuditActorContext): Promise<InternshipPartner> {
     if (!input.name) throw new BadRequestException("name wajib diisi");
     const existing = await this.db.internshipPartner.findFirst({ where: { name: input.name } });
     if (existing) throw new ConflictException("Mitra dengan nama sama sudah ada");
-    return this.db.internshipPartner.create({
+    const partner = await this.db.internshipPartner.create({
       data: {
         name: input.name,
         industry_type: input.industryType,
@@ -67,11 +68,23 @@ export class PartnerService {
         agreement_year: input.agreementYear
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "internship_partner",
+      entityId: partner.id,
+      after: { name: partner.name, industry_type: partner.industry_type }
+    });
+    return partner;
   }
 
-  async update(id: string, input: Partial<CreatePartnerInput>): Promise<InternshipPartner> {
-    await this.requirePartner(id);
-    return this.db.internshipPartner.update({
+  async update(
+    id: string,
+    input: Partial<CreatePartnerInput>,
+    actor: AuditActorContext
+  ): Promise<InternshipPartner> {
+    const current = await this.requirePartner(id);
+    const partner = await this.db.internshipPartner.update({
       where: { id },
       data: {
         name: input.name,
@@ -82,12 +95,25 @@ export class PartnerService {
         agreement_year: input.agreementYear
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "internship_partner",
+      entityId: id,
+      before: { name: current.name },
+      after: { name: partner.name, industry_type: partner.industry_type }
+    });
+    return partner;
   }
 
-  async addMentor(partnerId: string, input: AddMentorInput): Promise<IndustryMentor> {
+  async addMentor(
+    partnerId: string,
+    input: AddMentorInput,
+    actor: AuditActorContext
+  ): Promise<IndustryMentor> {
     await this.requirePartner(partnerId);
     if (!input.fullName) throw new BadRequestException("fullName wajib diisi");
-    return this.db.industryMentor.create({
+    const mentor = await this.db.industryMentor.create({
       data: {
         partner_id: partnerId,
         user_id: input.userId,
@@ -96,6 +122,14 @@ export class PartnerService {
         phone: input.phone
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "industry_mentor",
+      entityId: mentor.id,
+      after: { partner_id: partnerId, full_name: mentor.full_name }
+    });
+    return mentor;
   }
 
   async listMentors(partnerId: string): Promise<IndustryMentor[]> {

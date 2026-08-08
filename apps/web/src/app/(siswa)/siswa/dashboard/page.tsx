@@ -19,6 +19,8 @@ import {
 
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { DEMO_EXAMS, DEMO_TASKS, DEMO_CLASSES } from "@/lib/demo";
+import { DashboardCards } from "@/components/dashboard/dashboard-cards";
+import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 
 interface Exam {
   id: string;
@@ -78,6 +80,12 @@ export default function SiswaDashboardPage(): React.JSX.Element {
       <h1 className="text-2xl font-bold text-neutral-900">
         {greeting}, {firstName}
       </h1>
+
+      <DashboardCards
+        role="siswa"
+        cards={DEFAULT_DASHBOARD_CARDS.siswa}
+        fallbackLabel="Menu siswa"
+      />
 
       <section aria-label="Ujian aktif">
         <DataView

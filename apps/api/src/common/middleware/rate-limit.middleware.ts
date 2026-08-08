@@ -48,6 +48,7 @@ export class RateLimitMiddleware implements NestMiddleware {
   private readonly loginMax = envNumber("LOGIN_RATE_LIMIT_MAX", 10);
   private readonly refreshMax = envNumber("REFRESH_RATE_LIMIT_MAX", 30);
   private readonly authUserMax = envNumber("USER_RATE_LIMIT_MAX", 120);
+  private readonly uploadMax = envNumber("UPLOAD_RATE_LIMIT_MAX", 30);
   private readonly cleanupTimer: NodeJS.Timeout;
 
   constructor() {
@@ -99,6 +100,8 @@ export class RateLimitMiddleware implements NestMiddleware {
   /**
    * Limit & key per route:
    * - login/refresh selalu per-IP (publik, anti-brute-force);
+   * - upload (POST/PUT ke /storage/files* atau /files/upload) → per-user bila
+   *   terautentikasi, else per-IP — limit lebih ketat (R-22, default 30/menit);
    * - identitas user valid → per-user USER_RATE_LIMIT_MAX;
    * - selain itu → per-IP RATE_LIMIT_MAX (endpoint publik).
    */
@@ -109,6 +112,16 @@ export class RateLimitMiddleware implements NestMiddleware {
     }
     if (path.includes(REFRESH_MARKER)) {
       return { key: `${ip}:refresh:${this.refreshMax}`, max: this.refreshMax };
+    }
+    const isUpload =
+      (req.method === "POST" || req.method === "PUT") &&
+      (path.includes("/storage/files") || path.includes("/files/upload"));
+    if (isUpload) {
+      const userId = this.userIdOf(req);
+      if (userId) {
+        return { key: `upload:user:${userId}:${this.uploadMax}`, max: this.uploadMax };
+      }
+      return { key: `${ip}:upload:${this.uploadMax}`, max: this.uploadMax };
     }
     const userId = this.userIdOf(req);
     if (userId) {

@@ -3,36 +3,54 @@
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Button, Input, Switch, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, toast, IconLock, IconDownload } from "@openlms/ui";
+import { useApi } from "@/lib/use-api";
+import { ChangeLogTable } from "@/components/audit/change-log-table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Tabs,
+  TabPanel,
+  Button,
+  Input,
+  Switch,
+  Badge,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  EmptyState,
+  DataView,
+  toast,
+  IconLock,
+  IconDownload
+} from "@openlms/ui";
 
-const DEMO_USERS = [
-  { id: "u1", username: "guru.2026", fullName: "Budi Santoso", role: "GURU", status: "ACTIVE" },
-  { id: "u2", username: "siswa.2026", fullName: "Andi Setiawan", role: "SISWA", status: "INVITED" },
-  { id: "u3", username: "tu.2026", fullName: "Dewi Lestari", role: "OPERATOR", status: "ACTIVE" }
-];
-
-const DEMO_AUDIT = [
-  {
-    id: "au1",
-    actor: "Superadmin",
-    action: "featureflag:update",
-    entity: "FINANCE_PAYMENT",
-    at: "2026-08-06 08:12"
-  },
-  {
-    id: "au2",
-    actor: "Operator",
-    action: "user:reset-password",
-    entity: "siswa.2026",
-    at: "2026-08-05 14:40"
-  }
-];
+interface AdminUser {
+  id: string;
+  username: string | null;
+  email: string | null;
+  fullName: string;
+  roles: string[];
+  isActive: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
 
 export default function SuperadminAdminSistemPage(): React.JSX.Element {
   const { flags, setFlag, refresh } = useFeatureFlags(true);
   const [tab, setTab] = React.useState("flags");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [search, setSearch] = React.useState("");
+
+  const users = useApi<{ items: AdminUser[]; total: number }>(
+    () => api.get<{ items: AdminUser[]; total: number }>("/admin/users"),
+    []
+  );
 
   const categories = ["all", ...Array.from(new Set(flags.map((f) => f.category)))];
   const filtered = flags.filter(
@@ -178,85 +196,72 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
           <CardHeader>
             <CardTitle>Manajemen User</CardTitle>
             <CardDescription>
-              Reset password oleh SUPERADMIN/OPERATOR (in-app, tanpa email/SMS).
+              Daftar user nyata (GET /admin/users). Reset password oleh SUPERADMIN/OPERATOR (in-app,
+              tanpa email/SMS).
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEMO_USERS.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>
-                      <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
-                        {u.username}
-                      </code>
-                    </TableCell>
-                    <TableCell className="font-medium">{u.fullName}</TableCell>
-                    <TableCell>{u.role}</TableCell>
-                    <TableCell>
-                      <Badge variant={u.status === "ACTIVE" ? "success" : "warning"}>
-                        {u.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void resetPassword(u.username)}
-                      >
-                        Reset Password
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataView
+              status={users.status}
+              error={users.error}
+              onRetry={users.refetch}
+              fallbackLabel="Daftar user"
+            >
+              {users.data?.items.length === 0 ? (
+                <div className="p-6">
+                  <EmptyState title="Belum ada user" description="Data user akan tampil di sini." />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Nama</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(users.data?.items ?? []).map((u) => (
+                      <TableRow key={u.id}>
+                        <TableCell>
+                          <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
+                            {u.username ?? "-"}
+                          </code>
+                        </TableCell>
+                        <TableCell className="font-medium">{u.fullName}</TableCell>
+                        <TableCell>{u.roles.join(", ")}</TableCell>
+                        <TableCell>
+                          <Badge variant={u.isActive ? "success" : "warning"}>
+                            {u.isActive ? "ACTIVE" : "INACTIVE"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {u.username ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void resetPassword(u.username as string)}
+                            >
+                              Reset Password
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-neutral-500">tanpa username</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </DataView>
           </CardContent>
         </Card>
       </TabPanel>
 
       <TabPanel value="audit" activeValue={tab}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit Log</CardTitle>
-            <CardDescription>Aksi sensitif tercatat; filter entity tersedia.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aktor</TableHead>
-                  <TableHead>Aksi</TableHead>
-                  <TableHead>Entitas</TableHead>
-                  <TableHead>Waktu</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEMO_AUDIT.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.actor}</TableCell>
-                    <TableCell>
-                      <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
-                        {a.action}
-                      </code>
-                    </TableCell>
-                    <TableCell>{a.entity}</TableCell>
-                    <TableCell>{a.at}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <ChangeLogTable />
       </TabPanel>
 
       <TabPanel value="backup" activeValue={tab}>
@@ -268,14 +273,19 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-success-600 bg-success-600/10 px-3 py-2">
-              <span className="font-medium text-success-700">
-                Backup terakhir: 2026-08-06 02:00 (verifikasi OK)
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-neutral-300 bg-neutral-50 px-3 py-2">
+              <span className="font-medium text-neutral-700">
+                Status backup belum dikonfigurasi
               </span>
-              <Badge variant="success">Segar</Badge>
+              <Badge variant="warning">Perlu konfigurasi</Badge>
             </div>
-            <Button variant="outline">
-              <IconDownload className="h-4 w-4" /> Unduh Status Backup
+            <p className="text-sm text-neutral-600">
+              Fitur backup database belum terpasang pada instalasi ini. Konfigurasikan backup
+              otomatis (mis. pg_dump terjadwal) sebelum mengeksekusi rollover. Setelah backup
+              tersedia, status terakhir akan ditampilkan di sini.
+            </p>
+            <Button variant="outline" disabled>
+              <IconDownload className="h-4 w-4" /> Unduh Status Backup (belum tersedia)
             </Button>
           </CardContent>
         </Card>

@@ -53,10 +53,12 @@ describe("AlumniService", () => {
   it("archive mengubah status, dan menolak alumni tak dikenal", async () => {
     mockFn(db, "alumni", "findUnique").mockResolvedValue({ id: "alumni-1", status: "ACTIVE" });
     mockFn(db, "alumni", "update").mockResolvedValue({ id: "alumni-1", status: "ARCHIVED" });
-    const archived = await service.archive("alumni-1");
+    const archived = await service.archive("alumni-1", { userId: "op-1", roles: ["OPERATOR"] });
     expect(archived.status).toBe("ARCHIVED");
 
     mockFn(db, "alumni", "findUnique").mockResolvedValue(null);
-    await expect(service.archive("alumni-x")).rejects.toThrow(NotFoundException);
+    await expect(
+      service.archive("alumni-x", { userId: "op-1", roles: ["OPERATOR"] })
+    ).rejects.toThrow(NotFoundException);
   });
 });

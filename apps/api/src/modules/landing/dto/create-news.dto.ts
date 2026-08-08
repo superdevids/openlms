@@ -27,6 +27,11 @@ export class CreateNewsDto {
 
   @IsOptional()
   @IsString()
+  @Length(0, 60)
+  category?: string;
+
+  @IsOptional()
+  @IsString()
   @Length(0, 120)
   author?: string;
 

@@ -1,7 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, Alert } from "@openlms/ui";
+import { ChangeLogTable } from "@/components/audit/change-log-table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Tabs,
+  TabPanel,
+  Badge,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Alert
+} from "@openlms/ui";
 
 import { formatPercent, formatRupiah } from "@/lib/format";
 
@@ -9,30 +26,6 @@ const DEMO_PAYROLL = [
   { id: "p1", staff: "Budi Santoso", role: "Guru", takeHome: 4200000, status: "TERKIRIM" },
   { id: "p2", staff: "Sari Wulandari", role: "Guru", takeHome: 3900000, status: "PENDING" },
   { id: "p3", staff: "Dewi Lestari", role: "TU", takeHome: 3300000, status: "TERKIRIM" }
-];
-
-const DEMO_AUDIT = [
-  {
-    id: "au1",
-    actor: "Superadmin",
-    action: "featureflag:update",
-    entity: "LMS_EXAM",
-    at: "2026-08-06 08:12"
-  },
-  {
-    id: "au2",
-    actor: "Operator",
-    action: "user:reset-password",
-    entity: "guru.2026",
-    at: "2026-08-05 14:40"
-  },
-  {
-    id: "au3",
-    actor: "Keuangan",
-    action: "payment:verify",
-    entity: "pay_123",
-    at: "2026-08-05 10:02"
-  }
 ];
 
 export default function AdminKepsekPage(): React.JSX.Element {
@@ -128,38 +121,7 @@ export default function AdminKepsekPage(): React.JSX.Element {
       </TabPanel>
 
       <TabPanel value="audit" activeValue={tab}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit Log</CardTitle>
-            <CardDescription>Riwayat aksi sensitif (GET /audit-logs) — read-only.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Aktor</TableHead>
-                  <TableHead>Aksi</TableHead>
-                  <TableHead>Entitas</TableHead>
-                  <TableHead>Waktu</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEMO_AUDIT.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium">{a.actor}</TableCell>
-                    <TableCell>
-                      <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
-                        {a.action}
-                      </code>
-                    </TableCell>
-                    <TableCell>{a.entity}</TableCell>
-                    <TableCell>{a.at}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <ChangeLogTable />
       </TabPanel>
     </div>
   );

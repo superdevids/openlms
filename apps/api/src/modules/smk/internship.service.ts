@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 import type { Internship, InternshipJournal } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
 export interface CreateInternshipInput {
   studentId: string;
@@ -35,7 +36,7 @@ export interface AddJournalInput {
 export class InternshipService {
   constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
 
-  async create(input: CreateInternshipInput): Promise<Internship> {
+  async create(input: CreateInternshipInput, actor: AuditActorContext): Promise<Internship> {
     if (!input.studentId || !input.partnerId || !input.academicYearId) {
       throw new BadRequestException("studentId, partnerId, academicYearId wajib diisi");
     }
@@ -48,7 +49,7 @@ export class InternshipService {
     const year = await this.db.academicYear.findUnique({ where: { id: input.academicYearId } });
     if (!year) throw new NotFoundException("Tahun ajaran tidak ditemukan");
 
-    return this.db.internship.create({
+    const internship = await this.db.internship.create({
       data: {
         student_id: input.studentId,
         partner_id: input.partnerId,
@@ -60,16 +61,28 @@ export class InternshipService {
         status: "PLACED"
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "internship",
+      entityId: internship.id,
+      after: { student_id: input.studentId, partner_id: input.partnerId, status: "PLACED" }
+    });
+    return internship;
   }
 
-  async addJournal(internshipId: string, input: AddJournalInput): Promise<InternshipJournal> {
+  async addJournal(
+    internshipId: string,
+    input: AddJournalInput,
+    actor: AuditActorContext
+  ): Promise<InternshipJournal> {
     const internship = await this.requireInternship(internshipId);
     if (internship.status === "COMPLETED" || internship.status === "TERMINATED") {
       throw new ForbiddenException(
         `PKL berstatus ${internship.status}; jurnal tidak dapat ditambah`
       );
     }
-    return this.db.internshipJournal.create({
+    const journal = await this.db.internshipJournal.create({
       data: {
         internship_id: internshipId,
         entry_date: new Date(input.entryDate),
@@ -77,10 +90,22 @@ export class InternshipService {
         note: input.note
       }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "internship_journal",
+      entityId: journal.id,
+      after: { internship_id: internshipId, entry_date: journal.entry_date }
+    });
+    return journal;
   }
 
   /** Verifikasi jurnal: hanya pembimbing (sekolah/industri) siswa tsb. */
-  async verifyJournal(journalId: string, mentorUserId: string): Promise<InternshipJournal> {
+  async verifyJournal(
+    journalId: string,
+    mentorUserId: string,
+    actor: AuditActorContext
+  ): Promise<InternshipJournal> {
     const journal = await this.db.internshipJournal.findUnique({
       where: { id: journalId },
       include: {
@@ -89,20 +114,42 @@ export class InternshipService {
     });
     if (!journal) throw new NotFoundException("Jurnal tidak ditemukan");
     this.assertMentor(journal.internship, mentorUserId);
-    return this.db.internshipJournal.update({
+    const updated = await this.db.internshipJournal.update({
       where: { id: journalId },
       data: { verified_by_mentor: true }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "internship_journal",
+      entityId: journalId,
+      before: { verified_by_mentor: false },
+      after: { verified_by_mentor: true }
+    });
+    return updated;
   }
 
   /** Penilaian pembimbing industri: tutup PKL sebagai COMPLETED. */
-  async complete(internshipId: string, mentorUserId: string): Promise<Internship> {
+  async complete(
+    internshipId: string,
+    mentorUserId: string,
+    actor: AuditActorContext
+  ): Promise<Internship> {
     const internship = await this.requireInternship(internshipId);
     this.assertMentor(internship, mentorUserId);
-    return this.db.internship.update({
+    const updated = await this.db.internship.update({
       where: { id: internshipId },
       data: { status: "COMPLETED" }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "internship",
+      entityId: internshipId,
+      before: { status: internship.status },
+      after: { status: "COMPLETED" }
+    });
+    return updated;
   }
 
   async listByMentor(mentorUserId: string): Promise<Internship[]> {

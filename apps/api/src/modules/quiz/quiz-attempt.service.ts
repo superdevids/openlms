@@ -8,6 +8,7 @@ import {
 import { prisma } from "@openlms/database";
 import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
+import { writeAudit } from "../lms/lms-audit";
 import {
   computeSemesterLabel,
   gradeAnswer,
@@ -84,6 +85,15 @@ export class QuizAttemptService {
       });
     });
 
+    // R-12: mulai attempt (bukan autosave) dicatat ke AuditLog.
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "quiz_attempt",
+      entityId: attempt.id,
+      after: { quiz_id: quizId, student_id: studentId, status: AttemptStatus.IN_PROGRESS }
+    });
+
     return this.buildAttemptResponse(attempt, quiz, now);
   }
 
@@ -129,24 +139,56 @@ export class QuizAttemptService {
       const target = this.isExpired(attempt)
         ? AttemptStatus.AUTO_SUBMITTED
         : AttemptStatus.SUBMITTED;
-      return this.finalizeWithinTx(tx, attempt, target);
+      const updated = await this.finalizeWithinTx(tx, attempt, target);
+      // R-12: submit attempt (bukan autosave) dicatat ke AuditLog.
+      await writeAudit({
+        ctx: actor,
+        action: "UPDATE",
+        entity: "quiz_attempt",
+        entityId: attempt.id,
+        before: { status: attempt.status },
+        after: { status: target, score: updated.score }
+      });
+      return updated;
     });
   }
 
-  /** Auto-submit server-side semua attempt IN_PROGRESS yang waktu habis (scheduler/Cron). */
+  /**
+   * Auto-submit server-side semua attempt IN_PROGRESS yang waktu habis
+   * (scheduler/Cron). Batch `take 100` loop (R-31) + filter `started_at < now`.
+   */
   async autoSubmitExpired(): Promise<{ submitted: number }> {
-    const attempts = await prisma.quizAttempt.findMany({
-      where: { status: AttemptStatus.IN_PROGRESS },
-      include: { quiz: { include: { questions: true, class_subject: true } } }
-    });
+    const now = new Date();
     let submitted = 0;
-    for (const attempt of attempts) {
-      if (this.isExpired(attempt)) {
-        await prisma.$transaction(async (tx) => {
-          await this.finalizeWithinTx(tx, attempt, AttemptStatus.AUTO_SUBMITTED);
-        });
-        submitted += 1;
+    let cursor = 0;
+    for (;;) {
+      const attempts = await prisma.quizAttempt.findMany({
+        where: { status: AttemptStatus.IN_PROGRESS, started_at: { lt: now } },
+        orderBy: { id: "asc" },
+        take: 100,
+        skip: cursor,
+        include: { quiz: { include: { questions: true, class_subject: true } } }
+      });
+      if (attempts.length === 0) break;
+      cursor += attempts.length;
+      for (const attempt of attempts) {
+        if (this.isExpired(attempt)) {
+          await prisma.$transaction(async (tx) => {
+            const updated = await this.finalizeWithinTx(tx, attempt, AttemptStatus.AUTO_SUBMITTED);
+            // R-12: force-submit (auto) dicatat ke AuditLog — aktor sistem.
+            await writeAudit({
+              ctx: { userId: "system", roles: [] },
+              action: "UPDATE",
+              entity: "quiz_attempt",
+              entityId: attempt.id,
+              before: { status: attempt.status },
+              after: { status: AttemptStatus.AUTO_SUBMITTED, score: updated.score }
+            });
+          });
+          submitted += 1;
+        }
       }
+      if (attempts.length < 100) break;
     }
     return { submitted };
   }

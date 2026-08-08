@@ -28,6 +28,7 @@ import {
   GradeCompetencyTestDto
 } from "./dto/smk.dto";
 import type { AuthenticatedRequest } from "../../common/auth.guard";
+import type { AuditActorContext } from "../lms/lms-audit";
 import { RequirePermission } from "../../common/require-permission.decorator";
 
 @Controller("smk")
@@ -41,8 +42,19 @@ export class SmkController {
   // ---- PKL ----
   @Post("internships")
   @RequirePermission("internship:write:school")
-  createInternship(@Body() dto: CreateInternshipDto) {
-    return this.internshipService.create(dto);
+  createInternship(@Req() req: AuthenticatedRequest, @Body() dto: CreateInternshipDto) {
+    return this.internshipService.create(
+      {
+        studentId: dto.studentId,
+        partnerId: dto.partnerId,
+        academicYearId: dto.academicYearId,
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+        schoolMentorId: dto.schoolMentorId,
+        industryMentorId: dto.industryMentorId
+      },
+      this.actorContext(req)
+    );
   }
 
   @Get("internships/by-mentor")
@@ -59,8 +71,16 @@ export class SmkController {
 
   @Post("internships/:internshipId/journals")
   @RequirePermission("internship:journal:self", "internship:write:school")
-  addJournal(@Param("internshipId") internshipId: string, @Body() dto: AddJournalDto) {
-    return this.internshipService.addJournal(internshipId, dto);
+  addJournal(
+    @Param("internshipId") internshipId: string,
+    @Body() dto: AddJournalDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.internshipService.addJournal(
+      internshipId,
+      { entryDate: dto.entryDate, activity: dto.activity, note: dto.note },
+      this.actorContext(req)
+    );
   }
 
   @Get("internships/:internshipId/journals")
@@ -72,7 +92,11 @@ export class SmkController {
   @Patch("journals/:journalId/verify")
   @RequirePermission("internship:journal:self", "internship:write:school")
   verifyJournal(@Param("journalId") journalId: string, @Req() req: AuthenticatedRequest) {
-    return this.internshipService.verifyJournal(journalId, this.actorId(req));
+    return this.internshipService.verifyJournal(
+      journalId,
+      this.actorId(req),
+      this.actorContext(req)
+    );
   }
 
   @Patch("internships/:internshipId/complete")
@@ -81,20 +105,39 @@ export class SmkController {
     @Param("internshipId") internshipId: string,
     @Req() req: AuthenticatedRequest
   ) {
-    return this.internshipService.complete(internshipId, this.actorId(req));
+    return this.internshipService.complete(internshipId, this.actorId(req), this.actorContext(req));
   }
 
   // ---- UKK ----
   @Post("competency-tests")
   @RequirePermission("competency:grade:school")
-  createCompetencyTest(@Body() dto: CreateCompetencyTestDto) {
-    return this.competencyTestService.create(dto);
+  createCompetencyTest(@Req() req: AuthenticatedRequest, @Body() dto: CreateCompetencyTestDto) {
+    return this.competencyTestService.create(
+      {
+        title: dto.title,
+        competencyStandard: dto.competencyStandard,
+        studentId: dto.studentId,
+        examinerId: dto.examinerId,
+        scheduledAt: dto.scheduledAt,
+        rubricItems: dto.rubricItems
+      },
+      this.actorContext(req)
+    );
   }
 
   @Post("competency-tests/:testId/rubric")
   @RequirePermission("competency:grade:school")
-  addRubric(@Param("testId") testId: string, @Body() dto: { criterion: string; maxScore: number }) {
-    return this.competencyTestService.addRubricItem(testId, dto.criterion, dto.maxScore);
+  addRubric(
+    @Param("testId") testId: string,
+    @Body() dto: { criterion: string; maxScore: number },
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.competencyTestService.addRubricItem(
+      testId,
+      dto.criterion,
+      dto.maxScore,
+      this.actorContext(req)
+    );
   }
 
   @Post("competency-tests/:testId/grade")
@@ -104,7 +147,12 @@ export class SmkController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: GradeCompetencyTestDto
   ) {
-    return this.competencyTestService.grade(testId, this.actorId(req), dto.items);
+    return this.competencyTestService.grade(
+      testId,
+      this.actorId(req),
+      dto.items,
+      this.actorContext(req)
+    );
   }
 
   // ---- DUDI ----
@@ -116,20 +164,53 @@ export class SmkController {
 
   @Post("partners")
   @RequirePermission("partner:write:school")
-  createPartner(@Body() dto: CreatePartnerDto) {
-    return this.partnerService.create(dto);
+  createPartner(@Req() req: AuthenticatedRequest, @Body() dto: CreatePartnerDto) {
+    return this.partnerService.create(
+      {
+        name: dto.name,
+        industryType: dto.industryType,
+        address: dto.address,
+        contactPerson: dto.contactPerson,
+        phone: dto.phone,
+        agreementYear: dto.agreementYear
+      },
+      this.actorContext(req)
+    );
   }
 
   @Patch("partners/:id")
   @RequirePermission("partner:write:school")
-  updatePartner(@Param("id") id: string, @Body() dto: CreatePartnerDto) {
-    return this.partnerService.update(id, dto);
+  updatePartner(
+    @Param("id") id: string,
+    @Body() dto: CreatePartnerDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.partnerService.update(
+      id,
+      {
+        name: dto.name,
+        industryType: dto.industryType,
+        address: dto.address,
+        contactPerson: dto.contactPerson,
+        phone: dto.phone,
+        agreementYear: dto.agreementYear
+      },
+      this.actorContext(req)
+    );
   }
 
   @Post("partners/:partnerId/mentors")
   @RequirePermission("partner:write:school")
-  addMentor(@Param("partnerId") partnerId: string, @Body() dto: AddMentorDto) {
-    return this.partnerService.addMentor(partnerId, dto);
+  addMentor(
+    @Param("partnerId") partnerId: string,
+    @Body() dto: AddMentorDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.partnerService.addMentor(
+      partnerId,
+      { fullName: dto.fullName, position: dto.position, phone: dto.phone, userId: dto.userId },
+      this.actorContext(req)
+    );
   }
 
   @Get("partners/:partnerId/mentors")
@@ -144,5 +225,14 @@ export class SmkController {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
     return ctx.userId;
+  }
+
+  /** Konteks aktor untuk AuditLog (lms-audit). */
+  private actorContext(req: AuthenticatedRequest): AuditActorContext {
+    const ctx = req.requestContext;
+    if (!ctx) {
+      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
+    }
+    return { userId: ctx.userId, roles: ctx.roles };
   }
 }

@@ -3,7 +3,22 @@
 import * as React from "react";
 import { api, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, Input, Label, Textarea, Switch, ConfirmDialog, toast, IconPlus, IconX } from "@openlms/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  Input,
+  Label,
+  Textarea,
+  Switch,
+  ConfirmDialog,
+  toast,
+  IconPlus,
+  IconX
+} from "@openlms/ui";
 
 /**
  * Editor Landing Page — SUPERADMIN + OPERATOR (permission landing:write:school).
@@ -17,6 +32,9 @@ interface LandingSection {
   subtitle: string | null;
   body: string;
   imagePath: string | null;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  extra: Record<string, unknown> | null;
   sectionOrder: number;
   isPublished: boolean;
   updatedBy: string | null;
@@ -30,6 +48,7 @@ interface NewsItem {
   excerpt: string | null;
   body: string;
   coverImagePath: string | null;
+  category: string | null;
   author: string | null;
   publishedAt: string | null;
   isPublished: boolean;
@@ -40,6 +59,9 @@ interface SectionDraft {
   title: string;
   subtitle: string;
   body: string;
+  linkUrl: string;
+  linkLabel: string;
+  extraJson: string;
   isPublished: boolean;
 }
 
@@ -48,6 +70,7 @@ interface NewsDraft {
   slug: string;
   excerpt: string;
   body: string;
+  category: string;
   author: string;
   isPublished: boolean;
 }
@@ -57,6 +80,7 @@ const EMPTY_NEWS_DRAFT: NewsDraft = {
   slug: "",
   excerpt: "",
   body: "",
+  category: "",
   author: "",
   isPublished: false
 };
@@ -102,6 +126,9 @@ export default function SuperadminLandingPage(): React.JSX.Element {
           title: s.title,
           subtitle: s.subtitle ?? "",
           body: s.body,
+          linkUrl: s.linkUrl ?? "",
+          linkLabel: s.linkLabel ?? "",
+          extraJson: s.extra ? JSON.stringify(s.extra, null, 2) : "",
           isPublished: s.isPublished
         };
       }
@@ -122,10 +149,30 @@ export default function SuperadminLandingPage(): React.JSX.Element {
     if (!draft) return;
     setSaving((prev) => ({ ...prev, [section.slug]: true }));
     try {
+      let extra: Record<string, unknown> | undefined;
+      if (draft.extraJson.trim().length > 0) {
+        try {
+          const parsed: unknown = JSON.parse(draft.extraJson);
+          if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error("extra harus berupa object JSON");
+          }
+          extra = parsed as Record<string, unknown>;
+        } catch (parseErr) {
+          toast({
+            variant: "error",
+            title: `Extra JSON section "${section.slug}" tidak valid`,
+            description: errorMessage(parseErr)
+          });
+          return;
+        }
+      }
       await api.put(`/admin/landing/${encodeURIComponent(section.slug)}`, {
         title: draft.title,
         subtitle: draft.subtitle,
         body: draft.body,
+        linkUrl: draft.linkUrl.trim() || undefined,
+        linkLabel: draft.linkLabel.trim() || undefined,
+        extra,
         sectionOrder: section.sectionOrder,
         isPublished: draft.isPublished
       });
@@ -155,6 +202,7 @@ export default function SuperadminLandingPage(): React.JSX.Element {
       slug: item.slug,
       excerpt: item.excerpt ?? "",
       body: item.body,
+      category: item.category ?? "",
       author: item.author ?? "",
       isPublished: item.isPublished
     });
@@ -173,6 +221,7 @@ export default function SuperadminLandingPage(): React.JSX.Element {
         slug: newsDraft.slug.trim() || undefined,
         excerpt: newsDraft.excerpt.trim(),
         body: newsDraft.body,
+        category: newsDraft.category.trim() || undefined,
         author: newsDraft.author.trim() || undefined,
         isPublished: newsDraft.isPublished
       };
@@ -283,6 +332,47 @@ export default function SuperadminLandingPage(): React.JSX.Element {
                         onChange={(e) => setDraft(section.slug, { body: e.target.value })}
                       />
                     </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`landing-linkurl-${section.slug}`}>
+                          Tautan CTA <span className="text-neutral-400">(opsional)</span>
+                        </Label>
+                        <Input
+                          id={`landing-linkurl-${section.slug}`}
+                          value={draft.linkUrl}
+                          maxLength={500}
+                          placeholder="/ppdb"
+                          onChange={(e) => setDraft(section.slug, { linkUrl: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor={`landing-linklabel-${section.slug}`}>
+                          Label CTA <span className="text-neutral-400">(opsional)</span>
+                        </Label>
+                        <Input
+                          id={`landing-linklabel-${section.slug}`}
+                          value={draft.linkLabel}
+                          maxLength={120}
+                          placeholder="Daftar PPDB"
+                          onChange={(e) => setDraft(section.slug, { linkLabel: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`landing-extra-${section.slug}`}>
+                        Data terstruktur (JSON){" "}
+                        <span className="text-neutral-400">
+                          (opsional — programs/items/faq/images)
+                        </span>
+                      </Label>
+                      <Textarea
+                        id={`landing-extra-${section.slug}`}
+                        value={draft.extraJson}
+                        rows={5}
+                        placeholder='{"faq": [{"question": "...", "answer": "..."}]}'
+                        onChange={(e) => setDraft(section.slug, { extraJson: e.target.value })}
+                      />
+                    </div>
                     <Button
                       onClick={() => void saveSection(section)}
                       disabled={Boolean(saving[section.slug])}
@@ -386,7 +476,15 @@ export default function SuperadminLandingPage(): React.JSX.Element {
 }
 
 function EMPTY_DRAFT(slug: string): SectionDraft {
-  return { title: slug, subtitle: "", body: "", isPublished: true };
+  return {
+    title: slug,
+    subtitle: "",
+    body: "",
+    linkUrl: "",
+    linkLabel: "",
+    extraJson: "",
+    isPublished: true
+  };
 }
 
 function NewsEditorDialog({
@@ -429,7 +527,7 @@ function NewsEditorDialog({
               onChange={(e) => onChange({ ...draft, title: e.target.value })}
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="news-slug">
                 Slug <span className="text-neutral-400">(opsional)</span>
@@ -440,6 +538,16 @@ function NewsEditorDialog({
                 maxLength={300}
                 placeholder="auto-dari judul"
                 onChange={(e) => onChange({ ...draft, slug: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="news-category">Kategori</Label>
+              <Input
+                id="news-category"
+                value={draft.category}
+                maxLength={60}
+                placeholder="pengumuman / kegiatan / prestasi"
+                onChange={(e) => onChange({ ...draft, category: e.target.value })}
               />
             </div>
             <div className="space-y-1.5">

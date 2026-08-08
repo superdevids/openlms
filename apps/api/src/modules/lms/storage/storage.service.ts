@@ -1,30 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { mkdir, readFile, stat, unlink } from "node:fs/promises";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { readFile } from "node:fs/promises";
+import { extname } from "node:path";
+import { LocalStorageProvider } from "../../storage/local-storage.provider";
 
 /**
- * StorageService — penyimpanan file LOKAL di filesystem BE (bukan S3/MinIO).
+ * StorageService (LMS) — facade kompatibilitas yang MENERUSKAN ke
+ * StorageModule kanonik (apps/api/src/modules/storage) — R-20 konsolidasi.
  *
- * Security hardening (menggantikan skeleton signed-URL dummy yang memakai
- * signature tanpa secret dan menunjuk localhost:9000):
- * - Nama file selalu UUID (tidak pernah trust originalname).
- * - Mimetype allowlist: png/jpg/jpeg/webp; SVG DITOLAK (XSS via script).
- * - Batas ukuran 2MB.
- * - path.resolve + containment check (tolak traversal `..` dan backslash).
- * - File diserve lewat route terproteksi (AuthGuard + RBAC), bukan URL publik.
+ * Implementasi lama (S3-skeleton) dihapus; path helpers (materialPath,
+ * submissionPath) dipertahankan untuk kontrak. URL upload/download (R-16)
+ * menunjuk route storage asli:
+ * - upload:  POST  /api/v1/storage/files/:bucket   (multipart field "file")
+ * - download: GET  /api/v1/storage/files/:bucket/<path>
+ * (bukan lagi /api/v1/files/upload dummy yang tidak punya controller.)
  */
-
-const ALLOWED_MIMETYPES: ReadonlySet<string> = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-const MIMETYPE_EXT: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp"
-};
-
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 
 export interface StoredFile {
   objectPath: string;
@@ -36,7 +26,7 @@ export interface StoredFile {
 export interface SignedUploadUrl {
   uploadUrl: string;
   objectPath: string;
-  method: "PUT";
+  method: "POST";
   expiresIn: number;
 }
 
@@ -49,66 +39,49 @@ export interface SignedDownloadUrl {
 
 @Injectable()
 export class StorageService {
-  private readonly root: string;
-  private readonly defaultBucket = "openlms";
   private readonly defaultExpiry = 15 * 60; // detik
 
-  constructor() {
-    this.root = resolve(process.env.STORAGE_LOCAL_DIR ?? "./storage");
+  constructor(private readonly provider?: LocalStorageProvider) {}
+
+  /** Provider kanonik — dipakai DI (StorageModule) atau fallback instance baru. */
+  private resolveProvider(): LocalStorageProvider {
+    return this.provider ?? new LocalStorageProvider();
   }
 
-  /** Simpan file upload ke bucket dengan nama UUID. Mengembalikan path relatif. */
+  /** Simpan file upload ke bucket (delegasi ke provider kanonik). */
   async saveFile(
     input: { buffer: Buffer; mimetype: string; originalName?: string },
     bucket: string
   ): Promise<StoredFile> {
-    if (input.buffer.length > MAX_FILE_SIZE) {
-      throw new BadRequestException("Ukuran file melebihi batas 2MB.");
-    }
-    if (!ALLOWED_MIMETYPES.has(input.mimetype)) {
-      throw new BadRequestException(
-        `Tipe file tidak diizinkan (${input.mimetype}). Hanya PNG/JPG/WebP; SVG dilarang.`
-      );
-    }
-    const ext = MIMETYPE_EXT[input.mimetype];
-    const filename = `${randomUUID()}.${ext}`;
-    const bucketDir = join(this.root, this.sanitizeSegment(bucket));
-    await mkdir(bucketDir, { recursive: true });
-    const target = join(bucketDir, filename);
-    await new Promise<void>((resolveWrite, rejectWrite) => {
-      const out = createWriteStream(target);
-      out.on("error", rejectWrite);
-      out.on("finish", () => resolveWrite());
-      out.end(input.buffer);
+    const path = await this.resolveProvider().save(bucket, {
+      buffer: input.buffer,
+      mimetype: input.mimetype,
+      originalname: input.originalName
     });
-    const objectPath = `${bucket}/${filename}`;
-    return { objectPath, bucket, filename, size: input.buffer.length };
+    return {
+      objectPath: path,
+      bucket,
+      filename: path.slice(path.lastIndexOf("/") + 1),
+      size: input.buffer.length
+    };
   }
 
   /** Baca file (untuk disajikan lewat route terproteksi). */
   async readFile(objectPath: string): Promise<{ buffer: Buffer; mimetype: string }> {
-    const absolute = this.resolvePath(objectPath);
-    try {
-      const s = await stat(absolute);
-      if (!s.isFile()) {
-        throw new NotFoundException("File tidak ditemukan.");
-      }
-    } catch (err) {
-      if (err instanceof NotFoundException) throw err;
-      throw new NotFoundException("File tidak ditemukan.");
+    const provider = this.resolveProvider();
+    const bucket = objectPath.slice(0, objectPath.indexOf("/"));
+    const relative = objectPath.slice(objectPath.indexOf("/") + 1);
+    if (!bucket || !relative) {
+      throw new BadRequestException("Object path tidak valid.");
     }
+    const absolute = await provider.assertExists(bucket, relative);
     const buffer = await readFile(absolute);
     return { buffer, mimetype: this.mimetypeFromExt(extname(absolute)) };
   }
 
-  /** Hapus file (best-effort). */
+  /** Hapus file (best-effort, delegasi ke provider kanonik). */
   async deleteFile(objectPath: string): Promise<void> {
-    const absolute = this.resolvePath(objectPath);
-    try {
-      await unlink(absolute);
-    } catch {
-      // best-effort: file mungkin sudah tidak ada
-    }
+    await this.resolveProvider().deleteRelative(objectPath);
   }
 
   /** Path objek materi di bucket `materials` — nama file UUID (tidak trust originalname). */
@@ -125,8 +98,8 @@ export class StorageService {
   }
 
   /**
-   * Upload via multipart (route terproteksi). Dipertahankan untuk kompatibilitas
-   * kontrak; klien meng-upload file ke route upload, bukan PUT ke URL eksternal.
+   * URL upload route storage asli (R-16): client POST multipart ke
+   * /api/v1/storage/files/:bucket, lalu pakai path hasilnya sebagai contentUrl.
    */
   createSignedUploadUrl(opts: {
     bucket?: string;
@@ -134,52 +107,37 @@ export class StorageService {
     contentType?: string;
     expiresIn?: number;
   }): SignedUploadUrl {
-    const bucket = opts.bucket ?? this.defaultBucket;
-    const objectPath = this.fullPath(bucket, opts.objectPath);
-    const expiresIn = opts.expiresIn ?? this.defaultExpiry;
+    const bucket = opts.bucket ?? "materials";
     return {
-      uploadUrl: `/api/v1/files/upload`,
-      objectPath,
-      method: "PUT",
-      expiresIn
+      uploadUrl: `/api/v1/storage/files/${bucket}`,
+      objectPath: this.fullPath(bucket, opts.objectPath),
+      method: "POST",
+      expiresIn: opts.expiresIn ?? this.defaultExpiry
     };
   }
 
-  /** URL download lewat route terproteksi (bukan URL publik tanpa auth). */
+  /** URL download route storage asli (GET /storage/files/:bucket/<path>). */
   createSignedDownloadUrl(opts: {
     bucket?: string;
     objectPath: string;
     expiresIn?: number;
   }): SignedDownloadUrl {
-    const bucket = opts.bucket ?? this.defaultBucket;
+    const bucket = opts.bucket ?? "materials";
     const objectPath = this.fullPath(bucket, opts.objectPath);
-    const expiresIn = opts.expiresIn ?? this.defaultExpiry;
+    const relative = objectPath.startsWith(`${bucket}/`)
+      ? objectPath.slice(bucket.length + 1)
+      : objectPath;
+    const encoded = relative.split("/").map(encodeURIComponent).join("/");
     return {
-      downloadUrl: `/api/v1/files/download?path=${encodeURIComponent(objectPath)}`,
+      downloadUrl: `/api/v1/storage/files/${bucket}/${encoded}`,
       objectPath,
       method: "GET",
-      expiresIn
+      expiresIn: opts.expiresIn ?? this.defaultExpiry
     };
   }
 
   private fullPath(bucket: string, objectPath: string): string {
     return objectPath.startsWith(`${bucket}/`) ? objectPath : `${bucket}/${objectPath}`;
-  }
-
-  /** Containment check: pastikan path berada di dalam root storage. */
-  private resolvePath(objectPath: string): string {
-    if (objectPath.includes("\\")) {
-      throw new BadRequestException("Path tidak valid (backslash ditolak).");
-    }
-    const normalized = normalize(objectPath);
-    if (normalized === ".." || normalized.startsWith(`..${sep}`)) {
-      throw new BadRequestException("Path tidak valid (traversal ditolak).");
-    }
-    const absolute = resolve(this.root, normalized);
-    if (absolute !== this.root && !absolute.startsWith(this.root + sep)) {
-      throw new BadRequestException("Path tidak valid (traversal ditolak).");
-    }
-    return absolute;
   }
 
   private sanitizeSegment(segment: string): string {
@@ -205,6 +163,8 @@ export class StorageService {
         return "image/jpeg";
       case ".webp":
         return "image/webp";
+      case ".pdf":
+        return "application/pdf";
       default:
         return "application/octet-stream";
     }

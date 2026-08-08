@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req } from "@nestjs/common";
 import type { Request } from "express";
 import { LandingService } from "./landing.service";
 import type {
@@ -35,8 +35,8 @@ export class LandingController {
 
   @Get("public/landing/berita")
   @Public()
-  getPublicNews(): Promise<NewsArticlePublic[]> {
-    return this.landingService.getPublicNews();
+  getPublicNews(@Query("category") category?: string): Promise<NewsArticlePublic[]> {
+    return this.landingService.getPublicNews(category);
   }
 
   @Get("public/landing/berita/:slug")

@@ -20,12 +20,21 @@ import {
   seededIndex,
   seededShuffle
 } from "../quiz/quiz.util";
+import { EXAM_FORCE_SUBMIT_EVENT, EXAM_TICK_EVENT } from "../notifications/notification-events";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
 import {
   StartExamAttemptDto,
   SaveExamAnswersDto,
   GradeExamAttemptDto,
   LogExamActivityDto
 } from "./dto/exam-attempt.dto";
+import { writeAudit } from "../lms/lms-audit";
+
+/** Ukuran batch auto-submit (R-31) — batasi memory per loop, lanjut ke halaman berikut. */
+const AUTO_SUBMIT_BATCH = 100;
+
+/** Ambang sisa waktu (detik) untuk event `exam:tick` (R-29) — server-authoritative. */
+const EXAM_TICK_THRESHOLDS = [60, 30, 10, 0] as const;
 
 /** Aktor request yang diteruskan controller (dari requestContext AuthGuard). */
 export interface AttemptActor {
@@ -45,6 +54,11 @@ export interface AttemptActor {
  */
 @Injectable()
 export class ExamAttemptService {
+  /** Ambang tick terakhir per attempt — hindari emit berulang untuk ambang sama (R-29). */
+  private readonly lastTickSent = new Map<string, number>();
+
+  constructor(private readonly realtime: RealtimeGateway) {}
+
   // ---------------- Start (M-EXAM-T4) ----------------
 
   async start(
@@ -91,7 +105,7 @@ export class ExamAttemptService {
     }
     const studentId = staffScope ? (dto.student_id as string) : actor.userId;
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Satu akun satu sesi: unique(exam_session_id, student_id) di schema + cek eksplisit.
       const existing = await tx.examAttempt.findFirst({
         where: { exam_session_id: sessionId, student_id: studentId }
@@ -150,6 +164,20 @@ export class ExamAttemptService {
         questions: ordered.map((q) => studentQuestionView(q, attempt.id, pkg.shuffle_options))
       };
     });
+
+    // R-12: mulai attempt (bukan autosave) dicatat ke AuditLog.
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "exam_attempt",
+      entityId: result.attempt.id,
+      after: {
+        exam_session_id: sessionId,
+        student_id: studentId,
+        status: AttemptStatus.IN_PROGRESS
+      }
+    });
+    return result;
   }
 
   // ---------------- Autosave idempotent batch (M-EXAM-T5 / G-01) ----------------
@@ -259,40 +287,134 @@ export class ExamAttemptService {
       const target = this.isExpired(attempt.started_at, session.exam.duration_min)
         ? AttemptStatus.AUTO_SUBMITTED
         : AttemptStatus.SUBMITTED;
-      return this.finalizeWithinTx(tx, attempt, target);
+      const updated = await this.finalizeWithinTx(tx, attempt, target);
+      // R-12: submit attempt (bukan autosave) dicatat ke AuditLog.
+      await writeAudit({
+        ctx: actor,
+        action: "UPDATE",
+        entity: "exam_attempt",
+        entityId: attempt.id,
+        before: { status: attempt.status },
+        after: { status: target, score_auto: updated.score_auto }
+      });
+      return updated;
     });
   }
 
-  /** Auto-submit server-side (M-EXAM-T6). TODO: emit event `exam:force-submit` via Socket.IO. */
+  /**
+   * Auto-submit server-side (M-EXAM-T6).
+   * - Batch `take 100` loop (R-31): hindari memuat seluruh attempt IN_PROGRESS
+   *   sekaligus; filter `started_at < now` meniadakan attempt yang belum dibuka.
+   * - Tiap attempt yang expired di-finalize lalu push `exam:force-submit`
+   *   ke room `exam:{sessionId}` (R-29) agar klien segera submit UI-nya.
+   */
   async autoSubmitExpired(): Promise<{ submitted: number }> {
-    const attempts = await prisma.examAttempt.findMany({
-      where: { status: AttemptStatus.IN_PROGRESS, submitted_at: null },
-      include: { exam_session: { include: { exam: true } } }
-    });
+    const now = new Date();
     let submitted = 0;
-    for (const attempt of attempts) {
-      if (this.isExpired(attempt.started_at, attempt.exam_session.exam.duration_min)) {
-        await prisma.$transaction(async (tx) => {
-          await this.finalizeWithinTx(tx, attempt, AttemptStatus.AUTO_SUBMITTED);
-        });
-        submitted += 1;
+    let cursor = 0;
+    for (;;) {
+      const attempts = await prisma.examAttempt.findMany({
+        where: {
+          status: AttemptStatus.IN_PROGRESS,
+          submitted_at: null,
+          started_at: { lt: now }
+        },
+        orderBy: { id: "asc" },
+        take: AUTO_SUBMIT_BATCH,
+        skip: cursor,
+        include: { exam_session: { include: { exam: true } } }
+      });
+      if (attempts.length === 0) break;
+      cursor += attempts.length;
+      for (const attempt of attempts) {
+        if (this.isExpired(attempt.started_at, attempt.exam_session.exam.duration_min)) {
+          await prisma.$transaction(async (tx) => {
+            const updated = await this.finalizeWithinTx(tx, attempt, AttemptStatus.AUTO_SUBMITTED);
+            // R-12: force-submit (auto) dicatat ke AuditLog — aktor sistem.
+            await writeAudit({
+              ctx: { userId: "system", roles: [] },
+              action: "UPDATE",
+              entity: "exam_attempt",
+              entityId: attempt.id,
+              before: { status: attempt.status },
+              after: { status: AttemptStatus.AUTO_SUBMITTED, score_auto: updated.score_auto }
+            });
+          });
+          this.realtime.emitToExam(attempt.exam_session_id, EXAM_FORCE_SUBMIT_EVENT, {
+            attemptId: attempt.id
+          });
+          submitted += 1;
+        }
       }
+      if (attempts.length < AUTO_SUBMIT_BATCH) break;
     }
     return { submitted };
   }
 
+  /**
+   * Push `exam:tick` server-authoritative (R-29) — sisa waktu dikirim saat
+   * menembus ambang 60/30/10/0 detik. Dipanggil dari cron auto-submit (setiap
+   * menit); ambang yang sama tidak dikirim ulang per attempt (lastTickSent).
+   * Best-effort: klien tetap punya countdown lokal; tick mengoreksi drift.
+   */
+  async tickActiveExams(): Promise<{ ticked: number }> {
+    const now = new Date();
+    const attempts = await prisma.examAttempt.findMany({
+      where: {
+        status: AttemptStatus.IN_PROGRESS,
+        submitted_at: null,
+        started_at: { lt: now }
+      },
+      orderBy: { id: "asc" },
+      take: AUTO_SUBMIT_BATCH,
+      include: { exam_session: { include: { exam: true } } }
+    });
+    let ticked = 0;
+    for (const attempt of attempts) {
+      const remaining = remainingSeconds(
+        attempt.started_at,
+        attempt.exam_session.exam.duration_min,
+        now
+      );
+      // Ambang yang baru ditembus (0..60). >60 detik → belum perlu tick.
+      const threshold = EXAM_TICK_THRESHOLDS.find((t) => remaining <= t);
+      if (threshold === undefined) {
+        this.lastTickSent.delete(attempt.id);
+        continue;
+      }
+      if (this.lastTickSent.get(attempt.id) === threshold) continue;
+      this.lastTickSent.set(attempt.id, threshold);
+      this.realtime.emitToExam(attempt.exam_session_id, EXAM_TICK_EVENT, {
+        attemptId: attempt.id,
+        remainingSeconds: remaining
+      });
+      ticked += 1;
+    }
+    return { ticked };
+  }
+
   /** Proctor/admin: tandai attempt EXPIRED (mis. kecurangan/abandon). */
-  async markExpired(attemptId: string) {
+  async markExpired(attemptId: string, actor: AttemptActor) {
     return prisma.$transaction(async (tx) => {
       const attempt = await tx.examAttempt.findUnique({ where: { id: attemptId } });
       if (!attempt) throw new NotFoundException("Attempt tidak ditemukan");
       if (attempt.status !== AttemptStatus.IN_PROGRESS) {
         throw new ConflictException("Attempt sudah selesai");
       }
-      return tx.examAttempt.update({
+      const updated = await tx.examAttempt.update({
         where: { id: attemptId },
         data: { status: AttemptStatus.EXPIRED, submitted_at: new Date() }
       });
+      // R-12: force-submit oleh proctor dicatat ke AuditLog.
+      await writeAudit({
+        ctx: actor,
+        action: "UPDATE",
+        entity: "exam_attempt",
+        entityId: attempt.id,
+        before: { status: attempt.status },
+        after: { status: AttemptStatus.EXPIRED }
+      });
+      return updated;
     });
   }
 
@@ -389,6 +511,7 @@ export class ExamAttemptService {
     return {
       attempt: {
         id: attempt.id,
+        exam_session_id: attempt.exam_session_id,
         exam_id: attempt.exam_session.exam_id,
         exam_title: attempt.exam_session.exam.title,
         session_name: attempt.exam_session.name,

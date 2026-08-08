@@ -25,6 +25,7 @@ import {
   UpdateAnnouncementDto
 } from "./dto/communication.dto";
 import type { AuthenticatedRequest } from "../../common/auth.guard";
+import type { AuditActorContext } from "../lms/lms-audit";
 import { RequirePermission } from "../../common/require-permission.decorator";
 
 @Controller("communication")
@@ -38,14 +39,17 @@ export class CommunicationController {
   @Post("announcements")
   @RequirePermission("announcement:write:school")
   createAnnouncement(@Req() req: AuthenticatedRequest, @Body() dto: CreateAnnouncementDto) {
-    return this.announcementService.create({
-      title: dto.title,
-      body: dto.body,
-      targetRoles: dto.targetRoles as Role[],
-      createdBy: this.actorId(req),
-      pinned: dto.pinned,
-      publishNow: dto.publishNow
-    });
+    return this.announcementService.create(
+      {
+        title: dto.title,
+        body: dto.body,
+        targetRoles: dto.targetRoles as Role[],
+        createdBy: this.actorId(req),
+        pinned: dto.pinned,
+        publishNow: dto.publishNow
+      },
+      this.actorContext(req)
+    );
   }
 
   @Get("announcements")
@@ -87,30 +91,33 @@ export class CommunicationController {
   @Post("letters")
   @RequirePermission("letter:request:self")
   createLetter(@Req() req: AuthenticatedRequest, @Body() dto: CreateOfficialLetterDto) {
-    return this.officialLetterService.create({
-      requesterId: this.actorId(req),
-      type: dto.type,
-      subject: dto.subject,
-      body: dto.body
-    });
+    return this.officialLetterService.create(
+      {
+        requesterId: this.actorId(req),
+        type: dto.type,
+        subject: dto.subject,
+        body: dto.body
+      },
+      this.actorContext(req)
+    );
   }
 
   @Post("letters/:id/submit")
   @RequirePermission("letter:request:self", "letter:approve:school")
-  submitLetter(@Param("id") id: string) {
-    return this.officialLetterService.submit(id);
+  submitLetter(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
+    return this.officialLetterService.submit(id, this.actorContext(req));
   }
 
   @Post("letters/:id/approve")
   @RequirePermission("letter:approve:school")
   approveLetter(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.officialLetterService.approve(id, this.actorId(req));
+    return this.officialLetterService.approve(id, this.actorId(req), this.actorContext(req));
   }
 
   @Post("letters/:id/reject")
   @RequirePermission("letter:approve:school")
   rejectLetter(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
-    return this.officialLetterService.reject(id, this.actorId(req));
+    return this.officialLetterService.reject(id, this.actorId(req), this.actorContext(req));
   }
 
   @Post("letters/:id/sign")
@@ -131,6 +138,15 @@ export class CommunicationController {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
     return ctx.userId;
+  }
+
+  /** Konteks aktor untuk AuditLog (lms-audit). */
+  private actorContext(req: AuthenticatedRequest): AuditActorContext {
+    const ctx = req.requestContext;
+    if (!ctx) {
+      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
+    }
+    return { userId: ctx.userId, roles: ctx.roles };
   }
 
   /** Role untuk filter pengumuman — dari RequestContext, bukan header klien. */

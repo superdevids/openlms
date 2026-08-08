@@ -1,17 +1,13 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
-import { DATABASE_CLIENT } from "../database/database.constants";
+import { DatabaseModule } from "../../common/database/database.module";
 import { AcademicYearGuard } from "../academic/academic-year.guard";
 import { PpdbController } from "./ppdb.controller";
 import { PpdbService } from "./ppdb.service";
 
 @Module({
+  imports: [DatabaseModule],
   controllers: [PpdbController],
-  providers: [
-    PpdbService,
-    AcademicYearGuard,
-    { provide: DATABASE_CLIENT, useFactory: () => new PrismaClient() }
-  ],
+  providers: [PpdbService, AcademicYearGuard],
   exports: [PpdbService]
 })
 export class PpdbModule {}

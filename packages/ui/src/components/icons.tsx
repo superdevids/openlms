@@ -32,12 +32,14 @@ import {
   Lock,
   LogOut,
   Menu,
+  Moon,
   Plus,
   QrCode,
   RefreshCw,
   Rocket,
   Search,
   Settings,
+  Sun,
   TriangleAlert,
   Upload,
   User,
@@ -189,4 +191,12 @@ export function IconLock(props: IconProps): React.JSX.Element {
 
 export function IconInfo(props: IconProps): React.JSX.Element {
   return <Info {...props} />;
+}
+
+export function IconSun(props: IconProps): React.JSX.Element {
+  return <Sun {...props} />;
+}
+
+export function IconMoon(props: IconProps): React.JSX.Element {
+  return <Moon {...props} />;
 }

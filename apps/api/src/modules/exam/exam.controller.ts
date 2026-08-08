@@ -265,8 +265,8 @@ export class ExamController {
 
   @Post("attempts/:attemptId/expire")
   @RequirePermission("exam:session:write:school", "exam:write:school")
-  markExpired(@Param("attemptId") attemptId: string) {
-    return this.examAttemptService.markExpired(attemptId);
+  markExpired(@Param("attemptId") attemptId: string, @CurrentUser() user: AuthUser | undefined) {
+    return this.examAttemptService.markExpired(attemptId, this.actor(user));
   }
 
   /** Pemicu auto-submit (dipanggil scheduler/job internal). */

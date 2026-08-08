@@ -4,15 +4,35 @@ import * as React from "react";
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Button, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Button,
+  EmptyState
+} from "@openlms/ui";
 
 import { formatDateTime } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_SUBMISSIONS } from "@/lib/demo";
+import { DashboardCards } from "@/components/dashboard/dashboard-cards";
+import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 
 interface ExamSchedule {
   id: string;
   title: string;
   startsAt: string;
+}
+
+interface Assignment {
+  id: string;
+  title: string;
+  status: string;
+  dueAt: string;
+  _count?: { submissions: number };
 }
 
 export default function GuruDashboardPage(): React.JSX.Element {
@@ -22,20 +42,20 @@ export default function GuruDashboardPage(): React.JSX.Element {
     { fallbackData: DEMO_CLASSES }
   );
   const exams = useApi<ExamSchedule[]>(() => api.get("/exams"), [], {
-    fallbackData: [
-      {
-        id: "exm_1",
-        title: "PTS Matematika",
-        startsAt: new Date(Date.now() + 86400000).toISOString()
-      }
-    ]
+    fallbackData: []
   });
-  const grading = useApi<{ id: string; student: string; score: number | null }[]>(
-    () => api.get("/assignments"),
-    [],
-    { fallbackData: DEMO_SUBMISSIONS }
+  // Kontrak R-08: Assignment TIDAK punya field score — yang perlu dinilai adalah
+  // submission. Rekap grading memakai jumlah submission per assignment (real).
+  const assignments = useApi<Assignment[]>(() => api.get<Assignment[]>("/assignments"), [], {
+    fallbackData: DEMO_SUBMISSIONS as unknown as Assignment[]
+  });
+  const gradingRecap = (assignments.data ?? []).reduce(
+    (sum, a) => sum + (a._count?.submissions ?? 0),
+    0
   );
-  const pendingGrade = (grading.data ?? []).filter((s) => s.score === null).length;
+  const pendingGrade = (assignments.data ?? []).filter(
+    (a) => a._count && a._count.submissions > 0
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -46,29 +66,31 @@ export default function GuruDashboardPage(): React.JSX.Element {
         </Link>
       </div>
 
-      <section aria-label="Perlu dinilai">
+      <DashboardCards role="guru" cards={DEFAULT_DASHBOARD_CARDS.guru} fallbackLabel="Menu guru" />
+
+      <section aria-label="Rekap penilaian">
         <h2 className="mb-2 text-lg font-semibold text-neutral-900">
-          Perlu dinilai ({pendingGrade})
+          Rekap penilaian ({gradingRecap} submission)
         </h2>
         <DataView
-          status={grading.status}
-          error={grading.error}
-          onRetry={grading.refetch}
-          fallbackLabel="Antrean penilaian"
+          status={assignments.status}
+          error={assignments.error}
+          onRetry={assignments.refetch}
+          fallbackLabel="Rekap penilaian"
         >
           {pendingGrade === 0 ? (
             <EmptyState
-              title="Tidak ada yang perlu dinilai"
-              description="Semua submission sudah dinilai."
+              title="Tidak ada submission masuk"
+              description="Submission siswa akan tampil di sini saat tugas diterima."
             />
           ) : (
             <Link href="/guru/penilaian" className="block">
               <Card className="transition-colors hover:border-primary-600">
                 <CardContent className="flex min-h-14 items-center justify-between">
                   <span className="text-base font-medium text-neutral-900">
-                    {pendingGrade} submission menunggu dinilai
+                    {gradingRecap} submission menunggu dinilai ({pendingGrade} tugas)
                   </span>
-                  <Badge variant="danger">{pendingGrade}</Badge>
+                  <Badge variant="danger">{gradingRecap}</Badge>
                 </CardContent>
               </Card>
             </Link>

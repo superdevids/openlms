@@ -1,6 +1,5 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { AuditAction } from "@prisma/client";
-import type { Prisma } from "@prisma/client";
+import { AuditAction, Prisma } from "@prisma/client";
 import { PrismaClient } from "@openlms/database";
 import { readCacheTtlMs } from "../../common/cache.util";
 import { CreateNewsDto } from "./dto/create-news.dto";
@@ -13,6 +12,9 @@ export interface LandingContentPublic {
   subtitle: string | null;
   body: string;
   imagePath: string | null;
+  linkUrl: string | null;
+  linkLabel: string | null;
+  extra: Prisma.JsonValue | null;
   sectionOrder: number;
 }
 
@@ -29,6 +31,7 @@ export interface NewsArticlePublic {
   slug: string;
   excerpt: string | null;
   coverImagePath: string | null;
+  category: string | null;
   author: string | null;
   publishedAt: Date | null;
 }
@@ -52,6 +55,9 @@ interface LandingContentRow {
   subtitle: string | null;
   body: string;
   image_path: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  extra: Prisma.JsonValue | null;
   section_order: number;
   is_published: boolean;
   updated_by: string | null;
@@ -66,6 +72,7 @@ interface NewsArticleRow {
   excerpt: string | null;
   body: string;
   cover_image_path: string | null;
+  category: string | null;
   author: string | null;
   published_at: Date | null;
   is_published: boolean;
@@ -135,13 +142,17 @@ export class LandingService {
     };
   }
 
-  async getPublicNews(): Promise<NewsArticlePublic[]> {
+  async getPublicNews(category?: string): Promise<NewsArticlePublic[]> {
     const now = Date.now();
     if (this.newsCache && this.newsCache.expiresAt > now) {
       return this.newsCache.value;
     }
     const rows = await this.db.newsArticle.findMany({
-      where: { is_published: true, published_at: { not: null } },
+      where: {
+        is_published: true,
+        published_at: { not: null },
+        ...(category && category.trim().length > 0 ? { category: category.trim() } : {})
+      },
       orderBy: [{ published_at: "desc" }]
     });
     const value = rows.map((n) => this.toNewsPublic(n));
@@ -199,6 +210,14 @@ export class LandingService {
           subtitle: dto.subtitle !== undefined ? dto.subtitle : existing.subtitle,
           body: dto.body,
           image_path: dto.imagePath !== undefined ? dto.imagePath : existing.image_path,
+          link_url: dto.linkUrl !== undefined ? dto.linkUrl : existing.link_url,
+          link_label: dto.linkLabel !== undefined ? dto.linkLabel : existing.link_label,
+          extra:
+            dto.extra !== undefined
+              ? (dto.extra as Prisma.InputJsonValue)
+              : existing.extra === null
+                ? Prisma.JsonNull
+                : existing.extra,
           section_order: dto.sectionOrder ?? existing.section_order,
           is_published: dto.isPublished ?? existing.is_published,
           updated_by: actorId
@@ -223,6 +242,9 @@ export class LandingService {
         subtitle: dto.subtitle ?? null,
         body: dto.body,
         image_path: dto.imagePath ?? null,
+        link_url: dto.linkUrl ?? null,
+        link_label: dto.linkLabel ?? null,
+        extra: dto.extra !== undefined ? (dto.extra as Prisma.InputJsonValue) : undefined,
         section_order: dto.sectionOrder ?? 0,
         is_published: dto.isPublished ?? true,
         updated_by: actorId
@@ -254,6 +276,7 @@ export class LandingService {
         excerpt: dto.excerpt ?? null,
         body: dto.body,
         cover_image_path: dto.coverImagePath ?? null,
+        category: dto.category ?? null,
         author: dto.author ?? null,
         published_at: publishedAt,
         is_published: dto.isPublished ?? false,
@@ -294,6 +317,7 @@ export class LandingService {
         body: dto.body ?? existing.body,
         cover_image_path:
           dto.coverImagePath !== undefined ? dto.coverImagePath : existing.cover_image_path,
+        category: dto.category !== undefined ? dto.category : existing.category,
         author: dto.author !== undefined ? dto.author : existing.author,
         published_at:
           dto.publishedAt !== undefined
@@ -383,6 +407,9 @@ export class LandingService {
       subtitle: row.subtitle,
       body: row.body,
       imagePath: row.image_path,
+      linkUrl: row.link_url,
+      linkLabel: row.link_label,
+      extra: row.extra,
       sectionOrder: row.section_order
     };
   }
@@ -404,6 +431,7 @@ export class LandingService {
       slug: row.slug,
       excerpt: row.excerpt,
       coverImagePath: row.cover_image_path,
+      category: row.category,
       author: row.author,
       publishedAt: row.published_at
     };

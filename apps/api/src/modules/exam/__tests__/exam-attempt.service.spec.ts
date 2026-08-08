@@ -2,6 +2,8 @@ import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prism
 import { ExamAttemptService } from "../exam-attempt.service";
 import { hashToken } from "../exam.util";
 import { prisma } from "@openlms/database";
+import { EXAM_FORCE_SUBMIT_EVENT, EXAM_TICK_EVENT } from "../../notifications/notification-events";
+import type { RealtimeGateway } from "../../realtime/realtime.gateway";
 
 jest.mock("@openlms/database", () => ({
   prisma: {
@@ -31,13 +33,15 @@ describe("ExamAttemptService", () => {
   const mockAttemptUpdate = prisma.examAttempt.update as jest.Mock;
   const mockLogCreate = prisma.examAnswerLog.create as jest.Mock;
   const mockGradeUpsert = prisma.grade.upsert as jest.Mock;
+  const mockEmitToExam = jest.fn();
+  const mockRealtime = { emitToExam: mockEmitToExam } as unknown as RealtimeGateway;
 
   beforeEach(() => {
     jest.resetAllMocks();
     (prisma.$transaction as jest.Mock).mockImplementation(
       async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma)
     );
-    service = new ExamAttemptService();
+    service = new ExamAttemptService(mockRealtime);
   });
 
   describe("saveAnswers (autosave batch idempotent M-EXAM-T5 / G-01)", () => {
@@ -222,6 +226,95 @@ describe("ExamAttemptService", () => {
         data: { status: AttemptStatus };
       };
       expect(updateArg.data.status).toBe(AttemptStatus.AUTO_SUBMITTED);
+    });
+
+    it("push exam:force-submit ke room sesi untuk tiap attempt expired (R-29)", async () => {
+      const startedAt = new Date(Date.now() - 61 * 60000);
+      (prisma.examAttempt.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: "att1",
+          exam_session_id: "sess1",
+          student_id: "s1",
+          exam_package_id: "pkg1",
+          token_used: "hash",
+          started_at: startedAt,
+          submitted_at: null,
+          status: AttemptStatus.IN_PROGRESS,
+          score_auto: null,
+          score_manual: null,
+          device_info: null,
+          ip_address: null,
+          exam_session: { exam: { id: "e1", subject_id: "sub1", duration_min: 60 } }
+        }
+      ]);
+      (prisma.examSession.findUnique as jest.Mock).mockResolvedValue({
+        id: "sess1",
+        exam: { id: "e1", subject_id: "sub1", duration_min: 60 }
+      });
+      (prisma.examPackage.findUnique as jest.Mock).mockResolvedValue({
+        id: "pkg1",
+        total_score: 100,
+        questions: []
+      });
+      (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([]);
+      mockAttemptUpdate.mockResolvedValue({
+        id: "att1",
+        status: AttemptStatus.AUTO_SUBMITTED,
+        score_auto: 0
+      });
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ class_id: "c1" });
+      (prisma.classSubject.findFirst as jest.Mock).mockResolvedValue({ id: "cs1" });
+      mockGradeUpsert.mockResolvedValue({ id: "g1" });
+
+      await service.autoSubmitExpired();
+      expect(mockEmitToExam).toHaveBeenCalledWith("sess1", EXAM_FORCE_SUBMIT_EVENT, {
+        attemptId: "att1"
+      });
+    });
+  });
+
+  describe("tickActiveExams (R-29)", () => {
+    function attemptWithRemaining(remainingSeconds: number) {
+      return {
+        id: "att1",
+        exam_session_id: "sess1",
+        student_id: "s1",
+        exam_package_id: "pkg1",
+        token_used: "hash",
+        started_at: new Date(Date.now() - (3600 - remainingSeconds) * 1000),
+        submitted_at: null,
+        status: AttemptStatus.IN_PROGRESS,
+        score_auto: null,
+        score_manual: null,
+        device_info: null,
+        ip_address: null,
+        exam_session: { exam: { id: "e1", subject_id: "sub1", duration_min: 60 } }
+      };
+    }
+
+    it("emit exam:tick hanya saat menembus ambang 60/30/10/0", async () => {
+      (prisma.examAttempt.findMany as jest.Mock).mockResolvedValue([attemptWithRemaining(45)]);
+      const first = await service.tickActiveExams();
+      expect(first.ticked).toBe(1);
+      expect(mockEmitToExam).toHaveBeenCalledWith(
+        "sess1",
+        EXAM_TICK_EVENT,
+        expect.objectContaining({ attemptId: "att1", remainingSeconds: expect.any(Number) })
+      );
+
+      // Ambang sama (<= 60) tidak dikirim ulang — ticked 0.
+      mockEmitToExam.mockClear();
+      (prisma.examAttempt.findMany as jest.Mock).mockResolvedValue([attemptWithRemaining(40)]);
+      const second = await service.tickActiveExams();
+      expect(second.ticked).toBe(0);
+      expect(mockEmitToExam).not.toHaveBeenCalled();
+    });
+
+    it("tidak emit saat sisa waktu > 60 detik", async () => {
+      (prisma.examAttempt.findMany as jest.Mock).mockResolvedValue([attemptWithRemaining(300)]);
+      const result = await service.tickActiveExams();
+      expect(result.ticked).toBe(0);
+      expect(mockEmitToExam).not.toHaveBeenCalled();
     });
   });
 

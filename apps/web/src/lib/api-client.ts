@@ -259,7 +259,22 @@ export const RBAC_ADMIN_ROLES = [
 ] as const;
 
 export async function fetchRbacPermissions(): Promise<RbacPermission[]> {
-  return api.get<RbacPermission[]>("/rbac/permissions");
+  // API mengembalikan PermissionGroup[] (berkelompok per kategori) — flatten
+  // ke RbacPermission[] agar matriks klien tetap datar (R-40).
+  const groups = await api.get<
+    Array<{
+      category: string;
+      permissions: Array<{ id: string; code: string; description: string }>;
+    }>
+  >("/rbac/permissions");
+  return groups.flatMap((group) =>
+    (group.permissions ?? []).map((p) => ({
+      id: p.id,
+      code: p.code,
+      category: group.category,
+      description: p.description
+    }))
+  );
 }
 
 export async function fetchRbacRolePermissions(role: string): Promise<RbacRolePermission[]> {

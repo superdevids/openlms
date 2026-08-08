@@ -7,10 +7,10 @@ type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info" | "pri
 
 const variantClasses: Record<BadgeVariant, string> = {
   neutral: "border-transparent bg-muted text-foreground",
-  success: "border-transparent bg-success-600 text-white",
+  success: "border-transparent bg-success-700 text-white",
   warning: "border-transparent bg-warning-700 text-white",
   danger: "border-transparent bg-destructive text-white",
-  info: "border-transparent bg-info-600 text-white",
+  info: "border-transparent bg-info-700 text-white",
   primary: "border-transparent bg-primary-100 text-primary-800"
 };
 

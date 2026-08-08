@@ -7,6 +7,7 @@ import { RolloverModule } from "../rollover/rollover.module";
 import { FinanceModule } from "../finance/finance.module";
 import { ExamModule } from "../exam/exam.module";
 import { QuizModule } from "../quiz/quiz.module";
+import { StorageModule } from "../storage/storage.module";
 import { JobsService } from "./jobs.service";
 import { NotificationsProcessor } from "./processors/notifications.processor";
 import { PayrollProcessor } from "./processors/payroll.processor";
@@ -14,6 +15,7 @@ import { RolloverProcessor } from "./processors/rollover.processor";
 import { ReportProcessor } from "./processors/report.processor";
 import { SppProcessor } from "./processors/spp.processor";
 import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor";
+import { StorageCleanupProcessor } from "./processors/storage-cleanup.processor";
 
 /**
  * JobsModule — antrean job + cron (@nestjs/schedule).
@@ -33,7 +35,8 @@ import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor"
     RolloverModule,
     FinanceModule,
     ExamModule,
-    QuizModule
+    QuizModule,
+    StorageModule
   ],
   providers: [
     JobsService,
@@ -42,7 +45,8 @@ import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor"
     RolloverProcessor,
     ReportProcessor,
     SppProcessor,
-    ExamAutoSubmitProcessor
+    ExamAutoSubmitProcessor,
+    StorageCleanupProcessor
   ],
   exports: [JobsService]
 })

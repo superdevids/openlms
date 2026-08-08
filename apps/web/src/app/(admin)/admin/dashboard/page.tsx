@@ -5,11 +5,22 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Button } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Button,
+  EmptyState
+} from "@openlms/ui";
 
 import { roleLabel } from "@/lib/roles";
-import { DEMO_INVOICES, DEMO_ATTENDANCE_SUMMARY } from "@/lib/demo";
-import { formatPercent, formatRupiah } from "@/lib/format";
+import { DEMO_INVOICES } from "@/lib/demo";
+import { formatRupiah } from "@/lib/format";
+import { DashboardCards } from "@/components/dashboard/dashboard-cards";
+import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 
 export default function AdminDashboardPage(): React.JSX.Element {
   const { user } = useAuth();
@@ -29,19 +40,25 @@ export default function AdminDashboardPage(): React.JSX.Element {
         <p className="text-sm text-neutral-600">Peran aktif: {role ? roleLabel(role) : "-"}</p>
       </div>
 
+      <DashboardCards
+        role="admin"
+        cards={DEFAULT_DASHBOARD_CARDS.admin}
+        fallbackLabel="Menu admin"
+      />
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
           label="Pendaftar PPDB"
-          value={role === "KEUANGAN" ? "-" : "24"}
-          hint="perlu verifikasi: 5"
+          value={role === "KEUANGAN" ? "-" : "-"}
+          hint="data via Data Induk & PPDB"
         />
-        <Kpi label="Undangan pending" value="3" hint="guru/staf" />
+        <Kpi label="Undangan pending" value="-" hint="data via Data Induk & PPDB" />
         <Kpi
           label="Tagihan jatuh tempo"
           value={overdue > 0 ? String(overdue) : "0"}
           hint={pendingVerify > 0 ? `${pendingVerify} menunggu verifikasi` : "aman"}
         />
-        <Kpi label="Kehadiran hari ini" value={formatPercent(96.2)} hint="tren 6 bulan" />
+        <Kpi label="Kehadiran hari ini" value="-" hint="data via Rekap Absensi" />
       </div>
 
       <section aria-label="Ringkasan keuangan">
@@ -120,23 +137,13 @@ export default function AdminDashboardPage(): React.JSX.Element {
       <Card>
         <CardHeader>
           <CardTitle>Kehadiran terbaru</CardTitle>
+          <CardDescription>Rekap kehadiran tersedia di menu Absensi (data nyata).</CardDescription>
         </CardHeader>
         <CardContent>
-          <DataView status={invoices.status} error={invoices.error} onRetry={invoices.refetch}>
-            <ul className="space-y-2">
-              {DEMO_ATTENDANCE_SUMMARY.map((d) => (
-                <li
-                  key={d.date}
-                  className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2"
-                >
-                  <span className="text-sm text-neutral-700">{d.subject}</span>
-                  <Badge variant="success">
-                    {d.present}/{d.total} hadir
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          </DataView>
+          <EmptyState
+            title="Belum ada rekap ditampilkan di sini"
+            description="Rekap kehadiran lengkap dapat diakses melalui halaman Rekap Absensi."
+          />
         </CardContent>
       </Card>
     </div>

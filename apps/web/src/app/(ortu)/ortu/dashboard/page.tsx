@@ -5,36 +5,79 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Button, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Badge,
+  Button,
+  EmptyState
+} from "@openlms/ui";
 
 import { formatPercent } from "@/lib/format";
-import { DEMO_GRADES, DEMO_INVOICES } from "@/lib/demo";
+import { DashboardCards } from "@/components/dashboard/dashboard-cards";
+import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
+
+interface ParentGuardian {
+  id: string;
+  full_name: string;
+}
+
+interface ParentChild {
+  id: string;
+  student: { id: string; full_name: string };
+}
+
+interface ParentOverview {
+  studentId: string;
+  studentName: string;
+  gradesCount: number;
+  attendance: { total: number; alpa: number };
+  unpaidInvoices: number;
+}
+
+interface OrtuOverviewState {
+  parent?: ParentGuardian | null;
+  children: ParentChild[];
+  child?: ParentChild;
+  overview: ParentOverview | null;
+}
 
 export default function OrtuDashboardPage(): React.JSX.Element {
   const { user } = useAuth();
-  const grades = useApi<
-    {
-      subject: string;
-      tugas: number | null;
-      kuis: number | null;
-      ujian: number | null;
-      rata: number | null;
-    }[]
-  >(
-    () =>
-      api
-        .get("/parent/students", {})
-        .then(() => [] as never[])
-        .catch(() => []),
+
+  // R-08: portal orang tua memakai kontrak parent-portal NYATA:
+  // GET /parent-portal/me → GET /parent-portal/:id/children →
+  // GET /parent-portal/:id/children/:studentId/overview.
+  const state = useApi<OrtuOverviewState>(
+    async () => {
+      const parent = await api.get<ParentGuardian | null>("/parent-portal/me");
+      if (!parent) {
+        return { parent: null, children: [], overview: null };
+      }
+      const children = await api.get<ParentChild[]>(`/parent-portal/${parent.id}/children`);
+      const child = children[0] ?? undefined;
+      if (!child) {
+        return { parent, children, overview: null };
+      }
+      const overview = await api.get<ParentOverview>(
+        `/parent-portal/${parent.id}/children/${child.student.id}/overview`
+      );
+      return { parent, children, child, overview };
+    },
     [],
-    { fallbackData: DEMO_GRADES }
+    { enabled: !!(user && user.roles.includes("WALI_MURID")) }
   );
-  const invoices = useApi<{ status: string }[]>(() => api.get("/invoices"), [], {
-    fallbackData: DEMO_INVOICES
-  });
-  const pendingInvoices = (invoices.data ?? []).filter(
-    (i) => i.status === "PARTIAL" || i.status === "OVERDUE"
-  ).length;
+
+  const childName = state.data?.child?.student.full_name ?? null;
+  const overview = state.data?.overview ?? null;
+  const attendancePct =
+    overview && overview.attendance.total > 0
+      ? (overview.attendance.total - overview.attendance.alpa) / overview.attendance.total
+      : null;
 
   return (
     <div className="space-y-6">
@@ -42,24 +85,49 @@ export default function OrtuDashboardPage(): React.JSX.Element {
         <h1 className="text-2xl font-bold text-neutral-900">
           Selamat datang, {user?.fullName ?? "Bapak/Ibu"}
         </h1>
-        <p className="text-sm text-neutral-600">Anak: Andi Setiawan — XI IPA 1 (2026/2027)</p>
+        {childName ? (
+          <p className="text-sm text-neutral-600">Anak: {childName}</p>
+        ) : (
+          <p className="text-sm text-neutral-600">
+            Hubungkan anak melalui menu Nilai / Absensi untuk melihat data.
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Kpi
-          label="Nilai Rerata"
-          value={
-            (grades.data ?? [])
-              .filter((g) => g.rata !== null)
-              .reduce((s, g) => s + (g.rata ?? 0), 0) /
-            Math.max(1, (grades.data ?? []).filter((g) => g.rata !== null).length)
-              ? "82.7"
-              : "-"
-          }
-        />
-        <Kpi label="Kehadiran Bulan Ini" value={formatPercent(96.2)} />
-        <Kpi label="Tagihan Menunggu" value={String(pendingInvoices)} />
-      </div>
+      <DataView
+        status={state.status}
+        error={state.error}
+        onRetry={state.refetch}
+        fallbackLabel="Ringkasan anak"
+      >
+        {!state.data?.parent ? (
+          <EmptyState
+            title="Profil orang tua belum terhubung"
+            description="Atur data orang tua dan tautkan anak Anda agar dashboard menampilkan ringkasan."
+          />
+        ) : !overview ? (
+          <EmptyState
+            title="Belum ada anak terhubung"
+            description="Setelah menautkan anak, ringkasan nilai, absensi, dan tagihan akan tampil di sini."
+          />
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            <Kpi label="Nilai Tercatat" value={String(overview.gradesCount)} />
+            <Kpi
+              label="Kehadiran"
+              value={attendancePct === null ? "-" : formatPercent(attendancePct * 100)}
+              hint={`${overview.attendance.alpa} alpa dari ${overview.attendance.total} absensi`}
+            />
+            <Kpi label="Tagihan Menunggak" value={String(overview.unpaidInvoices)} />
+          </div>
+        )}
+      </DataView>
+
+      <DashboardCards
+        role="ortu"
+        cards={DEFAULT_DASHBOARD_CARDS.ortu}
+        fallbackLabel="Menu orang tua"
+      />
 
       <Card className="border-info-600 bg-info-100">
         <CardContent className="flex items-center justify-between gap-3 py-4">
@@ -72,43 +140,6 @@ export default function OrtuDashboardPage(): React.JSX.Element {
           <Badge variant="info">READ-ONLY</Badge>
         </CardContent>
       </Card>
-
-      <section aria-label="Nilai terbaru anak">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Nilai Terbaru</h2>
-          <Link href="/ortu/nilai" className="text-sm font-medium text-primary-600">
-            Lihat detail nilai
-          </Link>
-        </div>
-        <DataView
-          status={grades.status}
-          error={grades.error}
-          onRetry={grades.refetch}
-          fallbackLabel="Nilai anak"
-        >
-          {grades.data?.length === 0 ? (
-            <EmptyState
-              title="Belum ada nilai"
-              description="Nilai akan tampil setelah guru menilai."
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <ul className="divide-y divide-neutral-100">
-                  {(grades.data ?? []).slice(0, 4).map((g) => (
-                    <li key={g.subject} className="flex items-center justify-between px-4 py-3">
-                      <span className="font-medium text-neutral-900">{g.subject}</span>
-                      <span className="font-semibold text-neutral-900">
-                        {g.rata?.toFixed(1) ?? "-"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </DataView>
-      </section>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Link href="/ortu/absensi" className="block">
@@ -142,12 +173,21 @@ export default function OrtuDashboardPage(): React.JSX.Element {
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }): React.JSX.Element {
+function Kpi({
+  label,
+  value,
+  hint
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}): React.JSX.Element {
   return (
     <Card>
       <CardContent>
         <p className="text-xs text-neutral-600 sm:text-sm">{label}</p>
         <p className="mt-1 text-xl font-bold text-neutral-900 sm:text-2xl">{value}</p>
+        {hint ? <p className="mt-0.5 text-xs text-neutral-500">{hint}</p> : null}
       </CardContent>
     </Card>
   );

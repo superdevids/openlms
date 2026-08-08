@@ -16,6 +16,7 @@ import { ChangePasswordDto } from "./dto/change-password.dto";
 import { generateTemporaryPassword, hashPassword, verifyPassword } from "./password.util";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "./jwt.util";
 import { ScopeResolver } from "../../common/scope-resolver";
+import { resolveActorRole } from "../lms/lms-audit";
 import { LOGIN_FAIL_LIMIT, LOGIN_LOCK_MINUTES } from "./auth.constants";
 
 export interface LoginMeta {
@@ -125,7 +126,7 @@ export class AuthService {
         });
         await this.audit(
           user.id,
-          user.roles[0]?.role,
+          resolveActorRole(user.roles.map((r) => r.role)),
           AuditAction.LOCKOUT,
           "user",
           user.id,
@@ -142,6 +143,16 @@ export class AuthService {
         where: { id: user.id },
         data: { failed_login_attempts: attempts }
       });
+      await this.audit(
+        user.id,
+        resolveActorRole(user.roles.map((r) => r.role)),
+        AuditAction.LOGIN,
+        "user",
+        user.id,
+        undefined,
+        { reason: "INVALID_CREDENTIALS" },
+        meta.ip
+      );
       throw new UnauthorizedException("Email/Username atau password salah");
     }
 
@@ -151,7 +162,7 @@ export class AuthService {
     });
     await this.audit(
       user.id,
-      user.roles[0]?.role,
+      resolveActorRole(user.roles.map((r) => r.role)),
       AuditAction.LOGIN,
       "user",
       user.id,

@@ -48,7 +48,9 @@ describe("Communication", () => {
         id: "letter-1",
         status: "DRAFT"
       });
-      await expect(service.approve("letter-1", "kepsek-1")).rejects.toThrow(ConflictException);
+      await expect(
+        service.approve("letter-1", "kepsek-1", { userId: "kepsek-1", roles: ["KEPSEK"] })
+      ).rejects.toThrow(ConflictException);
     });
 
     it("approve menghasilkan letter_no dan status APPROVED", async () => {
@@ -66,7 +68,10 @@ describe("Communication", () => {
           approver_id: data.approver_id
         })
       );
-      const letter = await service.approve("letter-1", "kepsek-1");
+      const letter = await service.approve("letter-1", "kepsek-1", {
+        userId: "kepsek-1",
+        roles: ["KEPSEK"]
+      });
       expect(letter.status).toBe("APPROVED");
       expect(letter.letter_no).toContain("/ECL/");
       expect(letter.approver_id).toBe("kepsek-1");

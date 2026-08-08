@@ -4,13 +4,18 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer
 } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
+import { Redis } from "ioredis";
+import { createAdapter } from "@socket.io/redis-adapter";
 import { prisma } from "@openlms/database";
 import { ScopeResolver } from "../../common/scope-resolver";
+import { allowedOrigins } from "../../common/cors.util";
+import { redisQueueUrl } from "../queue/queue.types";
 import type { RealtimeUser } from "./realtime.auth";
 import { RealtimeAuthService } from "./realtime.auth";
 
@@ -20,37 +25,6 @@ export const REALTIME_NAMESPACE = "/ws";
 const ROOM_PREFIX_USER = "user:";
 const ROOM_PREFIX_CLASS = "class:";
 const ROOM_PREFIX_EXAM = "exam:";
-
-/** Fallback origin dev (api 3000 / web 3000-3001) bila CORS_ORIGINS tidak diset. */
-const DEFAULT_CORS_ORIGINS = [
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001"
-];
-
-/**
- * Origin yang diizinkan (CORS) — dari env CORS_ORIGINS (koma-pisah);
- * default localhost saat env kosong (whitelist, bukan origin:true).
- * Di production, CORS_ORIGINS WAJIB diset — fail-fast saat gateway dimuat.
- */
-function allowedOrigins(): string[] {
-  const raw = process.env.CORS_ORIGINS;
-  if (!raw || raw.trim().length === 0) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "[realtime] CORS_ORIGINS wajib dikonfigurasi di production (fail-fast). " +
-          "Jangan memakai fallback localhost di lingkungan production."
-      );
-    }
-    return DEFAULT_CORS_ORIGINS;
-  }
-  const parts = raw
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  return parts.length > 0 ? parts : DEFAULT_CORS_ORIGINS;
-}
 
 /** Fail-fast saat modul dimuat: production WAJIB set CORS_ORIGINS (seperti jwt.util). */
 if (process.env.NODE_ENV === "production") {
@@ -98,7 +72,7 @@ export function examRoom(examSessionId: string): string {
     credentials: true
   }
 })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(RealtimeGateway.name);
 
   /** Scope RBAC kelas (classIds + homeroomClassId) — sumber yang sama dengan REST (prd04 §4.1). */
@@ -107,7 +81,54 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   @WebSocketServer()
   server!: Server;
 
+  /** Klien Redis adapter (pub/sub) — dikosongkan saat REDIS_URL tidak tersedia (in-memory). */
+  private redisPub: Redis | null = null;
+  private redisSub: Redis | null = null;
+
   constructor(private readonly auth: RealtimeAuthService) {}
+
+  /**
+   * Attach Redis adapter (R-28): bila REDIS_URL diset → multi-instance Socket.IO
+   * (createAdapter dari @socket.io/redis-adapter; ioredis sudah jadi dependency
+   * via BullMQ/queue). Bila tidak → adapter in-memory default (single instance).
+   * Gagal koneksi Redis tidak menggagalkan boot — log warning, lanjut in-memory.
+   */
+  afterInit(server: Server): void {
+    const url = redisQueueUrl();
+    if (!url) {
+      this.logger.log("Socket.IO adapter: in-memory (REDIS_URL tidak diset)");
+      return;
+    }
+    try {
+      // maxRetriesPerRequest:null + enableReadyCheck:false — pola umum untuk
+      // adapter pub/sub (jangan menahan event loop saat Redis reconnect).
+      const pub = new Redis(url, { maxRetriesPerRequest: null, enableReadyCheck: false });
+      const sub = pub.duplicate();
+      pub.on("error", (err) => this.logger.warn(`Redis pub error: ${err.message}`));
+      sub.on("error", (err) => this.logger.warn(`Redis sub error: ${err.message}`));
+      server.adapter(createAdapter(pub, sub));
+      this.redisPub = pub;
+      this.redisSub = sub;
+      this.logger.log("Socket.IO Redis adapter terpasang (multi-instance)");
+    } catch (err) {
+      this.logger.warn(
+        `Redis adapter gagal dipasang, lanjut in-memory: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    for (const client of [this.redisPub, this.redisSub]) {
+      if (!client) continue;
+      try {
+        await client.quit();
+      } catch {
+        client.disconnect();
+      }
+    }
+    this.redisPub = null;
+    this.redisSub = null;
+  }
 
   async handleConnection(socket: Socket): Promise<void> {
     try {

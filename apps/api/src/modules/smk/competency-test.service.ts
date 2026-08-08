@@ -14,6 +14,7 @@ import {
 } from "@nestjs/common";
 import type { CompetencyTest, CompetencyRubricItem } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 import { COMPETENCY_PASSING_SCORE } from "../rollover/rollover.constants";
 
 export interface CreateCompetencyTestInput {
@@ -34,7 +35,10 @@ export interface GradeRubricItemInput {
 export class CompetencyTestService {
   constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
 
-  async create(input: CreateCompetencyTestInput): Promise<CompetencyTest> {
+  async create(
+    input: CreateCompetencyTestInput,
+    actor: AuditActorContext
+  ): Promise<CompetencyTest> {
     if (!input.title || !input.competencyStandard || !input.studentId) {
       throw new BadRequestException("title, competencyStandard, studentId wajib diisi");
     }
@@ -57,26 +61,44 @@ export class CompetencyTestService {
         }))
       });
     }
-    return this.db.competencyTest.findUniqueOrThrow({ where: { id: test.id } });
+    const created = await this.db.competencyTest.findUniqueOrThrow({ where: { id: test.id } });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "competency_test",
+      entityId: test.id,
+      after: { title: created.title, student_id: created.student_id, status: "SCHEDULED" }
+    });
+    return created;
   }
 
   async addRubricItem(
     testId: string,
     criterion: string,
-    maxScore: number
+    maxScore: number,
+    actor: AuditActorContext
   ): Promise<CompetencyRubricItem> {
     await this.requireTest(testId);
     if (maxScore <= 0) throw new BadRequestException("maxScore harus > 0");
-    return this.db.competencyRubricItem.create({
+    const item = await this.db.competencyRubricItem.create({
       data: { competency_test_id: testId, criterion, max_score: maxScore }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "CREATE",
+      entity: "competency_rubric_item",
+      entityId: item.id,
+      after: { competency_test_id: testId, criterion, max_score: maxScore }
+    });
+    return item;
   }
 
   /** Penilaian oleh penguji yang ditugaskan (examiner). */
   async grade(
     testId: string,
     examinerUserId: string,
-    items: GradeRubricItemInput[]
+    items: GradeRubricItemInput[],
+    actor: AuditActorContext
   ): Promise<CompetencyTest> {
     const test = await this.db.competencyTest.findUnique({
       where: { id: testId },
@@ -107,10 +129,19 @@ export class CompetencyTestService {
     const finalScore = Math.round((totalPct / items.length) * 100);
     const status = finalScore >= COMPETENCY_PASSING_SCORE ? "PASSED" : "FAILED";
 
-    return this.db.competencyTest.update({
+    const updated = await this.db.competencyTest.update({
       where: { id: test.id },
       data: { final_score: finalScore, status }
     });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "competency_test",
+      entityId: test.id,
+      before: { status: test.status },
+      after: { final_score: finalScore, status }
+    });
+    return updated;
   }
 
   private async requireTest(testId: string): Promise<CompetencyTest> {

@@ -20,6 +20,7 @@ import {
   IconCheck
 } from "@openlms/ui";
 import { APP_NAME } from "@/lib/constants";
+import { STORAGE_KEYS, safeGet, safeRemove, safeSet } from "@/lib/storage";
 
 /**
  * PPDB — wizard 4 langkah publik (tanpa login) 07-ux §4.8:
@@ -33,47 +34,70 @@ const STEPS = [
   { title: "Consent & Konfirmasi" }
 ];
 
+const EMPTY_FORM = {
+  fullName: "",
+  nisn: "",
+  birthDate: "",
+  birthPlace: "",
+  gender: "L",
+  originSchool: "",
+  phone: "",
+  email: "",
+  parentName: "",
+  parentPhone: "",
+  parentJob: "",
+  consent: false
+};
+
+/** Bucket PPDB publik (R-17) — upload tanpa login via /storage/files/public/:bucket. */
+const PPDB_DOCUMENTS_BUCKET = "ppdb-documents";
+const PPDB_CONSENTS_BUCKET = "ppdb-consents";
+/** Batas 5MB per bucket PPDB (storage.constants R-18) — cek client sebelum upload. */
+const PPDB_MAX_BYTES = 5 * 1024 * 1024;
+const PPDB_ACCEPT = ".jpg,.jpeg,.png,.pdf";
+
+type PpdFile = { name: string; size: number } | null;
+
 export default function PPDBDaftarPage(): React.JSX.Element {
   const [step, setStep] = React.useState(0);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<{ registrationNo: string } | null>(null);
 
-  const [form, setForm] = React.useState({
-    fullName: "",
-    nisn: "",
-    birthDate: "",
-    birthPlace: "",
-    gender: "L",
-    originSchool: "",
-    phone: "",
-    email: "",
-    parentName: "",
-    parentPhone: "",
-    parentJob: "",
-    consent: false
-  });
+  const [form, setForm] = React.useState(EMPTY_FORM);
 
-  // Autosave draft lokal (G10) — cegah hilang saat koneksi putus
+  // File pendaftaran (R-17): KK/Akta wajib, Rapor opsional → ppdb-documents;
+  // bukti persetujuan (consent) → ppdb-consents, wajib (ConsentProofDto.documentUrl).
+  const [kk, setKk] = React.useState<PpdFile>(null);
+  const [akta, setAkta] = React.useState<PpdFile>(null);
+  const [rapor, setRapor] = React.useState<PpdFile>(null);
+  const [consentProof, setConsentProof] = React.useState<PpdFile>(null);
+  const kkInput = React.useRef<HTMLInputElement>(null);
+  const aktaInput = React.useRef<HTMLInputElement>(null);
+  const raporInput = React.useRef<HTMLInputElement>(null);
+  const consentInput = React.useRef<HTMLInputElement>(null);
+
+  // Autosave draft lokal (G10) — sessionStorage via storage.ts (R-23):
+  // draft berisi PII, jangan disimpan permanen; hilang saat tab ditutup.
   React.useEffect(() => {
     const t = window.setTimeout(() => {
-      try {
-        localStorage.setItem("openlms_ppdb_draft", JSON.stringify(form));
-      } catch {
-        // abaikan
-      }
+      safeSet(STORAGE_KEYS.ppdbDraft, form, "session");
     }, 600);
     return () => window.clearTimeout(t);
   }, [form]);
 
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem("openlms_ppdb_draft");
-      if (raw) setForm((f) => ({ ...f, ...(JSON.parse(raw) as Partial<typeof form>) }));
-    } catch {
-      // abaikan
-    }
+    const raw = safeGet<typeof form>(STORAGE_KEYS.ppdbDraft, "session");
+    if (raw) setForm((f) => ({ ...f, ...raw }));
   }, []);
+
+  const clearDraft = (): void => {
+    safeRemove(STORAGE_KEYS.ppdbDraft, "session");
+    setForm(EMPTY_FORM);
+    setStep(0);
+    setError(null);
+    toast({ variant: "info", title: "Draft dihapus" });
+  };
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]): void => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -87,6 +111,14 @@ export default function PPDBDaftarPage(): React.JSX.Element {
       setError("Nama lengkap wajib diisi.");
       return;
     }
+    if (step === 2 && !kk) {
+      setError("Unggah file KK (wajib) sebelum lanjut.");
+      return;
+    }
+    if (step === 2 && !akta) {
+      setError("Unggah file Akta Lahir (wajib) sebelum lanjut.");
+      return;
+    }
     if (step === 3 && !form.consent) {
       setError("Centang persetujuan data anak (wajib) sebelum mengirim.");
       return;
@@ -94,10 +126,48 @@ export default function PPDBDaftarPage(): React.JSX.Element {
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
 
+  /** Simpan metadata file terpilih + validasi ukuran (5MB) & tipe client-side. */
+  const pickFile = (
+    input: React.RefObject<HTMLInputElement | null>,
+    setter: (f: PpdFile) => void
+  ): void => {
+    const file = input.current?.files?.[0];
+    if (!file) {
+      setter(null);
+      return;
+    }
+    if (file.size > PPDB_MAX_BYTES) {
+      setError("File maksimal 5MB per berkas.");
+      setter(null);
+      return;
+    }
+    setter({ name: file.name, size: file.size });
+  };
+
+  /** Upload ke bucket publik PPDB → kembalikan path objek (R-17). */
+  const uploadPpdFile = async (bucket: string, file: File): Promise<string> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await api.post<{ path: string }>(`/storage/files/public/${bucket}`, form);
+    return res.path;
+  };
+
   const submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!form.consent) {
       setError("Centang persetujuan data anak (wajib) sebelum mengirim.");
+      return;
+    }
+    if (!kk) {
+      setError("Unggah file KK (wajib) sebelum mengirim.");
+      return;
+    }
+    if (!akta) {
+      setError("Unggah file Akta Lahir (wajib) sebelum mengirim.");
+      return;
+    }
+    if (!consentProof) {
+      setError("Unggah bukti persetujuan (wajib) sebelum mengirim.");
       return;
     }
     setSaving(true);
@@ -108,7 +178,28 @@ export default function PPDBDaftarPage(): React.JSX.Element {
         await new Promise((r) => setTimeout(r, 500));
         reg = "PPDB-2026-0001";
       } else {
-        const res = await api.post<{ registrationNo: string }>("/ppdb/register", {
+        const kkFile = kkInput.current?.files?.[0];
+        const aktaFile = aktaInput.current?.files?.[0];
+        const raporFile = raporInput.current?.files?.[0];
+        const consentFile = consentInput.current?.files?.[0];
+        if (!kkFile || !aktaFile || !consentFile) {
+          throw new ApiError(400, "VALIDATION_ERROR", "File wajib belum terpilih.");
+        }
+
+        // Upload dokumen pendaftaran → ppdb-documents; bukti consent → ppdb-consents.
+        const documents: { type: string; url: string }[] = [
+          { type: "KK", url: await uploadPpdFile(PPDB_DOCUMENTS_BUCKET, kkFile) },
+          { type: "AKTA", url: await uploadPpdFile(PPDB_DOCUMENTS_BUCKET, aktaFile) }
+        ];
+        if (raporFile) {
+          documents.push({
+            type: "RAPOR",
+            url: await uploadPpdFile(PPDB_DOCUMENTS_BUCKET, raporFile)
+          });
+        }
+        const consentUrl = await uploadPpdFile(PPDB_CONSENTS_BUCKET, consentFile);
+
+        const res = await api.post<{ registration_no: string }>("/ppdb/register", {
           fullName: form.fullName,
           nisn: form.nisn,
           birthDate: form.birthDate,
@@ -119,11 +210,12 @@ export default function PPDBDaftarPage(): React.JSX.Element {
           email: form.email,
           parentName: form.parentName,
           parentPhone: form.parentPhone,
-          consent: { type: "DATA_CHILD", granted: form.consent, parentName: form.parentName }
+          documents,
+          consent: { parentName: form.parentName, documentUrl: consentUrl }
         });
-        reg = res.registrationNo;
+        reg = res.registration_no;
       }
-      localStorage.removeItem("openlms_ppdb_draft");
+      safeRemove(STORAGE_KEYS.ppdbDraft, "session");
       setResult({ registrationNo: reg });
       toast({ variant: "success", title: "Pendaftaran terkirim" });
     } catch (err) {
@@ -282,16 +374,40 @@ export default function PPDBDaftarPage(): React.JSX.Element {
                     Anda.
                   </Alert>
                   <Field label="KK (wajib)">
-                    <Input type="file" accept=".jpg,.jpeg,.png,.pdf" aria-describedby="kk-hint" />
+                    <Input
+                      ref={kkInput}
+                      type="file"
+                      accept={PPDB_ACCEPT}
+                      aria-describedby="kk-hint"
+                      onChange={() => pickFile(kkInput, setKk)}
+                    />
                     <p id="kk-hint" className="text-xs text-neutral-500">
-                      Pilih file KK hasil scan/foto.
+                      {kk ? `Terpilih: ${kk.name}` : "Pilih file KK hasil scan/foto."}
                     </p>
                   </Field>
                   <Field label="Akta Lahir (wajib)">
-                    <Input type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <Input
+                      ref={aktaInput}
+                      type="file"
+                      accept={PPDB_ACCEPT}
+                      aria-describedby="akta-hint"
+                      onChange={() => pickFile(aktaInput, setAkta)}
+                    />
+                    <p id="akta-hint" className="text-xs text-neutral-500">
+                      {akta ? `Terpilih: ${akta.name}` : "Pilih file Akta hasil scan/foto."}
+                    </p>
                   </Field>
                   <Field label="Rapor Semester 1 (opsional)">
-                    <Input type="file" accept=".jpg,.jpeg,.png,.pdf" />
+                    <Input
+                      ref={raporInput}
+                      type="file"
+                      accept={PPDB_ACCEPT}
+                      aria-describedby="rapor-hint"
+                      onChange={() => pickFile(raporInput, setRapor)}
+                    />
+                    <p id="rapor-hint" className="text-xs text-neutral-500">
+                      {rapor ? `Terpilih: ${rapor.name}` : "Pilih file rapor (jika ada)."}
+                    </p>
                   </Field>
                 </>
               ) : (
@@ -311,6 +427,20 @@ export default function PPDBDaftarPage(): React.JSX.Element {
                       {form.parentPhone || "-"}
                     </p>
                   </div>
+                  <Field label="Bukti persetujuan (wajib)">
+                    <Input
+                      ref={consentInput}
+                      type="file"
+                      accept={PPDB_ACCEPT}
+                      aria-describedby="consent-hint"
+                      onChange={() => pickFile(consentInput, setConsentProof)}
+                    />
+                    <p id="consent-hint" className="text-xs text-neutral-500">
+                      {consentProof
+                        ? `Terpilih: ${consentProof.name}`
+                        : "Upload scan formulir/KK yang ditandatangani sebagai bukti persetujuan."}
+                    </p>
+                  </Field>
                   <label className="flex items-start gap-3 rounded-md border border-neutral-200 px-3 py-3">
                     <Checkbox
                       checked={form.consent}
@@ -354,9 +484,14 @@ export default function PPDBDaftarPage(): React.JSX.Element {
             </form>
           </CardContent>
         </Card>
-        <p className="mt-2 text-center text-xs text-neutral-500">
-          Draft tersimpan otomatis (autosave lokal).
-        </p>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="text-xs text-neutral-500">
+            Draft tersimpan otomatis di tab ini (hilang saat tab ditutup).
+          </p>
+          <Button type="button" variant="ghost" size="sm" onClick={clearDraft}>
+            Hapus draft
+          </Button>
+        </div>
       </div>
     </main>
   );

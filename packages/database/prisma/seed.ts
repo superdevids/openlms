@@ -16,6 +16,8 @@ import { PrismaClient, Role, EnrollmentStatus } from "@prisma/client";
 import argon2 from "argon2";
 import { PERMISSIONS, ROLE_PERMISSIONS, ROLES_TO_SEED } from "./seed-data/permissions";
 import { FEATURE_FLAGS } from "./seed-data/feature-flags";
+import { DASHBOARD_CARDS_BY_ROLE, DASHBOARD_ROLES_TO_SEED } from "./seed-data/dashboard-config";
+import { LANDING_SECTIONS_SEED } from "./seed-data/landing-sections";
 
 const prisma = new PrismaClient();
 
@@ -302,46 +304,21 @@ async function main(): Promise<void> {
     data: { current_academic_year_id: yearNow.id }
   });
 
-  // 7. Landing page — konten sekolah (hero, tentang, piagam, kontak) + berita contoh.
+  // 7. Landing page — konten sekolah (hero, sambutan, tentang, visi-misi, piagam,
+  // program-keahlian, ekskul, prestasi, fasilitas, galeri, faq, kontak) + berita contoh.
+  // CTA terstruktur (link_url/link_label) + `extra` JSON per slug.
   // Hanya menambah baris landing; TIDAK menyentuh user/password (ditangani seed lain).
-  const LANDING_SECTIONS = [
-    {
-      slug: "hero",
-      title: "Selamat Datang",
-      subtitle: "Sekolah unggulan dengan teknologi digital",
-      body: "Sistem Informasi Sekolah (SIS) dan Learning Management System (LMS) terpadu untuk mendukung pembelajaran, administrasi, dan pelayanan sekolah yang modern, transparan, dan akuntabel.",
-      section_order: 0
-    },
-    {
-      slug: "tentang",
-      title: "Tentang Kami",
-      subtitle: "Profil singkat sekolah",
-      body: "Kami adalah sekolah yang berkomitmen mencetak generasi cerdas, berkarakter, dan siap menghadapi tantangan zaman. Kurikulum kami mengintegrasikan penguasaan ilmu pengetahuan, penguatan karakter, dan kecakapan digital agar setiap peserta didik berkembang optimal.",
-      section_order: 10
-    },
-    {
-      slug: "piagam",
-      title: "Visi, Misi & Piagam Sekolah",
-      subtitle: "Arah dan komitmen kami",
-      body: "Visi:\nTerwujudnya peserta didik yang beriman, bertakwa, cerdas, terampil, mandiri, dan berwawasan lingkungan.\n\nMisi:\n1. Menyelenggarakan pembelajaran aktif, kreatif, dan menyenangkan.\n2. Menumbuhkan budaya literasi dan numerasi.\n3. Membangun karakter peserta didik melalui pembiasaan positif.\n4. Mengembangkan bakat dan minat peserta didik.\n5. Mewujudkan lingkungan sekolah yang sehat, hijau, dan ramah anak.",
-      section_order: 20
-    },
-    {
-      slug: "kontak",
-      title: "Hubungi Kami",
-      subtitle: "Informasi kontak sekolah",
-      body: "Alamat: Jl. Pendidikan No. 1\nTelepon: 021-0000000\nEmail: info@openlms.local\nJam layanan: Senin–Jumat, 07.00–15.00 WIB",
-      section_order: 40
-    }
-  ];
-  for (const s of LANDING_SECTIONS) {
+  for (const s of LANDING_SECTIONS_SEED) {
     await prisma.landingContent.upsert({
       where: { slug: s.slug },
       update: {
         title: s.title,
         subtitle: s.subtitle,
         body: s.body,
-        section_order: s.section_order,
+        section_order: s.sectionOrder,
+        link_url: s.linkUrl ?? null,
+        link_label: s.linkLabel ?? null,
+        extra: (s.extra as object) ?? undefined,
         is_published: true
       },
       create: {
@@ -349,7 +326,10 @@ async function main(): Promise<void> {
         title: s.title,
         subtitle: s.subtitle,
         body: s.body,
-        section_order: s.section_order,
+        section_order: s.sectionOrder,
+        link_url: s.linkUrl ?? null,
+        link_label: s.linkLabel ?? null,
+        extra: (s.extra as object) ?? undefined,
         is_published: true,
         updated_by: admin.id
       }
@@ -364,6 +344,7 @@ async function main(): Promise<void> {
       slug: "ppdb-2026-2027-dibuka",
       body: "Pendaftaran peserta didik baru (PPDB) untuk Tahun Ajaran 2026/2027 resmi dibuka. Calon peserta didik dapat mendaftar secara daring melalui portal PPDB sekolah. Persiapkan dokumen yang dibutuhkan dan pantau jadwal seleksi secara berkala.",
       author: "Panitia PPDB",
+      category: "pengumuman",
       published_at: new Date("2026-03-01T02:00:00.000Z")
     },
     {
@@ -372,6 +353,7 @@ async function main(): Promise<void> {
       slug: "pembelajaran-digital-lms",
       body: "Mulai semester ini, seluruh kegiatan pembelajaran daring, tugas, kuis, dan ujian dikelola melalui platform openlms. Guru dan siswa dapat mengakses materi kapan saja, dan orang tua dapat memantau perkembangan belajar anaknya.",
       author: "Tim IT Sekolah",
+      category: "kegiatan",
       published_at: new Date("2026-07-13T02:00:00.000Z")
     }
   ];
@@ -383,6 +365,7 @@ async function main(): Promise<void> {
         excerpt: n.excerpt,
         body: n.body,
         author: n.author,
+        category: n.category,
         published_at: n.published_at,
         is_published: true
       },
@@ -392,6 +375,7 @@ async function main(): Promise<void> {
         excerpt: n.excerpt,
         body: n.body,
         author: n.author,
+        category: n.category,
         published_at: n.published_at,
         is_published: true,
         updated_by: admin.id
@@ -399,10 +383,54 @@ async function main(): Promise<void> {
     });
   }
 
+  // 7b. RoleDashboardConfig — kartu dashboard default per role (R-05/R-10).
+  // Upsert by (role, feature_key); is_enabled dipertahankan (update tidak
+  // membatalkan pengaturan SUPERADMIN, hanya menyegarkan label/urutan default).
+  let dashboardConfigTotal = 0;
+  for (const role of DASHBOARD_ROLES_TO_SEED) {
+    const cards = DASHBOARD_CARDS_BY_ROLE[role] ?? [];
+    for (const card of cards) {
+      const existing = await prisma.roleDashboardConfig.findUnique({
+        where: { role_feature_key: { role, feature_key: card.featureKey } }
+      });
+      if (existing) {
+        await prisma.roleDashboardConfig.update({
+          where: { id: existing.id },
+          data: {
+            label: card.label,
+            description: card.description,
+            icon: card.icon,
+            href: card.href,
+            section_order: card.sectionOrder,
+            required_permission: card.requiredPermission ?? null
+          }
+        });
+      } else {
+        await prisma.roleDashboardConfig.create({
+          data: {
+            role,
+            feature_key: card.featureKey,
+            label: card.label,
+            description: card.description,
+            icon: card.icon,
+            href: card.href,
+            section_order: card.sectionOrder,
+            required_permission: card.requiredPermission ?? null,
+            is_enabled: true,
+            updated_by: admin.id
+          }
+        });
+        dashboardConfigTotal += 1;
+      }
+    }
+  }
+
   const permissionTotal = await prisma.permission.count();
   const rolePermissionTotal = await prisma.rolePermission.count();
   const flagTotal = await prisma.featureFlag.count();
   const prodiTotal = await prisma.prodi.count();
+  const landingTotal = await prisma.landingContent.count();
+  const dashboardConfigTotalDb = await prisma.roleDashboardConfig.count();
 
   console.log("Seed selesai:");
   console.log(`- SchoolProfile: ${school.name}`);
@@ -414,6 +442,8 @@ async function main(): Promise<void> {
   console.log(
     `- Permission: ${permissionTotal} | RolePermission: ${rolePermissionTotal} (baru: ${rolePermissionCount})`
   );
+  console.log(`- Landing: ${landingTotal} section`);
+  console.log(`- DashboardConfig: ${dashboardConfigTotalDb} kartu (baru: ${dashboardConfigTotal})`);
 }
 
 main()

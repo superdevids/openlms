@@ -72,7 +72,9 @@ describe("PpdbService — consent", () => {
       id: "applicant-1",
       status: "VERIFIED"
     });
-    await expect(service.verify("applicant-1", true)).rejects.toThrow(ConflictException);
+    await expect(
+      service.verify("applicant-1", true, { userId: "op-1", roles: ["OPERATOR"] })
+    ).rejects.toThrow(ConflictException);
   });
 
   it("enroll menolak calon tanpa akun User -> 403 CONFLICT", async () => {
@@ -86,6 +88,11 @@ describe("PpdbService — consent", () => {
       code: "2026/2027",
       status: "OPEN"
     });
-    await expect(service.enroll("applicant-1", "year-1", "cls-1")).rejects.toThrow();
+    await expect(
+      service.enroll("applicant-1", "year-1", "cls-1", {
+        userId: "op-1",
+        roles: ["OPERATOR"]
+      })
+    ).rejects.toThrow();
   });
 });

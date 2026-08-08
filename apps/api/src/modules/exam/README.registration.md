@@ -64,7 +64,8 @@ abcdefghjkmnpqrstuvwxyz` (tanpa 0/O/1/I plus l/o ambigu), dihasilkan `crypto.ran
   duplikat. Catatan: schema belum punya unique index `(attempt_id, idempotency_key)` —
   lihat ISSUES.
 - **Auto-submit** (M-EXAM-T6): server-side; attempt lewat `started_at + duration_min`
-  menjadi `AUTO_SUBMITTED`; TODO: emit event `exam:force-submit` via Socket.IO.
+  menjadi `AUTO_SUBMITTED`; push `exam:force-submit` ke room `exam:{sessionId}` +
+  `exam:tick` (ambang 60/30/10/0) via Socket.IO (R-29).
 - **State machine attempt**: `IN_PROGRESS → SUBMITTED | AUTO_SUBMITTED | EXPIRED`
   (`assertAttemptTransition` di quiz.util); status terminal tidak bisa berpindah.
 - **Grading** (M-EXAM-T7): `score_auto` (PG/isian/menjodohkan, 0–100), `score_manual`

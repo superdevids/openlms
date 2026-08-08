@@ -31,7 +31,7 @@ jobs:
       - run: npm run typecheck
 
   unit:
-    name: Unit tests
+    name: Unit tests (no DB)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,10 +40,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run test:unit
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Unit tests (exclude integration & e2e)
+        working-directory: apps/api
+        # Pola test:unit di apps/api/package.json hanya mengecualikan path
+        # berisi "integration"; test/app.e2e-spec.ts TIDAK cocok pola itu dan
+        # butuh PostgreSQL, sehingga e2e juga dikecualikan di sini (dijalankan
+        # di job `integration` yang menyediakan service postgres).
+        run: npx jest --testPathPattern="^(?!.*(integration|e2e))" --runInBand
 
   integration:
-    name: Integration tests (PostgreSQL)
+    name: Integration + e2e tests (PostgreSQL)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -72,8 +80,11 @@ jobs:
         run: npm run db:generate
       - name: Deploy migrations
         run: npm run db:migrate:deploy --workspace=@openlms/database
-      - name: Integration tests
-        run: npm run test:integration
+      - name: Integration + e2e tests
+        working-directory: apps/api
+        # Menjalankan test/integration/* DAN test/app.e2e-spec.ts (butuh
+        # PostgreSQL — disediakan service `postgres` pada job ini).
+        run: npx jest --testPathPattern="^.*(integration|e2e).*" --runInBand
 
   build:
     name: Build
@@ -98,3 +109,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm audit --audit-level=high
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

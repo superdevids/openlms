@@ -84,5 +84,7 @@ export {
   IconFlag,
   IconUser,
   IconLock,
-  IconInfo
+  IconInfo,
+  IconSun,
+  IconMoon
 } from "./components/icons";

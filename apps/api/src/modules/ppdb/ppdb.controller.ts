@@ -4,11 +4,23 @@
  * /selection /verify /select /waitlist /enroll hanya OPERATOR/SUPERADMIN
  * (ppdb:verify:school, ppdb:select:school, ppdb:enroll:school).
  */
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UnauthorizedException
+} from "@nestjs/common";
 import { PpdbService } from "./ppdb.service";
 import { RegisterPpdbDto, SelectionDto, VerifyDto } from "./dto/ppdb.dto";
 import { Public } from "../../common/public.decorator";
 import { RequirePermission } from "../../common/require-permission.decorator";
+import type { AuthenticatedRequest } from "../../common/auth.guard";
+import type { AuditActorContext } from "../lms/lms-audit";
 
 @Controller("ppdb")
 export class PpdbController {
@@ -47,20 +59,32 @@ export class PpdbController {
 
   @Patch(":applicantId/verify")
   @RequirePermission("ppdb:verify:school")
-  verify(@Param("applicantId") applicantId: string, @Body() dto: VerifyDto) {
-    return this.ppdbService.verify(applicantId, dto.approve);
+  verify(
+    @Param("applicantId") applicantId: string,
+    @Body() dto: VerifyDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.ppdbService.verify(applicantId, dto.approve, this.actorContext(req));
   }
 
   @Patch(":applicantId/select")
   @RequirePermission("ppdb:select:school")
-  select(@Param("applicantId") applicantId: string, @Body() dto: SelectionDto) {
-    return this.ppdbService.select(applicantId, dto);
+  select(
+    @Param("applicantId") applicantId: string,
+    @Body() dto: SelectionDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.ppdbService.select(applicantId, dto, this.actorContext(req));
   }
 
   @Patch(":applicantId/waitlist")
   @RequirePermission("ppdb:select:school")
-  waitlist(@Param("applicantId") applicantId: string, @Body() dto: SelectionDto) {
-    return this.ppdbService.waitlist(applicantId, dto);
+  waitlist(
+    @Param("applicantId") applicantId: string,
+    @Body() dto: SelectionDto,
+    @Req() req: AuthenticatedRequest
+  ) {
+    return this.ppdbService.waitlist(applicantId, dto, this.actorContext(req));
   }
 
   @Post(":applicantId/enroll")
@@ -68,8 +92,17 @@ export class PpdbController {
   enroll(
     @Param("applicantId") applicantId: string,
     @Query("academicYearId") academicYearId: string,
-    @Query("classId") classId: string
+    @Query("classId") classId: string,
+    @Req() req: AuthenticatedRequest
   ) {
-    return this.ppdbService.enroll(applicantId, academicYearId, classId);
+    return this.ppdbService.enroll(applicantId, academicYearId, classId, this.actorContext(req));
+  }
+
+  private actorContext(req: AuthenticatedRequest): AuditActorContext {
+    const ctx = req.requestContext;
+    if (!ctx) {
+      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
+    }
+    return { userId: ctx.userId, roles: ctx.roles };
   }
 }

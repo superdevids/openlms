@@ -10,29 +10,18 @@ import {
   type RbacPermission,
   type RbacRolePermission
 } from "@/lib/api-client";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Badge, toast } from "@openlms/ui";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Badge,
+  Button,
+  toast
+} from "@openlms/ui";
 
 import { useApi } from "@/lib/use-api";
-
-/** Demo fallback (NEXT_PUBLIC_DEMO=1) — RBAC endpoint belum tersedia (stub). */
-const DEMO_PERMISSIONS: RbacPermission[] = [
-  { id: "p1", code: "user:read:sekolah", category: "user", description: "Lihat data user" },
-  { id: "p2", code: "user:write:sekolah", category: "user", description: "Kelola user" },
-  { id: "p3", code: "finance:read", category: "finance", description: "Lihat keuangan" },
-  { id: "p4", code: "app:write:school", category: "app", description: "Ubah pengaturan aplikasi" }
-];
-
-const DEMO_MATRIX: Record<string, Record<string, "ALLOW" | "DENY">> = {
-  SUPERADMIN: {
-    "user:read:sekolah": "ALLOW",
-    "user:write:sekolah": "ALLOW",
-    "finance:read": "ALLOW",
-    "app:write:school": "ALLOW"
-  },
-  OPERATOR: { "user:read:sekolah": "ALLOW", "user:write:sekolah": "ALLOW" },
-  KEUANGAN: { "finance:read": "ALLOW" },
-  SISWA: {}
-};
 
 function buildRoleMap(rolePerms: RbacRolePermission[]): Map<string, "ALLOW" | "DENY"> {
   const map = new Map<string, "ALLOW" | "DENY">();
@@ -43,53 +32,53 @@ function buildRoleMap(rolePerms: RbacRolePermission[]): Map<string, "ALLOW" | "D
 }
 
 export default function SuperadminRbacPage(): React.JSX.Element {
-  const { status: permStatus, data: perms } = useApi<RbacPermission[]>(
-    () => fetchRbacPermissions(),
-    [],
-    { fallbackData: DEMO_PERMISSIONS }
-  );
+  const {
+    status: permStatus,
+    data: perms,
+    refetch: refetchPerms
+  } = useApi<RbacPermission[]>(() => fetchRbacPermissions(), []);
 
   const [rolePerms, setRolePerms] = React.useState<Record<string, Map<string, "ALLOW" | "DENY">>>(
     {}
   );
   const [loadingRoles, setLoadingRoles] = React.useState(true);
+  const [roleError, setRoleError] = React.useState<string | null>(null);
   const [savingId, setSavingId] = React.useState<string | null>(null);
 
-  // Fetch permission per role (paralel).
-  React.useEffect(() => {
+  // Fetch permission per role (paralel). Gagal → state error nyata (R-40):
+  // tidak ada fallback demo/stub; UI menampilkan pesan + tombol ulangi.
+  const loadRoles = React.useCallback(() => {
     let cancelled = false;
     setLoadingRoles(true);
+    setRoleError(null);
     void Promise.all(
       RBAC_ADMIN_ROLES.map(async (role) => {
-        try {
-          const rps = await fetchRbacRolePermissions(role);
-          return { role, rps };
-        } catch {
-          // Endpoint RBAC belum tersedia (stub) — fallback demo bila mode demo.
-          return {
-            role,
-            rps: (DEMO_MATRIX[role] ?? {}) as unknown as RbacRolePermission[]
-          };
-        }
+        const rps = await fetchRbacRolePermissions(role);
+        return { role, rps };
       })
-    ).then((results) => {
-      if (cancelled) return;
-      const next: Record<string, Map<string, "ALLOW" | "DENY">> = {};
-      for (const { role, rps } of results) {
-        if (Array.isArray(rps)) {
-          next[role] = buildRoleMap(rps);
-        } else {
-          const obj = rps as Record<string, "ALLOW" | "DENY">;
-          next[role] = new Map(Object.entries(obj));
+    )
+      .then((results) => {
+        if (cancelled) return;
+        const next: Record<string, Map<string, "ALLOW" | "DENY">> = {};
+        for (const { role, rps } of results) {
+          if (Array.isArray(rps)) {
+            next[role] = buildRoleMap(rps);
+          }
         }
-      }
-      setRolePerms(next);
-      setLoadingRoles(false);
-    });
+        setRolePerms(next);
+        setLoadingRoles(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setRoleError(errorMessage(err));
+        setLoadingRoles(false);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  React.useEffect(() => loadRoles(), [loadRoles]);
 
   const toggle = async (
     role: string,
@@ -114,7 +103,8 @@ export default function SuperadminRbacPage(): React.JSX.Element {
     }
   };
 
-  const permissionList = perms ?? DEMO_PERMISSIONS;
+  const permissionList = perms ?? [];
+  const hasError = permStatus === "error" || roleError !== null;
 
   return (
     <div className="space-y-6">
@@ -126,10 +116,23 @@ export default function SuperadminRbacPage(): React.JSX.Element {
         </p>
       </div>
 
-      {permStatus === "error" ? (
+      {hasError ? (
         <Card>
-          <CardContent className="p-4 text-sm text-danger-700">
-            Endpoint <code>/rbac/permissions</code> belum tersedia (RbacAdminModule masih stub).
+          <CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm text-danger-700">
+            <span>
+              Gagal memuat data RBAC —{" "}
+              {roleError ?? "endpoint /rbac/permissions tidak dapat dijangkau."}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                refetchPerms();
+                loadRoles();
+              }}
+            >
+              Ulangi
+            </Button>
           </CardContent>
         </Card>
       ) : null}

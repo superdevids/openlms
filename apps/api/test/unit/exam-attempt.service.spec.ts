@@ -21,6 +21,7 @@ jest.mock("@openlms/database", () => ({
 
 import { prisma } from "@openlms/database";
 import { ExamAttemptService } from "../../src/modules/exam/exam-attempt.service";
+import type { RealtimeGateway } from "../../src/modules/realtime/realtime.gateway";
 
 const db = prisma as unknown as {
   examSession: { findUnique: jest.Mock };
@@ -28,6 +29,8 @@ const db = prisma as unknown as {
   examAnswerLog: { findMany: jest.Mock; findFirst: jest.Mock };
   $transaction: jest.Mock;
 };
+
+const mockRealtime = { emitToExam: jest.fn() } as unknown as RealtimeGateway;
 
 const TOKEN = "ABC234";
 const TOKEN_HASH = hashToken(TOKEN);
@@ -84,7 +87,7 @@ describe("ExamAttemptService — anti-IDOR", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ExamAttemptService();
+    service = new ExamAttemptService(mockRealtime);
   });
 
   it("start(): SISWA selalu diikat ke actor.userId — student_id client DIIGNOR", async () => {

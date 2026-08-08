@@ -296,6 +296,24 @@ export const PERMISSIONS: PermissionSeed[] = [
     description: "Kelola mode maintenance / dev mode (SUPERADMIN)",
     is_system: true
   },
+  {
+    code: "dashboard:read:school",
+    category: "SISTEM",
+    description: "Baca statistik dashboard & konfigurasi kartu dashboard (SUPERADMIN)",
+    is_system: true
+  },
+  {
+    code: "dashboard:write:school",
+    category: "SISTEM",
+    description: "Kelola konfigurasi kartu dashboard per role (SUPERADMIN)",
+    is_system: true
+  },
+  {
+    code: "dashboard:read:self",
+    category: "SISTEM",
+    description: "Baca kartu dashboard sendiri (semua role aktif)",
+    is_system: true
+  },
 
   // Kepegawaian & komunikasi (melengkapi matrix 04-api-contract §4)
   { code: "staff:read:self", category: "PENGATURAN", description: "Lihat data staf sendiri" },
@@ -342,7 +360,8 @@ const BASIC_SELF: RolePermissionSeed[] = [
   { code: "user:read:self", scope: "SENDIRI" },
   { code: "user:write:self", scope: "SENDIRI" },
   { code: "notification:read:self", scope: "SENDIRI" },
-  { code: "notification:mark-read:self", scope: "SENDIRI" }
+  { code: "notification:mark-read:self", scope: "SENDIRI" },
+  { code: "dashboard:read:self", scope: "SENDIRI" }
 ];
 
 const s = (scope: PermissionScope, ...codes: string[]): RolePermissionSeed[] =>
@@ -456,7 +475,9 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "letter:read:school", "letter:approve:school"),
     ...s("SENDIRI", "letter:request:self"),
     ...s("SEKOLAH", "internship:write:school", "competency:grade:school"),
-    ...s("SEKOLAH", "export:run:school", "export:read:school", "audit:read:school"),
+    // audit:read:school HANYA SUPERADMIN + KEPSEK (persyaratan change-log R-11) —
+    // WAKEPSEK TIDAK diberi akses baca audit log.
+    ...s("SEKOLAH", "export:run:school", "export:read:school"),
     ...s("SEKOLAH", "staff:read:school", "staffattendance:record:school"),
     ...s("SEKOLAH", "user:read:school")
   ],

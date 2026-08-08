@@ -166,7 +166,13 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       featureFlagKey: "FINANCE_INVOICE"
     },
     { label: "Wakepsek", href: "/admin/wakepsek", icon: "academic", roles: ROLES.admin },
-    { label: "Kepsek", href: "/admin/kepsek", icon: "briefcase", roles: ROLES.admin }
+    { label: "Kepsek", href: "/admin/kepsek", icon: "briefcase", roles: ROLES.admin },
+    {
+      label: "Change Log",
+      href: "/admin/kepsek/change-logs",
+      icon: "file",
+      roles: ["KEPSEK"]
+    }
   ],
   superadmin: [
     { label: "Beranda", href: "/superadmin/dashboard", icon: "home", roles: ROLES.superadmin },
@@ -174,6 +180,12 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       label: "Admin Sistem",
       href: "/superadmin/admin-sistem",
       icon: "settings",
+      roles: ROLES.superadmin
+    },
+    {
+      label: "Change Log",
+      href: "/superadmin/change-logs",
+      icon: "file",
       roles: ROLES.superadmin
     },
     {
@@ -212,6 +224,12 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       href: "/superadmin/maintenance",
       icon: "settings",
       roles: ROLES.superadmin
+    },
+    {
+      label: "Dashboard Config",
+      href: "/superadmin/dashboard-config",
+      icon: "chart",
+      roles: ROLES.superadmin
     }
   ],
   ortu: [
@@ -230,9 +248,13 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
 
 export function visibleNav(
   group: RoleGroup,
-  flags: { key: string; enabled: boolean }[]
+  flags: { key: string; enabled: boolean }[],
+  userRoles: Role[] = []
 ): NavItem[] {
   return NAV_ITEMS[group].filter((item) => {
+    // Item dengan batasan role hanya muncul bila role user beririsan (R-11:
+    // Change Log hanya SUPERADMIN + KEPSEK; default = seluruh role grup).
+    if (userRoles.length > 0 && !item.roles.some((r) => userRoles.includes(r))) return false;
     if (!item.featureFlagKey) return true;
     const flag = flags.find((f) => f.key === item.featureFlagKey);
     return flag ? flag.enabled : false;

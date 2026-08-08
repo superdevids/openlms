@@ -17,11 +17,14 @@ function errorMessage(err: unknown): string {
 export function ErrorState({
   error,
   onRetry,
-  title = "Terjadi kesalahan"
+  title = "Terjadi kesalahan",
+  description
 }: {
   error?: unknown;
   onRetry?: () => void;
   title?: string;
+  /** Pesan penjelas opsional (ditampilkan di bawah pesan error otomatis). */
+  description?: string;
 }): React.JSX.Element {
   const message = error instanceof Error ? error.message : errorMessage(error);
   const requestId = (error as { requestId?: string } | undefined)?.requestId;
@@ -30,6 +33,7 @@ export function ErrorState({
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>
         {message}
+        {description ? <span className="mt-1 block text-xs opacity-80">{description}</span> : null}
         {requestId ? (
           <span className="mt-1 block text-xs opacity-80">ID permintaan: {requestId}</span>
         ) : null}

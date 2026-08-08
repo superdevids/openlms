@@ -1,8 +1,20 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UnauthorizedException
+} from "@nestjs/common";
 import type { AlumniStatus } from "@openlms/types";
 import { AlumniService } from "./alumni.service";
 import { CreateAlumniDto } from "./dto/alumni.dto";
 import { RequirePermission } from "../../common/require-permission.decorator";
+import type { AuthenticatedRequest } from "../../common/auth.guard";
+import type { AuditActorContext } from "../lms/lms-audit";
 
 /**
  * AlumniController — direktori & tracking lulusan (prd04 §5.J/§5.R).
@@ -34,13 +46,21 @@ export class AlumniController {
 
   @Patch(":id/archive")
   @RequirePermission("user:write:school")
-  archive(@Param("id") id: string) {
-    return this.alumniService.archive(id);
+  archive(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
+    return this.alumniService.archive(id, this.actorContext(req));
   }
 
   @Patch(":id/unarchive")
   @RequirePermission("user:write:school")
-  unarchive(@Param("id") id: string) {
-    return this.alumniService.unarchive(id);
+  unarchive(@Param("id") id: string, @Req() req: AuthenticatedRequest) {
+    return this.alumniService.unarchive(id, this.actorContext(req));
+  }
+
+  private actorContext(req: AuthenticatedRequest): AuditActorContext {
+    const ctx = req.requestContext;
+    if (!ctx) {
+      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
+    }
+    return { userId: ctx.userId, roles: ctx.roles };
   }
 }

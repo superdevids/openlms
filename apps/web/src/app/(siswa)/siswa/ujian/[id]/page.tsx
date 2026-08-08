@@ -20,6 +20,15 @@ import { formatDateTime } from "@/lib/format";
 
 import { DEMO_EXAMS } from "@/lib/demo";
 import { cn } from "@openlms/ui";
+import { STORAGE_KEYS, safeSet } from "@/lib/storage";
+
+/** Draft attempt di sessionStorage (R-23) — dibaca ulang di halaman kerjakan utk resume. */
+export interface ExamAttemptDraft {
+  examId: string;
+  attemptId: string;
+  remainingSeconds: number;
+  token: string;
+}
 
 interface ExamDetail {
   id: string;
@@ -143,9 +152,10 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
         attemptId = res.attempt.id;
         remainingSeconds = res.attempt.remaining_seconds;
       }
-      sessionStorage.setItem(
-        "openlms_exam_attempt",
-        JSON.stringify({ examId, attemptId, remainingSeconds, token })
+      safeSet<ExamAttemptDraft>(
+        STORAGE_KEYS.examAttempt,
+        { examId, attemptId, remainingSeconds, token },
+        "session"
       );
       router.replace(
         `/siswa/ujian/${examId}/kerjakan?attempt=${encodeURIComponent(attemptId)}&demo=${DEMO_MODE ? "1" : "0"}`
