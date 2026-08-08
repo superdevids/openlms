@@ -35,7 +35,7 @@ export class UpdateAppSettingsDto {
   @IsString()
   current_academic_year_id?: string;
 
-  /** Ambang & nilai lain (attendance, qr, rollover, onboarding) — di-merge ke settings. */
+  /** Ambang & nilai lain (attendance, qr, rollover, onboarding, font) — di-merge ke settings. */
   @IsOptional()
   @IsObject()
   settings?: Record<string, unknown>;

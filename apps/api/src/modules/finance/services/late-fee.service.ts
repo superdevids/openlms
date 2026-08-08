@@ -128,6 +128,20 @@ export class LateFeeService {
       include: { payments: true }
     });
 
+    // Batch lookup denda yang SUDAH ada (original_invoice_id + periode) dalam
+    // SATU query — menggantikan findDendaInvoice per-invoice (N+1).
+    const existingDendas = await prisma.dendaInvoice.findMany({
+      where: { period, deleted_at: null },
+      select: { original_invoice_id: true }
+    });
+    const existingDendaKeys = new Set(existingDendas.map((d) => d.original_invoice_id));
+
+    // Basis nomor denda dihitung SEKALI (bukan listDendaInvoices per invoice).
+    const dendaYearPrefix = `${DENDA_NO_PREFIX}-${now.getFullYear()}-`;
+    let dendaSeq = await prisma.dendaInvoice.count({
+      where: { invoice_no: { startsWith: dendaYearPrefix } }
+    });
+
     let checked = 0;
     let created = 0;
     let skipped = 0;
@@ -167,14 +181,14 @@ export class LateFeeService {
         continue;
       }
 
-      const existing = await this.store.findDendaInvoice(invoice.id, period);
-      if (existing) {
+      if (existingDendaKeys.has(invoice.id)) {
         skipped++;
         continue;
       }
 
       checked++;
-      const dendaNo = await this.nextDendaNo(now);
+      dendaSeq += 1;
+      const dendaNo = `${DENDA_NO_PREFIX}-${now.getFullYear()}-${String(dendaSeq).padStart(5, "0")}`;
       await this.store.createDendaInvoice({
         invoiceNo: dendaNo,
         originalInvoiceId: invoice.id,
@@ -184,6 +198,8 @@ export class LateFeeService {
         note: `Denda keterlambatan ${rule.name} (${fee.chargeableDays} hari)`,
         createdBy: "system"
       });
+      // Guard duplikat dalam run yang sama (dua invoice dengan sumber sama).
+      existingDendaKeys.add(invoice.id);
       created++;
     }
 

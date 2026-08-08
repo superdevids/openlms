@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { IconMoon, IconSun } from "@openlms/ui";
+import { IconMoon, IconSun, Tooltip } from "@openlms/ui";
 import { useTheme, type Theme } from "./theme-provider";
 
 /**
@@ -15,16 +15,18 @@ export function ThemeToggle(): React.JSX.Element {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const next = NEXT_THEME[theme];
   const isDark = resolvedTheme === "dark";
+  const label = `Tema: ${theme === "system" ? `sistem (${resolvedTheme})` : theme}`;
 
   return (
-    <button
-      type="button"
-      onClick={() => setTheme(next)}
-      className="touch-target rounded-md text-muted-foreground hover:bg-muted"
-      aria-label="Ganti tema"
-      title={`Tema: ${theme === "system" ? `sistem (${resolvedTheme})` : theme}`}
-    >
-      {isDark ? <IconSun className="h-5 w-5" /> : <IconMoon className="h-5 w-5" />}
-    </button>
+    <Tooltip label={label}>
+      <button
+        type="button"
+        onClick={() => setTheme(next)}
+        className="touch-target rounded-md text-muted-foreground hover:bg-muted"
+        aria-label="Ganti tema"
+      >
+        {isDark ? <IconSun className="h-5 w-5" /> : <IconMoon className="h-5 w-5" />}
+      </button>
+    </Tooltip>
   );
 }

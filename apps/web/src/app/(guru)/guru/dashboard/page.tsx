@@ -21,6 +21,27 @@ import { DEMO_CLASSES, DEMO_SUBMISSIONS } from "@/lib/demo";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 
+interface ClassSubjectItem {
+  id: string;
+  class: { id: string; name: string };
+  subject: { id: string; code: string; name: string };
+}
+
+interface ClassSubjectRecap {
+  classSubject: { id: string; className: string; subjectName: string };
+  semester: string | null;
+  students: Array<{ studentId: string; recap: { average?: number | null } }>;
+}
+
+interface ClassSubjectRecapView {
+  id: string;
+  classId: string;
+  className: string;
+  subjectName: string;
+  average: number | null;
+  students: number;
+}
+
 interface ExamSchedule {
   id: string;
   title: string;
@@ -56,6 +77,45 @@ export default function GuruDashboardPage(): React.JSX.Element {
   const pendingGrade = (assignments.data ?? []).filter(
     (a) => a._count && a._count.submissions > 0
   ).length;
+
+  // Rekap nilai kelas (read-only) — GET /class-subjects (GURU: mapel yang
+  // diampu) + GET /grades/recap/class-subject/:id untuk 3 mapel pertama.
+  const recaps = useApi<ClassSubjectRecapView[]>(async () => {
+    const subjects = await api.get<ClassSubjectItem[]>("/class-subjects");
+    const top = subjects.slice(0, 3);
+    const results = await Promise.all(
+      top.map(async (cs): Promise<ClassSubjectRecapView> => {
+        try {
+          const recap = await api.get<ClassSubjectRecap>(`/grades/recap/class-subject/${cs.id}`);
+          const scores = recap.students
+            .map((s) => s.recap.average)
+            .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+          const average =
+            scores.length > 0
+              ? Math.round((scores.reduce((sum, v) => sum + v, 0) / scores.length) * 10) / 10
+              : null;
+          return {
+            id: cs.id,
+            classId: cs.class.id,
+            className: cs.class.name,
+            subjectName: cs.subject.name,
+            average,
+            students: recap.students.length
+          };
+        } catch {
+          return {
+            id: cs.id,
+            classId: cs.class.id,
+            className: cs.class.name,
+            subjectName: cs.subject.name,
+            average: null,
+            students: 0
+          };
+        }
+      })
+    );
+    return results;
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -127,6 +187,53 @@ export default function GuruDashboardPage(): React.JSX.Element {
                         <Button variant="outline" size="sm">
                           Kelola Kelas
                         </Button>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DataView>
+      </section>
+
+      <section aria-label="Rekap nilai kelas">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-neutral-900">Rekap Nilai Kelas</h2>
+          <Link href="/guru/kelas" className="text-sm font-medium text-primary-600">
+            Lihat semua kelas
+          </Link>
+        </div>
+        <DataView
+          status={recaps.status}
+          error={recaps.error}
+          onRetry={recaps.refetch}
+          fallbackLabel="Rekap nilai kelas"
+        >
+          {recaps.data?.length === 0 ? (
+            <EmptyState
+              title="Belum ada rekap nilai"
+              description="Nilai siswa akan tampil setelah guru mencatat penilaian."
+            />
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {(recaps.data ?? []).map((r) => (
+                <li key={r.id}>
+                  <Link href={`/guru/kelas/${r.classId}`} className="block">
+                    <Card className="h-full transition-colors hover:border-primary-600">
+                      <CardHeader>
+                        <CardTitle>{r.subjectName}</CardTitle>
+                        <CardDescription>{r.className}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex items-center justify-between">
+                        <span className="text-sm text-neutral-600">
+                          {r.students > 0 ? `${r.students} siswa` : "Belum ada nilai"}
+                        </span>
+                        {r.average !== null ? (
+                          <Badge variant="primary">Rata-rata {r.average}</Badge>
+                        ) : (
+                          <Badge variant="neutral">Belum dinilai</Badge>
+                        )}
                       </CardContent>
                     </Card>
                   </Link>

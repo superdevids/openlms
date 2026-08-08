@@ -9,6 +9,7 @@
 
 export const STORAGE_KEYS = {
   theme: "openlms_theme",
+  fontScale: "openlms_font_scale",
   onboardingDismissed: "openlms_onboarding_dismissed",
   demoFlags: "openlms_demo_flags",
   demoRole: "openlms_demo_role",

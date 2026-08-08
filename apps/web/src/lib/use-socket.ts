@@ -1,8 +1,9 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { API_BASE } from "./api-client";
+import { useAsyncData } from "./use-api";
 
 /**
  * Socket.IO client openlms (R-27) — namespace `/ws` (docs/02 §7.1).
@@ -52,9 +53,9 @@ export interface SocketState {
 }
 
 export function useSocket(): SocketState {
-  const [connected, setConnected] = React.useState(false);
+  const [connected, setConnected] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const socket = getSocket();
     const onConnect = (): void => setConnected(true);
     const onDisconnect = (): void => setConnected(false);
@@ -75,8 +76,8 @@ export function useSocket(): SocketState {
 /**
  * Hook unread count badge (R-27):
  * - Nilai awal dari REST `/notifications/unread-count` (authoritative).
- * - `notification:new` → increment lokal + refetch REST (best-effort event,
- *   REST tetap sumber kebenaran; broadcast tanpa id tidak menambah count).
+ * - `notification:new` → refetch REST (best-effort event, REST tetap sumber
+ *   kebenaran); non-ok/offline → biarkan data sebelumnya.
  * - Reconnect (connected true) → refetch agar sinkron.
  */
 export function useUnreadNotifications(): {
@@ -85,41 +86,21 @@ export function useUnreadNotifications(): {
   refresh: () => void;
 } {
   const { socket, connected } = useSocket();
-  const [unread, setUnread] = React.useState<number | null>(null);
-  const [tick, setTick] = React.useState(0);
+  const { data, refetch } = useAsyncData<number | null>(
+    (signal) =>
+      fetch(`${API_BASE}/notifications/unread-count`, { credentials: "include", signal })
+        .then((res) => (res.ok ? (res.json() as Promise<{ count?: number }>) : null))
+        .then((json) => (json && typeof json.count === "number" ? json.count : null)),
+    [connected]
+  );
 
-  const refresh = React.useCallback(() => setTick((t) => t + 1), []);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_BASE}/notifications/unread-count`, { credentials: "include" })
-      .then((res) => (res.ok ? (res.json() as Promise<{ count?: number }>) : null))
-      .then((json) => {
-        if (!cancelled && json && typeof json.count === "number") {
-          setUnread(json.count);
-        }
-      })
-      .catch(() => {
-        // offline / non-200 — biarkan nilai sebelumnya
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [tick, connected]);
-
-  React.useEffect(() => {
-    const onNew = (payload: { id?: string }): void => {
-      if (payload && typeof payload.id === "string") {
-        // Punya id → notifikasi masuk inbox, naikkan badge + refetch.
-        setUnread((u) => (u === null ? u : u + 1));
-      }
-      setTick((t) => t + 1);
-    };
+  useEffect(() => {
+    const onNew = (): void => refetch();
     socket.on(NOTIFICATION_NEW_EVENT, onNew);
     return () => {
       socket.off(NOTIFICATION_NEW_EVENT, onNew);
     };
-  }, [socket]);
+  }, [socket, refetch]);
 
-  return { unread, connected, refresh };
+  return { unread: data ?? null, connected, refresh: refetch };
 }

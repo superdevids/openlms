@@ -2,7 +2,25 @@
 
 import * as React from "react";
 import { api, DEMO_MODE } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Input, Label, Select, Checkbox, Alert, Steps, Progress, toast, IconCheck, IconDownload, IconUpload } from "@openlms/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Input,
+  Label,
+  Select,
+  Checkbox,
+  Alert,
+  Steps,
+  Progress,
+  toast,
+  IconCheck,
+  IconDownload,
+  IconUpload
+} from "@openlms/ui";
 
 /**
  * Onboarding aplikasi sekolah — wizard setup 5 langkah (07-ux §4.1, prd04 §9.1).
@@ -165,11 +183,9 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
                       Kompresi gambar, lazy-load, format ringan untuk kuota terbatas.
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={dataSaver}
                     onChange={(e) => setDataSaver(e.target.checked)}
-                    className="h-5 w-5 accent-primary-600"
                     aria-label="Mode hemat data"
                   />
                 </div>
@@ -180,11 +196,9 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
                       Badge & progress non-blokir; dapat diaktifkan admin.
                     </p>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={gamifikasi}
                     onChange={(e) => setGamifikasi(e.target.checked)}
-                    className="h-5 w-5 accent-primary-600"
                     aria-label="Gamifikasi"
                   />
                 </div>

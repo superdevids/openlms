@@ -627,6 +627,10 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
   SISWA: [
     ...BASIC_SELF,
     ...s("KELAS", "class:read:class"),
+    // Jadwal pelajaran: permission SEKOLAH tapi data tetap di-scope ke kelas
+    // siswa via classIdFilter (SchedulesService.findAll) — SISWA hanya melihat
+    // jadwal kelasnya sendiri (kalender & "jadwal hari ini" dashboard).
+    ...s("SEKOLAH", "schedule:read:school"),
     ...s("KELAS", "material:read:class", "assignment:read:class"),
     ...s("SENDIRI", "submission:submit:self", "submission:read:self"),
     ...s("SENDIRI", "quiz:attempt:self", "exam:attempt:self"),

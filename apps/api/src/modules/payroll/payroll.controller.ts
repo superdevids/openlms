@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Post,
   Query,
@@ -14,6 +15,8 @@ import {
 import { RequirePermission } from "../../common/require-permission.decorator";
 import { CurrentUser } from "../../common/current-user.decorator";
 import type { AuthUser } from "../../common/auth.guard";
+import { JOB_NAMES, QUEUE_TOKEN, type IJobQueue } from "../queue/queue.types";
+import { monthPeriod } from "../finance/finance.constants";
 import {
   CalculateRunDto,
   CreateJobPositionDto,
@@ -50,7 +53,8 @@ export class PayrollController {
     private readonly salaryStructures: SalaryStructureService,
     private readonly runs: PayrollRunService,
     private readonly payslips: PayslipService,
-    private readonly reports: PayrollReportService
+    private readonly reports: PayrollReportService,
+    @Inject(QUEUE_TOKEN) private readonly jobQueue: IJobQueue
   ) {}
 
   private actorId(user: AuthUser | undefined): string {
@@ -145,14 +149,27 @@ export class PayrollController {
 
   @Post("runs")
   @RequirePermission("payroll:run:school")
-  createRun(@Body() dto: CreateRunDto, @CurrentUser() user: AuthUser | undefined) {
+  @HttpCode(HttpStatus.ACCEPTED)
+  async createRun(@Body() dto: CreateRunDto, @CurrentUser() user: AuthUser | undefined) {
     const userId = this.actorId(user);
-    return this.runs.create({
-      period: dto.period,
-      note: dto.note,
-      variableHours: dto.variableHours,
-      createdBy: userId
-    });
+    const period = dto.period ?? monthPeriod(new Date());
+    // Pembuatan run diantrekan (processor payroll.run idempoten per periode);
+    // fallback inline bila queue tidak tersedia.
+    try {
+      await this.jobQueue.enqueue(
+        JOB_NAMES.PAYROLL_RUN,
+        { period, createdBy: userId, note: dto.note },
+        { jobId: `${JOB_NAMES.PAYROLL_RUN}:${period}` }
+      );
+      return { accepted: true, job: JOB_NAMES.PAYROLL_RUN, period };
+    } catch {
+      return this.runs.create({
+        period,
+        note: dto.note,
+        variableHours: dto.variableHours,
+        createdBy: userId
+      });
+    }
   }
 
   @Get("runs")

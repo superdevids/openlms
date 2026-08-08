@@ -9,6 +9,10 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -20,10 +24,15 @@ import { CreateRolloverDraftDto, RollbackRolloverDto } from "./dto/rollover.dto"
 import type { RolloverRunStatus } from "@openlms/types";
 import type { AuthenticatedRequest } from "../../common/auth.guard";
 import { RequirePermission } from "../../common/require-permission.decorator";
+import { prisma } from "@openlms/database";
+import { JOB_NAMES, QUEUE_TOKEN, type IJobQueue } from "../queue/queue.types";
 
 @Controller("rollover")
 export class RolloverController {
-  constructor(private readonly rolloverService: RolloverService) {}
+  constructor(
+    private readonly rolloverService: RolloverService,
+    @Inject(QUEUE_TOKEN) private readonly jobQueue: IJobQueue
+  ) {}
 
   @Post("draft")
   @RequirePermission("rollover:preview:school")
@@ -57,8 +66,29 @@ export class RolloverController {
 
   @Post(":runId/execute")
   @RequirePermission("rollover:execute:school")
-  execute(@Param("runId") runId: string, @Req() req: AuthenticatedRequest) {
-    return this.rolloverService.execute(runId, this.actorId(req));
+  @HttpCode(HttpStatus.ACCEPTED)
+  async execute(@Param("runId") runId: string, @Req() req: AuthenticatedRequest) {
+    const actorId = this.actorId(req);
+    // Operasi berat (exec rollover berjenjang) diantrekan via queue; jobId
+    // memakai idempotency_key run → eksekusi ulang tidak menduplikasi.
+    const run = await prisma.rolloverRun.findUnique({
+      where: { id: runId },
+      select: { idempotency_key: true }
+    });
+    if (!run) {
+      throw new NotFoundException("Rollover run tidak ditemukan");
+    }
+    try {
+      await this.jobQueue.enqueue(
+        JOB_NAMES.ROLLOVER_EXECUTE,
+        { runId, idempotencyKey: run.idempotency_key, actorId },
+        { jobId: `${JOB_NAMES.ROLLOVER_EXECUTE}:${run.idempotency_key}` }
+      );
+      return { accepted: true, job: JOB_NAMES.ROLLOVER_EXECUTE, runId };
+    } catch {
+      // Queue tidak tersedia → fallback inline agar endpoint tetap berfungsi.
+      return this.rolloverService.execute(runId, actorId);
+    }
   }
 
   @Post(":runId/rollback")

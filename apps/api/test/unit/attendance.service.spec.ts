@@ -6,7 +6,14 @@ import { ForbiddenException } from "@nestjs/common";
 import { PrismaClient } from "@openlms/database";
 import { AttendanceService } from "../../src/modules/attendance/attendance.service";
 import { AttendanceRekapService } from "../../src/modules/attendance/attendance-rekap.service";
+import type { RealtimeGateway } from "../../src/modules/realtime/realtime.gateway";
 import { createMockDb, mockFn, MockDb } from "../helpers/mock-db";
+
+/** Mock RealtimeGateway (3rd ctor arg AttendanceService — dipakai scan QR check-in). */
+const realtimeMock = {
+  emitToUser: jest.fn(),
+  emitToClass: jest.fn()
+} as unknown as RealtimeGateway;
 
 describe("AttendanceService — scope RBAC", () => {
   let db: MockDb;
@@ -22,7 +29,8 @@ describe("AttendanceService — scope RBAC", () => {
     };
     service = new AttendanceService(
       db as unknown as PrismaClient,
-      rekapService as unknown as AttendanceRekapService
+      rekapService as unknown as AttendanceRekapService,
+      realtimeMock
     );
   });
 

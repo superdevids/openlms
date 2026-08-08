@@ -19,6 +19,7 @@ import { APP_NAME } from "@/lib/constants";
 import { DEMO_ROLES } from "@/lib/demo";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { FontSizeToggle } from "@/components/theme/font-size-toggle";
 import { useUnreadNotifications } from "@/lib/use-socket";
 import { NotificationPanel } from "./notification-panel";
 import {
@@ -198,6 +199,9 @@ export function AppShell({
               </label>
             ) : null}
             <ThemeToggle />
+            <span className="hidden sm:inline-block">
+              <FontSizeToggle />
+            </span>
             <button
               type="button"
               onClick={() => setNotifOpen((v) => !v)}
@@ -305,6 +309,10 @@ export function AppShell({
                   >
                     Bantuan & FAQ
                   </Link>
+                </li>
+                <li className="mt-2 flex items-center justify-between gap-3 border-t border-border px-3 pt-3">
+                  <span className="text-sm font-medium text-foreground">Ukuran teks</span>
+                  <FontSizeToggle />
                 </li>
               </ul>
             </nav>

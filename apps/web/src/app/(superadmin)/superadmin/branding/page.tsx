@@ -3,9 +3,12 @@
 import * as React from "react";
 import {
   errorMessage,
+  fetchAppSettingsClient,
   fetchBrandingClient,
+  updateAppFontSettings,
   updateBranding,
   uploadBrandingAsset,
+  type AppSettingsView,
   type BrandingView
 } from "@/lib/api-client";
 import {
@@ -17,11 +20,23 @@ import {
   Button,
   Input,
   Label,
+  Select,
   toast,
   IconUpload,
   IconCheck
 } from "@openlms/ui";
 import { DEFAULT_APP_NAME } from "@/lib/constants";
+import {
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SCALE,
+  FONT_FAMILIES,
+  FONT_SCALES,
+  FONT_SCALE_ORDER,
+  isFontFamily,
+  isFontScale,
+  type FontFamily,
+  type FontScale
+} from "@/lib/font";
 
 import { useApi } from "@/lib/use-api";
 
@@ -51,6 +66,15 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState<"logo" | "favicon" | null>(null);
 
+  // Tipografi global (SchoolProfile.settings.font).
+  const { data: settingsData } = useApi<AppSettingsView>(
+    (signal) => fetchAppSettingsClient(signal),
+    []
+  );
+  const [fontFamily, setFontFamily] = React.useState<FontFamily>(DEFAULT_FONT_FAMILY);
+  const [baseFontScale, setBaseFontScale] = React.useState<FontScale>(DEFAULT_FONT_SCALE);
+  const [fontSaving, setFontSaving] = React.useState(false);
+
   // Sinkronkan form saat data branding pertama kali dimuat.
   const synced = React.useRef(false);
   React.useEffect(() => {
@@ -64,6 +88,17 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
       synced.current = true;
     }
   }, [data]);
+
+  // Sinkronkan form tipografi saat settings dimuat.
+  const fontSynced = React.useRef(false);
+  React.useEffect(() => {
+    if (!fontSynced.current && settingsData?.settings?.font) {
+      const font = settingsData.settings.font;
+      if (isFontFamily(font.font_family)) setFontFamily(font.font_family);
+      if (isFontScale(font.base_font_scale)) setBaseFontScale(font.base_font_scale);
+      fontSynced.current = true;
+    }
+  }, [settingsData]);
 
   const save = async (): Promise<void> => {
     setSaving(true);
@@ -106,6 +141,26 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
       });
     } finally {
       setUploading(null);
+    }
+  };
+
+  const saveFont = async (): Promise<void> => {
+    setFontSaving(true);
+    try {
+      await updateAppFontSettings({
+        font_family: fontFamily,
+        base_font_scale: baseFontScale
+      });
+      toast({ variant: "success", title: "Tipografi disimpan" });
+      fontSynced.current = false;
+    } catch (err) {
+      toast({
+        variant: "error",
+        title: "Gagal menyimpan tipografi",
+        description: errorMessage(err)
+      });
+    } finally {
+      setFontSaving(false);
     }
   };
 
@@ -198,6 +253,50 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
             </div>
             <Button onClick={() => void save()} disabled={saving || status === "loading"}>
               <IconCheck className="h-4 w-4" /> {saving ? "Menyimpan..." : "Simpan Branding"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tipografi</CardTitle>
+            <CardDescription>
+              Font global & ukuran dasar teks — menjadi default untuk semua user yang belum memilih
+              sendiri.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="font-family">Font keluarga</Label>
+              <Select
+                id="font-family"
+                aria-label="Font keluarga"
+                value={fontFamily}
+                options={FONT_FAMILIES.map((f) => ({ value: f.value, label: f.label }))}
+                onChange={(e) => setFontFamily(e.target.value as FontFamily)}
+                className="w-full"
+              />
+              <p className="text-xs text-muted-foreground">
+                Font dimuat otomatis dari Google Fonts (400–800).
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="font-scale">Ukuran dasar teks</Label>
+              <Select
+                id="font-scale"
+                aria-label="Ukuran dasar teks"
+                value={baseFontScale}
+                options={FONT_SCALE_ORDER.map((s) => ({ value: s, label: FONT_SCALES[s].label }))}
+                onChange={(e) => setBaseFontScale(e.target.value as FontScale)}
+                className="w-full"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => void saveFont()}
+              disabled={fontSaving || status === "loading"}
+            >
+              <IconCheck className="h-4 w-4" /> {fontSaving ? "Menyimpan..." : "Simpan Tipografi"}
             </Button>
           </CardContent>
         </Card>

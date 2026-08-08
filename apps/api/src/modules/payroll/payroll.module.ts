@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { PrismaClient, prisma } from "@openlms/database";
+import { QueueModule } from "../queue/queue.module";
 import { PayrollController } from "./payroll.controller";
 import {
   JobPositionService,
@@ -25,6 +26,7 @@ import { PAYROLL_STORE } from "./payroll.constants";
  */
 
 @Module({
+  imports: [QueueModule],
   controllers: [PayrollController],
   providers: [
     JobPositionService,

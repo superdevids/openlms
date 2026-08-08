@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { AuditAction, Role } from "@prisma/client";
 import { PrismaClient } from "@openlms/database";
 import { readCacheTtlMs } from "../../common/cache.util";
+import { TtlCache } from "../../common/cache/ttl-cache";
 import { canAccess, PermissionsResolver } from "../auth/permissions-resolver";
 import { ROLE_PRIORITY, writeAudit, type AuditActorContext } from "../lms/lms-audit";
 import { UpdateDashboardConfigDto } from "./dto/update-dashboard-config.dto";
@@ -50,10 +51,12 @@ interface RoleDashboardConfigRow {
  */
 @Injectable()
 export class DashboardConfigService {
-  /** TTL cache GET /dashboard/me (ms). */
-  private readonly cacheTtlMs = readCacheTtlMs(30_000);
-
-  private cardsCache: { value: DashboardCardView[]; expiresAt: number } | null = null;
+  /**
+   * Cache GET /dashboard/me (ms) — di-key per role utama pemanggil agar user
+   * dengan role berbeda TIDAK saling menimpa kartu (bug fix: cache lama
+   * berbagi satu entri untuk semua role dalam TTL 30s).
+   */
+  private readonly cardsCache = new TtlCache<DashboardCardView[]>(readCacheTtlMs(30_000));
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -141,30 +144,24 @@ export class DashboardConfigService {
     if (roles.length === 0) {
       return [];
     }
-    const now = Date.now();
-    if (this.cardsCache && this.cardsCache.expiresAt > now) {
-      return this.cardsCache.value;
-    }
-
     const primaryRole = this.pickPrimaryRole(roles);
-    const [rows, grants, overrides] = await Promise.all([
-      this.prisma.roleDashboardConfig.findMany({
-        where: { role: primaryRole, is_enabled: true },
-        orderBy: [{ section_order: "asc" }, { feature_key: "asc" }]
-      }),
-      this.permissionsResolver.resolvePermissions(roles),
-      this.permissionsResolver.resolveOverrides(userId)
-    ]);
+    return this.cardsCache.wrap(primaryRole, async () => {
+      const [rows, grants, overrides] = await Promise.all([
+        this.prisma.roleDashboardConfig.findMany({
+          where: { role: primaryRole, is_enabled: true },
+          orderBy: [{ section_order: "asc" }, { feature_key: "asc" }]
+        }),
+        this.permissionsResolver.resolvePermissions(roles),
+        this.permissionsResolver.resolveOverrides(userId)
+      ]);
 
-    const value = rows
-      .filter((r) => {
-        if (!r.required_permission) return true;
-        return canAccess(r.required_permission, grants, overrides);
-      })
-      .map((r) => this.toCard(r));
-
-    this.cardsCache = { value, expiresAt: now + this.cacheTtlMs };
-    return value;
+      return rows
+        .filter((r) => {
+          if (!r.required_permission) return true;
+          return canAccess(r.required_permission, grants, overrides);
+        })
+        .map((r) => this.toCard(r));
+    });
   }
 
   /** Role "tertinggi" dari daftar role aktif — konsisten dengan resolveActorRole. */
@@ -176,7 +173,7 @@ export class DashboardConfigService {
   }
 
   private invalidateCardsCache(): void {
-    this.cardsCache = null;
+    this.cardsCache.invalidateAll();
   }
 
   // ============================================================

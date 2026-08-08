@@ -108,11 +108,15 @@ export class ParentPortalService {
     if (!student) throw new NotFoundException("Siswa tidak ditemukan");
 
     const gradesCount = await this.db.grade.count({ where: { student_id: studentId } });
-    const attendance = await this.db.attendance.findMany({
+    // Aggregasi status kehadiran dalam SATU query groupBy (bukan memuat seluruh
+    // baris absensi lalu filter di memori — ringan untuk rekap lama).
+    const attendanceAgg = await this.db.attendance.groupBy({
+      by: ["status"],
       where: { student_id: studentId },
-      select: { status: true }
+      _count: { _all: true }
     });
-    const alpa = attendance.filter((a) => a.status === "ALPA").length;
+    const attendanceTotal = attendanceAgg.reduce((sum, r) => sum + r._count._all, 0);
+    const alpa = attendanceAgg.find((r) => r.status === "ALPA")?._count._all ?? 0;
     const unpaidInvoices = await this.db.invoice.count({
       where: { student_id: studentId, status: { in: ["PENDING", "OVERDUE"] } }
     });
@@ -121,7 +125,7 @@ export class ParentPortalService {
       studentId,
       studentName: student.full_name,
       gradesCount,
-      attendance: { total: attendance.length, alpa },
+      attendance: { total: attendanceTotal, alpa },
       unpaidInvoices
     };
   }

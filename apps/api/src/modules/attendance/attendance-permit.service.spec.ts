@@ -9,6 +9,13 @@ import type { Attendance } from "@prisma/client";
 import { AttendanceRekapService } from "./attendance-rekap.service";
 import { AttendanceService } from "./attendance.service";
 import type { ActorContext } from "./current-actor";
+import type { RealtimeGateway } from "../realtime/realtime.gateway";
+
+/** Mock RealtimeGateway (3rd ctor arg AttendanceService — dipakai scan QR check-in). */
+const realtimeMock = {
+  emitToUser: jest.fn(),
+  emitToClass: jest.fn()
+} as unknown as RealtimeGateway;
 
 const STUDENT: ActorContext = { userId: "usr_student1", roles: ["SISWA"], classIds: [] };
 const BK: ActorContext = { userId: "usr_bk", roles: ["GURU_BK"], classIds: [] };
@@ -57,7 +64,7 @@ describe("AttendanceService — izin/sakit online (M-ABSQR-T7)", () => {
   beforeEach(() => {
     const mock = createMockPrisma();
     mocks = mock.mocks;
-    service = new AttendanceService(mock.prisma, new AttendanceRekapService());
+    service = new AttendanceService(mock.prisma, new AttendanceRekapService(), realtimeMock);
     jest.clearAllMocks();
   });
 

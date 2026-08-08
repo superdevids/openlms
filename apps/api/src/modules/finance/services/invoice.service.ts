@@ -94,6 +94,54 @@ export class InvoiceService {
     return results;
   }
 
+  /**
+   * Buat banyak tagihan SEKALIGUS (createMany) — menggantikan loop create
+   * serial (N+1) pada generasi SPP massal. Nomor invoice dihitung sekali
+   * (hitung basis per tahun + indeks) agar unik; validasi siswa dilakukan
+   * bulk (findMany IN). Return jumlah baris yang berhasil dibuat.
+   */
+  async createManyForStudents(
+    students: string[],
+    base: Omit<CreateInvoiceInput, "studentId">
+  ): Promise<number> {
+    if (students.length === 0) return 0;
+    const amount = money(base.amount);
+    if (amount.lte(0)) {
+      throw new BadRequestException("amount harus lebih besar dari 0");
+    }
+    const discount = money(base.discount ?? 0);
+    const period = base.period ?? monthPeriod(base.dueDate);
+
+    // Validasi siswa aktif dalam SATU query (bukan findUnique per siswa).
+    const found = await prisma.user.findMany({
+      where: { id: { in: students }, is_active: true },
+      select: { id: true }
+    });
+    const foundIds = new Set(found.map((u) => u.id));
+    const valid = students.filter((id) => foundIds.has(id));
+    if (valid.length === 0) return 0;
+
+    const year = new Date().getFullYear();
+    const count = await prisma.invoice.count({
+      where: { invoice_no: { startsWith: `${INVOICE_NO_PREFIX}-${year}-` } }
+    });
+
+    const data = valid.map((studentId, index) => ({
+      student_id: studentId,
+      invoice_no: `${INVOICE_NO_PREFIX}-${year}-${String(count + 1 + index).padStart(5, "0")}`,
+      type: base.type,
+      period,
+      amount,
+      discount,
+      due_date: base.dueDate,
+      academic_year: base.academicYear,
+      created_by: base.createdBy
+    }));
+
+    const result = await prisma.invoice.createMany({ data });
+    return result.count;
+  }
+
   async findById(id: string): Promise<InvoiceWithPayments> {
     const invoice = await prisma.invoice.findUnique({
       where: { id },

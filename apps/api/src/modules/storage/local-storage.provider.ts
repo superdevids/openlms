@@ -70,9 +70,8 @@ export class LocalStorageProvider {
     const safePath = this.sanitizePath(filePath);
     const absolute = resolve(this.root, safeBucket, safePath);
     const bucketRoot = resolve(this.root, safeBucket);
-    if (absolute !== bucketRoot && !absolute.startsWith(bucketRoot + sep)) {
+    if (absolute !== bucketRoot && !absolute.startsWith(bucketRoot + sep))
       throw new BadRequestException("Path file tidak valid (traversal ditolak).");
-    }
     return absolute;
   }
 
@@ -81,9 +80,7 @@ export class LocalStorageProvider {
     const absolute = this.resolve(bucket, filePath);
     try {
       const s = await stat(absolute);
-      if (!s.isFile()) {
-        throw new NotFoundException("File tidak ditemukan.");
-      }
+      if (!s.isFile()) throw new NotFoundException("File tidak ditemukan.");
     } catch (err) {
       if (err instanceof NotFoundException) throw err;
       throw new NotFoundException("File tidak ditemukan.");
@@ -99,9 +96,7 @@ export class LocalStorageProvider {
     const absolute = this.resolveObjectPath(objectPath);
     try {
       const s = await stat(absolute);
-      if (!s.isFile()) {
-        return false;
-      }
+      if (!s.isFile()) return false;
       await unlink(absolute);
       return true;
     } catch {
@@ -111,17 +106,14 @@ export class LocalStorageProvider {
 
   /** Resolve objectPath ("bucket/sub/path") ke absolute + containment check. */
   private resolveObjectPath(objectPath: string): string {
-    if (objectPath.includes("\\")) {
+    if (objectPath.includes("\\"))
       throw new BadRequestException("Path tidak valid (backslash ditolak).");
-    }
     const normalized = normalize(objectPath);
-    if (normalized === ".." || normalized.startsWith(`..${sep}`)) {
+    if (normalized === ".." || normalized.startsWith(`..${sep}`))
       throw new BadRequestException("Path tidak valid (traversal ditolak).");
-    }
     const absolute = resolve(this.root, normalized);
-    if (absolute !== this.root && !absolute.startsWith(this.root + sep)) {
+    if (absolute !== this.root && !absolute.startsWith(this.root + sep))
       throw new BadRequestException("Path tidak valid (traversal ditolak).");
-    }
     return absolute;
   }
 
@@ -157,26 +149,21 @@ export class LocalStorageProvider {
   /** Segmen bucket: hanya alfanumerik + dash/underscore. */
   private sanitizeSegment(segment: string): string {
     const cleaned = segment.replace(/[^a-zA-Z0-9_-]/g, "");
-    if (cleaned.length === 0) {
-      throw new BadRequestException("Bucket tidak valid.");
-    }
+    if (cleaned.length === 0) throw new BadRequestException("Bucket tidak valid.");
     return cleaned;
   }
 
   /** Path file: normalisasi, tolak traversal (..) dan backslash. */
   private sanitizePath(filePath: string): string {
-    if (filePath.includes("\\")) {
+    if (filePath.includes("\\"))
       throw new BadRequestException("Path tidak valid (backslash ditolak).");
-    }
     const normalized = normalize(filePath);
-    if (normalized === ".." || normalized.startsWith(`..${sep}`)) {
+    if (normalized === ".." || normalized.startsWith(`..${sep}`))
       throw new BadRequestException("Path tidak valid (traversal ditolak).");
-    }
     // Hanya izinkan ekstensi file yang dikenal (hindari serve file arbitrer).
     const ext = extname(normalized).toLowerCase();
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    if (!ALLOWED_EXTENSIONS.includes(ext))
       throw new BadRequestException("Ekstensi file tidak diizinkan.");
-    }
     return normalized;
   }
 }

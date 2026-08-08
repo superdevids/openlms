@@ -1,5 +1,6 @@
 import { AuditAction, Prisma, Role } from "@prisma/client";
 import { prisma } from "@openlms/database";
+import { notifyAuditChange } from "../realtime/realtime.gateway";
 
 /** Minimal konteks aktor — dipenuhi RequestContext (auth.guard) dan ActorContext (modul). */
 export interface AuditActorContext {
@@ -61,7 +62,7 @@ export function resolveActorRole(roles: string[], explicit?: Role): Role | undef
 export async function writeAudit(params: AuditParams): Promise<void> {
   const actorRole = resolveActorRole(params.ctx.roles, params.actorRole);
   try {
-    await prisma.auditLog.create({
+    const row = await prisma.auditLog.create({
       data: {
         actor_id: params.ctx.userId === "system" ? null : params.ctx.userId,
         actor_role: actorRole as never,
@@ -72,6 +73,14 @@ export async function writeAudit(params: AuditParams): Promise<void> {
         after: toJson(params.after),
         ip_address: params.ipAddress
       }
+    });
+    // R-11 live: sinyal changelog:new best-effort (klien refetch via REST).
+    notifyAuditChange({
+      id: row.id,
+      entity: params.entity,
+      entityId: params.entityId,
+      action: params.action,
+      createdAt: row.created_at.toISOString()
     });
   } catch {
     // jangan gagalkan mutasi karena audit

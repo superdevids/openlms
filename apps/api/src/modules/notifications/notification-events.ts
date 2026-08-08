@@ -19,6 +19,12 @@ export const EXAM_FORCE_SUBMIT_EVENT = "exam:force-submit";
 export const EXAM_TICK_EVENT = "exam:tick";
 export const ATTENDANCE_ALPA_EVENT = "attendance:alpa";
 export const ATTENDANCE_SESSION_CLOSED_EVENT = "attendance:session-closed";
+/** Check-in absensi QR berhasil (payload ringan; room user:{studentId} + class:{classId}). */
+export const ATTENDANCE_CHECKED_IN_EVENT = "attendance:checked-in";
+/** Change-log sistem baru (best-effort; sumber kebenaran tetap GET /admin/change-logs). */
+export const CHANGE_LOG_NEW_EVENT = "changelog:new";
+/** Branding berubah (update identitas visual; payload ringan configVersion). */
+export const BRANDING_CHANGED_EVENT = "branding:changed";
 export const INVOICE_DUE_EVENT = "invoice:due";
 export const PAYMENT_CONFIRMED_EVENT = "payment:confirmed";
 export const ANNOUNCEMENT_NEW_EVENT = "announcement:new";
@@ -72,6 +78,9 @@ export const SERVER_EVENTS: readonly string[] = [
   EXAM_TICK_EVENT,
   ATTENDANCE_ALPA_EVENT,
   ATTENDANCE_SESSION_CLOSED_EVENT,
+  ATTENDANCE_CHECKED_IN_EVENT,
+  CHANGE_LOG_NEW_EVENT,
+  BRANDING_CHANGED_EVENT,
   INVOICE_DUE_EVENT,
   PAYMENT_CONFIRMED_EVENT,
   ANNOUNCEMENT_NEW_EVENT,

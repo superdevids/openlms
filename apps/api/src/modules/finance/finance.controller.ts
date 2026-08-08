@@ -6,6 +6,7 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Post,
   Query,
@@ -16,6 +17,7 @@ import {
 import { RequirePermission } from "../../common/require-permission.decorator";
 import { CurrentUser } from "../../common/current-user.decorator";
 import type { AuthUser } from "../../common/auth.guard";
+import { JOB_NAMES, QUEUE_TOKEN, type IJobQueue } from "../queue/queue.types";
 import { IDEMPOTENCY_HEADER } from "./finance.constants";
 import {
   AllocatePaymentDto,
@@ -61,7 +63,8 @@ export class FinanceController {
     private readonly refunds: RefundService,
     private readonly reconciliation: ReconciliationService,
     private readonly cashFlow: CashFlowService,
-    private readonly jobs: FinanceJobsService
+    private readonly jobs: FinanceJobsService,
+    @Inject(QUEUE_TOKEN) private readonly jobQueue: IJobQueue
   ) {}
 
   private actorId(user: AuthUser | undefined): string {
@@ -140,12 +143,30 @@ export class FinanceController {
 
   @Post("jobs/spp")
   @RequirePermission("invoice:write:school")
-  runSpp(@Body() dto: SppSchedulerDto) {
+  @HttpCode(HttpStatus.ACCEPTED)
+  async runSpp(@Body() dto: SppSchedulerDto) {
     const period =
       dto.period ??
       `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
     const amount = dto.amount ?? "0";
-    return this.spp.generateSpp(period, amount, dto.dueDate ? new Date(dto.dueDate) : undefined);
+    // Operasi berat (generate tagihan untuk semua siswa) diantrekan — jobId
+    // per periode membuat eksekusi ulang idempoten (tidak menduplikasi tagihan).
+    try {
+      await this.jobQueue.enqueue(
+        JOB_NAMES.SPP_GENERATE,
+        {
+          period,
+          amount,
+          dueDate: dto.dueDate,
+          createdBy: "system"
+        },
+        { jobId: `${JOB_NAMES.SPP_GENERATE}:${period}` }
+      );
+      return { accepted: true, job: JOB_NAMES.SPP_GENERATE, period };
+    } catch {
+      // Queue tidak tersedia (mis. Redis down) → fallback inline agar endpoint tetap berfungsi.
+      return this.spp.generateSpp(period, amount, dto.dueDate ? new Date(dto.dueDate) : undefined);
+    }
   }
 
   @Get("invoices/summary/monthly")

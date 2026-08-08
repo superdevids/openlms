@@ -25,9 +25,9 @@ describe("ParentPortalService — scope SENDIRI", () => {
       student_id: "stu-1"
     });
     mockFn(db, "grade", "count").mockResolvedValue(12);
-    mockFn(db, "attendance", "findMany").mockResolvedValue([
-      { status: "HADIR" },
-      { status: "ALPA" }
+    mockFn(db, "attendance", "groupBy").mockResolvedValue([
+      { status: "HADIR", _count: { _all: 1 } },
+      { status: "ALPA", _count: { _all: 1 } }
     ]);
     mockFn(db, "invoice", "count").mockResolvedValue(1);
 

@@ -218,6 +218,39 @@ export async function updateBranding(
   return api.patch<BrandingView>("/app/branding", patch);
 }
 
+// ============================================================
+// Pengaturan aplikasi — tipografi global (/app/settings)
+// ============================================================
+
+export interface AppSettingsFont {
+  font_family?: string | null;
+  base_font_scale?: string | null;
+}
+
+export interface AppSettingsView {
+  profile?: unknown;
+  settings?: {
+    font?: AppSettingsFont;
+    [key: string]: unknown;
+  };
+  updatedAt?: string;
+}
+
+/** GET /app/settings — butuh permission app:read:school (halaman superadmin). */
+export async function fetchAppSettingsClient(signal?: AbortSignal): Promise<AppSettingsView> {
+  return api.get<AppSettingsView>("/app/settings", { signal });
+}
+
+/** GET /app/settings/font — publik; dipakai FontSizeProvider untuk seed default. */
+export async function fetchAppFontSettings(signal?: AbortSignal): Promise<AppSettingsFont> {
+  return api.get<AppSettingsFont>("/app/settings/font", { signal });
+}
+
+/** PATCH /app/settings dengan settings.font — butuh app:write:school (superadmin). */
+export async function updateAppFontSettings(font: AppSettingsFont): Promise<AppSettingsView> {
+  return api.patch<AppSettingsView>("/app/settings", { settings: { font } });
+}
+
 /** POST /app/branding/logo | /favicon — multipart field "file". */
 export async function uploadBrandingAsset(
   field: "logo" | "favicon",

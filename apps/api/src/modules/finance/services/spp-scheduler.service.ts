@@ -58,28 +58,27 @@ export class SppSchedulerService {
       select: { student_id: true }
     });
     const existingStudentIds = new Set(existing.map((e) => e.student_id));
+    const missing = students.filter((s) => !existingStudentIds.has(s.id));
 
     const targetYear = academicYear ?? String(new Date().getFullYear());
     const targetDue = dueDate ?? endOfMonth(targetPeriod);
 
-    let generated = 0;
-    let skipped = 0;
-    for (const student of students) {
-      if (existingStudentIds.has(student.id)) {
-        skipped++;
-        continue;
-      }
-      await this.invoiceService.create({
-        studentId: student.id,
-        type: "SPP",
-        period: targetPeriod,
-        amount: nominal,
-        dueDate: targetDue,
-        academicYear: targetYear,
-        createdBy
-      });
-      generated++;
-    }
+    // Batch create (bukan loop create serial) — satu createMany untuk seluruh
+    // siswa yang belum punya tagihan SPP periode ini (idempoten per periode).
+    const generated = missing.length
+      ? await this.invoiceService.createManyForStudents(
+          missing.map((s) => s.id),
+          {
+            type: "SPP",
+            period: targetPeriod,
+            amount: nominal,
+            dueDate: targetDue,
+            academicYear: targetYear,
+            createdBy
+          }
+        )
+      : 0;
+    const skipped = students.length - generated;
 
     this.logger.log(`SPP ${targetPeriod}: ${generated} dibuat, ${skipped} dilewati (sudah ada)`);
     return {

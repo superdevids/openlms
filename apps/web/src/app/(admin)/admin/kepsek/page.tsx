@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { ChangeLogTable } from "@/components/audit/change-log-table";
+import { api } from "@/lib/api-client";
+import { useApi } from "@/lib/use-api";
 import {
   Card,
   CardContent,
@@ -28,8 +30,25 @@ const DEMO_PAYROLL = [
   { id: "p3", staff: "Dewi Lestari", role: "TU", takeHome: 3300000, status: "TERKIRIM" }
 ];
 
+interface MonthlySummary {
+  total: number;
+  paid: number;
+  partial: number;
+  overdue: number;
+  outstanding: number;
+}
+
 export default function AdminKepsekPage(): React.JSX.Element {
   const [tab, setTab] = React.useState("kpi");
+
+  // KPI tunggakan memakai data NYATA (GET /finance/invoices/summary/monthly) —
+  // read-only; KPI lain tetap placeholder sampai endpoint agregat tersedia.
+  const finance = useApi<MonthlySummary>(
+    () => api.get<MonthlySummary>("/finance/invoices/summary/monthly"),
+    [],
+    { enabled: tab === "kpi" }
+  );
+  const tunggakan = finance.data;
 
   return (
     <div className="space-y-6">
@@ -39,7 +58,15 @@ export default function AdminKepsekPage(): React.JSX.Element {
         <Kpi label="Siswa Aktif" value="1,204" hint="48 rombel" />
         <Kpi label="Kehadiran Hari Ini" value={formatPercent(95.8)} hint="tren 6 bulan" />
         <Kpi label="Rata-rata Nilai" value="78.4" hint="per angkatan" />
-        <Kpi label="Tunggakan SPP" value="12%" hint="read-only" />
+        <Kpi
+          label="Tunggakan SPP"
+          value={tunggakan ? `${tunggakan.overdue} tagihan` : finance.error ? "-" : "…"}
+          hint={
+            tunggakan
+              ? `outstanding ${formatRupiah(Number(tunggakan.outstanding))} · ${tunggakan.total} total`
+              : "read-only"
+          }
+        />
       </div>
 
       <Tabs

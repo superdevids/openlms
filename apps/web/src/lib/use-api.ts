@@ -90,3 +90,10 @@ export function useApi<T>(
 
   return { status, data, error, refetch };
 }
+
+/**
+ * Nama generik untuk pola async-data (fetch + loading + error + refetch).
+ * Alias dari useApi — konsumen baru disarankan memakai nama ini agar
+ * pemakaiannya jelas: `useAsyncData(() => api.get<T>(...), [deps])`.
+ */
+export const useAsyncData = useApi;

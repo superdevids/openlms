@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { PrismaClient, prisma } from "@openlms/database";
+import { QueueModule } from "../queue/queue.module";
 import { FinanceController } from "./finance.controller";
 import { FinanceConfigService } from "./services/finance-config.service";
 import { InvoiceService } from "./services/invoice.service";
@@ -27,6 +28,7 @@ import { FINANCE_STORE } from "./finance.constants";
  */
 
 @Module({
+  imports: [QueueModule],
   controllers: [FinanceController],
   providers: [
     FinanceConfigService,

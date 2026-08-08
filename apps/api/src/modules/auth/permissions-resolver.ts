@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PermissionEffect, PermissionScope, Role } from "@prisma/client";
 import { PrismaClient } from "@openlms/database";
+import { TtlCache } from "../../common/cache/ttl-cache";
 
 export interface PermissionGrant {
   code: string;
@@ -68,21 +69,18 @@ export function canAccess(
 export class PermissionsResolver {
   private static readonly TTL_MS = 60_000;
 
-  private readonly permissionsCache = new Map<
-    string,
-    { value: PermissionGrant[]; expires: number }
-  >();
-  private readonly overridesCache = new Map<
-    string,
-    { value: PermissionOverrideGrant[]; expires: number }
-  >();
+  /** Cache permission per kombinasi role + override per user (TTL 60s). */
+  private readonly permissionsCache = new TtlCache<PermissionGrant[]>(PermissionsResolver.TTL_MS);
+  private readonly overridesCache = new TtlCache<PermissionOverrideGrant[]>(
+    PermissionsResolver.TTL_MS
+  );
 
   constructor(private readonly prisma: PrismaClient) {}
 
   /** Hapus seluruh cache (dipanggil saat role/permission/override berubah). */
   invalidate(): void {
-    this.permissionsCache.clear();
-    this.overridesCache.clear();
+    this.permissionsCache.invalidateAll();
+    this.overridesCache.invalidateAll();
   }
 
   async resolvePermissions(roles: Role[]): Promise<PermissionGrant[]> {
@@ -90,56 +88,46 @@ export class PermissionsResolver {
       return [];
     }
     const key = [...roles].sort().join(",");
-    const cached = this.permissionsCache.get(key);
-    if (cached && cached.expires > Date.now()) {
-      return cached.value;
-    }
+    return this.permissionsCache.wrap(key, async () => {
+      const rows = await this.prisma.rolePermission.findMany({
+        where: { role: { in: roles } },
+        select: {
+          effect: true,
+          scope_default: true,
+          permission: { select: { code: true } }
+        }
+      });
 
-    const rows = await this.prisma.rolePermission.findMany({
-      where: { role: { in: roles } },
-      select: {
-        effect: true,
-        scope_default: true,
-        permission: { select: { code: true } }
+      // Union antar role: scope terluas menang; DENY pada salah satu role → deny.
+      const best = new Map<string, PermissionGrant>();
+      for (const row of rows) {
+        const code = row.permission.code;
+        const current = best.get(code);
+        if (row.effect === PermissionEffect.DENY) {
+          best.set(code, { code, scope: current?.scope ?? row.scope_default, deny: true });
+          continue;
+        }
+        if (!current || current.deny || SCOPE_RANK[row.scope_default] > SCOPE_RANK[current.scope]) {
+          best.set(code, { code, scope: row.scope_default, deny: false });
+        }
       }
+      return [...best.values()];
     });
-
-    // Union antar role: scope terluas menang; DENY pada salah satu role → deny.
-    const best = new Map<string, PermissionGrant>();
-    for (const row of rows) {
-      const code = row.permission.code;
-      const current = best.get(code);
-      if (row.effect === PermissionEffect.DENY) {
-        best.set(code, { code, scope: current?.scope ?? row.scope_default, deny: true });
-        continue;
-      }
-      if (!current || current.deny || SCOPE_RANK[row.scope_default] > SCOPE_RANK[current.scope]) {
-        best.set(code, { code, scope: row.scope_default, deny: false });
-      }
-    }
-    const value = [...best.values()];
-    this.permissionsCache.set(key, { value, expires: Date.now() + PermissionsResolver.TTL_MS });
-    return value;
   }
 
   async resolveOverrides(userId: string): Promise<PermissionOverrideGrant[]> {
-    const cached = this.overridesCache.get(userId);
-    if (cached && cached.expires > Date.now()) {
-      return cached.value;
-    }
-
-    const rows = await this.prisma.userPermissionOverride.findMany({
-      where: {
-        user_id: userId,
-        OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }]
-      },
-      select: {
-        effect: true,
-        permission: { select: { code: true } }
-      }
+    return this.overridesCache.wrap(userId, async () => {
+      const rows = await this.prisma.userPermissionOverride.findMany({
+        where: {
+          user_id: userId,
+          OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }]
+        },
+        select: {
+          effect: true,
+          permission: { select: { code: true } }
+        }
+      });
+      return rows.map((r) => ({ code: r.permission.code, effect: r.effect }));
     });
-    const value = rows.map((r) => ({ code: r.permission.code, effect: r.effect }));
-    this.overridesCache.set(userId, { value, expires: Date.now() + PermissionsResolver.TTL_MS });
-    return value;
   }
 }

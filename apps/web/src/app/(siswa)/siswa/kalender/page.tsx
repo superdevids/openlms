@@ -7,34 +7,17 @@ import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, EmptyState }
 
 import { formatDateLong } from "@/lib/format";
 import { cn } from "@openlms/ui";
+import { SCHEDULE_DAY_NAMES, mapScheduleEntry, type ScheduleEntryView } from "@/lib/schedule";
 
-interface ScheduleEntry {
-  id: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-  subject: string;
-  className?: string;
-}
-
-const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+const DAYS = SCHEDULE_DAY_NAMES;
 
 export default function SiswaKalenderPage(): React.JSX.Element {
-  const schedule = useApi<ScheduleEntry[]>(() => api.get("/schedules"), [], {
-    fallbackData: [
-      { id: "sch_1", day: "Senin", startTime: "07:30", endTime: "09:00", subject: "Matematika" },
-      { id: "sch_2", day: "Senin", startTime: "09:10", endTime: "10:40", subject: "Fisika" },
-      {
-        id: "sch_3",
-        day: "Selasa",
-        startTime: "07:30",
-        endTime: "09:00",
-        subject: "Bahasa Indonesia"
-      },
-      { id: "sch_4", day: "Rabu", startTime: "10:50", endTime: "12:20", subject: "Biologi" },
-      { id: "sch_5", day: "Jumat", startTime: "07:30", endTime: "09:00", subject: "Kimia" }
-    ]
-  });
+  // GET /schedules dikembalikan service sebagai ScheduleEntry Prisma
+  // (day_of_week 1..7, start_period/end_period) — di-map ke tampilan ringan.
+  const schedule = useApi<ScheduleEntryView[]>(async () => {
+    const rows = await api.get<RawScheduleEntry[]>("/schedules");
+    return rows.map(mapScheduleEntry);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -54,7 +37,8 @@ export default function SiswaKalenderPage(): React.JSX.Element {
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {DAYS.map((day) => {
-              const entries = (schedule.data ?? []).filter((s) => s.day === day);
+              const dayNo = DAYS.indexOf(day) + 1;
+              const entries = (schedule.data ?? []).filter((s) => s.dayOfWeek === dayNo);
               return (
                 <Card key={day} className={cn(entries.length === 0 && "opacity-60")}>
                   <CardHeader>
@@ -72,10 +56,12 @@ export default function SiswaKalenderPage(): React.JSX.Element {
                                 {e.subject}
                               </span>
                               <span className="block text-xs text-neutral-600">
-                                {e.startTime} – {e.endTime}
+                                Jam ke-{e.periods}
+                                {e.className ? ` · ${e.className}` : ""}
+                                {e.room ? ` · ${e.room}` : ""}
                               </span>
                             </span>
-                            <Badge variant="primary">{e.startTime}</Badge>
+                            <Badge variant="primary">Jam {e.periods.split("–")[0]}</Badge>
                           </li>
                         ))}
                       </ul>
@@ -89,4 +75,15 @@ export default function SiswaKalenderPage(): React.JSX.Element {
       </DataView>
     </div>
   );
+}
+
+interface RawScheduleEntry {
+  id: string;
+  day_of_week: number;
+  start_period: number;
+  end_period: number;
+  room?: string | null;
+  class?: { id: string; name: string } | null;
+  subject?: { id: string; code: string; name: string } | null;
+  teacher?: { id: string; full_name: string } | null;
 }

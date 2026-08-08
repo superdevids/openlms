@@ -41,9 +41,8 @@ export class StorageService {
     file: UploadedFile,
     user: AuthUser | undefined
   ): Promise<{ path: string }> {
-    if (!UPLOADABLE_BUCKETS.has(bucket)) {
+    if (!UPLOADABLE_BUCKETS.has(bucket))
       throw new ForbiddenException("Bucket tidak diizinkan untuk upload.");
-    }
     this.assertUploadAllowed(bucket, user);
     const path = await this.provider.save(bucket, file);
     // R-12: upload file dicatat ke AuditLog (entity storage_file).
@@ -63,35 +62,25 @@ export class StorageService {
   /** Cek akses baca per bucket; lempar ForbiddenException bila tidak berhak. */
   async assertReadAccess(bucket: string, user: AuthUser | undefined): Promise<void> {
     const policy = BUCKET_POLICIES[bucket] ?? "class";
-    if (policy === "public") {
-      return;
-    }
-    if (!user) {
-      throw new ForbiddenException("Akses file memerlukan autentikasi.");
-    }
+    if (policy === "public") return;
+    if (!user) throw new ForbiddenException("Akses file memerlukan autentikasi.");
     if (policy === "ppdb") {
       // Dokumen PPDB (KK/consent) = PII — hanya staf sekolah (bukan GURU/SISWA).
       const staffRoles = ["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK"];
-      if (!user.roles.some((r) => staffRoles.includes(r))) {
+      if (!user.roles.some((r) => staffRoles.includes(r)))
         throw new ForbiddenException("Akses dokumen PPDB hanya untuk staf sekolah.");
-      }
       return;
     }
     if (policy === "exports") {
       const adminRoles = ["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK"];
-      if (!user.roles.some((r) => adminRoles.includes(r))) {
+      if (!user.roles.some((r) => adminRoles.includes(r)))
         throw new ForbiddenException("Akses file ekspor ditolak.");
-      }
       return;
     }
     // class-scoped: role pengajar/admin boleh; siswa hanya jika punya classIds.
     const allowedRoles = ["GURU", "GURU_BK", "OPERATOR", "WAKEPSEK", "KEPSEK", "SUPERADMIN"];
-    if (user.roles.some((r) => allowedRoles.includes(r))) {
-      return;
-    }
-    if (user.classIds.length > 0) {
-      return;
-    }
+    if (user.roles.some((r) => allowedRoles.includes(r))) return;
+    if (user.classIds.length > 0) return;
     throw new ForbiddenException("Akses file kelas ditolak.");
   }
 
@@ -112,19 +101,11 @@ export class StorageService {
    * - submissions: siswa terdaftar (classIds non-kosong) diizinkan.
    */
   private assertUploadAllowed(bucket: string, user: AuthUser | undefined): void {
-    if (PUBLIC_UPLOAD_BUCKETS.has(bucket)) {
-      return;
-    }
-    if (!user) {
-      throw new UnauthorizedException("Akses upload memerlukan autentikasi.");
-    }
+    if (PUBLIC_UPLOAD_BUCKETS.has(bucket)) return;
+    if (!user) throw new UnauthorizedException("Akses upload memerlukan autentikasi.");
     const allowedRoles = UPLOAD_ROLES[bucket] ?? ADMIN_ROLES;
-    if (user.roles.some((r) => allowedRoles.includes(r))) {
-      return;
-    }
-    if (bucket === "submissions" && user.classIds.length > 0) {
-      return;
-    }
+    if (user.roles.some((r) => allowedRoles.includes(r))) return;
+    if (bucket === "submissions" && user.classIds.length > 0) return;
     throw new ForbiddenException("Akses upload ke bucket ini ditolak.");
   }
 }

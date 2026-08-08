@@ -15,13 +15,16 @@ import {
   Camera,
   ChartColumn,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleHelp,
   ClipboardList,
   Clock,
   Database,
   Download,
+  EllipsisVertical,
   FileCheck,
   FileText,
   Flag,
@@ -111,6 +114,18 @@ export function IconChevronLeft(props: IconProps): React.JSX.Element {
 
 export function IconChevronRight(props: IconProps): React.JSX.Element {
   return <ChevronRight {...props} />;
+}
+
+export function IconChevronDown(props: IconProps): React.JSX.Element {
+  return <ChevronDown {...props} />;
+}
+
+export function IconChevronUp(props: IconProps): React.JSX.Element {
+  return <ChevronUp {...props} />;
+}
+
+export function IconEllipsis(props: IconProps): React.JSX.Element {
+  return <EllipsisVertical {...props} />;
 }
 
 export function IconLogout(props: IconProps): React.JSX.Element {

@@ -140,9 +140,27 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Skala ukuran teks per user (R-a11y): class di <html> mengubah root font-size
+     sehingga token rem (semua text-*, padding shadcn) ikut membesar. Persen pada
+     root dihitung relatif terhadap ukuran awal browser (16px default). */
+  .font-scale-normal {
+    font-size: 100%;
+    --font-scale-multiplier: 1;
+  }
+
+  .font-scale-large {
+    font-size: 112.5%;
+    --font-scale-multiplier: 1.125;
+  }
+
+  .font-scale-big {
+    font-size: 125%;
+    --font-scale-multiplier: 1.25;
+  }
+
   body {
-    font-family: var(--font-sans);
-    font-size: 16px;
+    font-family: var(--app-font-sans, var(--font-sans));
+    font-size: 1rem; /* ikuti root font-size (skala teks user) */
     line-height: 1.5;
     @apply bg-background text-foreground antialiased;
   }

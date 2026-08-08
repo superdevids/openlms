@@ -21,6 +21,7 @@ import { formatDateTime, formatRelative } from "@/lib/format";
 import { DEMO_EXAMS, DEMO_TASKS, DEMO_CLASSES } from "@/lib/demo";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
+import { dayName, mapScheduleEntry, todayDayOfWeek, type ScheduleEntryView } from "@/lib/schedule";
 
 interface Exam {
   id: string;
@@ -47,6 +48,17 @@ interface ClassItem {
   teacher: string;
 }
 
+interface RawScheduleEntry {
+  id: string;
+  day_of_week: number;
+  start_period: number;
+  end_period: number;
+  room?: string | null;
+  class?: { id: string; name: string } | null;
+  subject?: { id: string; code: string; name: string } | null;
+  teacher?: { id: string; full_name: string } | null;
+}
+
 export default function SiswaDashboardPage(): React.JSX.Element {
   const { user } = useAuth();
   const firstName = user?.fullName.split(" ")[0] ?? "Siswa";
@@ -58,6 +70,16 @@ export default function SiswaDashboardPage(): React.JSX.Element {
   const classes = useApi<ClassItem[]>(() => api.get("/classes"), [], {
     fallbackData: DEMO_CLASSES
   });
+  // "Jadwal hari ini" — read-only dari GET /schedules (filter day_of_week hari ini).
+  const todaySchedule = useApi<ScheduleEntryView[]>(async () => {
+    const rows = await api.get<RawScheduleEntry[]>("/schedules");
+    return rows.map(mapScheduleEntry);
+  }, []);
+  const today = todayDayOfWeek();
+  const todayEntries = (todaySchedule.data ?? [])
+    .filter((s) => s.dayOfWeek === today)
+    .sort((a, b) => a.periods.localeCompare(b.periods))
+    .slice(0, 4);
 
   const ongoing = (exams.data ?? []).find((e) => e.status === "ONGOING");
   const upcomingTasks = (tasks.data ?? [])
@@ -86,6 +108,50 @@ export default function SiswaDashboardPage(): React.JSX.Element {
         cards={DEFAULT_DASHBOARD_CARDS.siswa}
         fallbackLabel="Menu siswa"
       />
+
+      <section aria-label="Jadwal hari ini">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-neutral-900">
+            Jadwal Hari Ini ({dayName(today)})
+          </h2>
+          <Link href="/siswa/kalender" className="text-sm font-medium text-primary-600">
+            Lihat kalender
+          </Link>
+        </div>
+        <DataView
+          status={todaySchedule.status}
+          error={todaySchedule.error}
+          onRetry={todaySchedule.refetch}
+          fallbackLabel="Jadwal hari ini"
+        >
+          {todayEntries.length === 0 ? (
+            <EmptyState
+              title="Tidak ada jadwal hari ini"
+              description="Jadwal pelajaran Anda akan tampil di sini."
+            />
+          ) : (
+            <ul className="space-y-2">
+              {todayEntries.map((e) => (
+                <li key={e.id}>
+                  <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3">
+                    <span className="min-w-0">
+                      <span className="block truncate text-base font-medium text-neutral-900">
+                        {e.subject}
+                      </span>
+                      <span className="block text-sm text-neutral-600">
+                        Jam ke-{e.periods}
+                        {e.className ? ` · ${e.className}` : ""}
+                        {e.room ? ` · ${e.room}` : ""}
+                      </span>
+                    </span>
+                    <Badge variant="primary">Jam {e.periods.split("–")[0]}</Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DataView>
+      </section>
 
       <section aria-label="Ujian aktif">
         <DataView

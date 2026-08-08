@@ -3,6 +3,7 @@ import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@openlms/database";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { BRANDING_CHANGED_EVENT } from "../notifications/notification-events";
 import { LocalStorageProvider, UploadedFile } from "../storage/local-storage.provider";
 import { UpdateBrandingDto } from "./dto/update-branding.dto";
 import type { BrandingView } from "./branding.types";
@@ -221,7 +222,7 @@ export class BrandingService {
 
   private emitChanged(view: BrandingView): void {
     try {
-      this.realtime.emitToAll("branding:changed", { configVersion: view.configVersion });
+      this.realtime.emitToAll(BRANDING_CHANGED_EVENT, { configVersion: view.configVersion });
     } catch (err) {
       this.logger.warn(`branding:changed emit gagal: ${(err as Error).message}`);
     }

@@ -35,6 +35,8 @@ import type {
 } from "./attendance.types";
 import { clampInt, generateRawToken, hashToken, isWithinRadiusMeters } from "./attendance.utils";
 import { writeAudit } from "../lms/lms-audit";
+import { RealtimeGateway } from "../realtime/realtime.gateway";
+import { ATTENDANCE_CHECKED_IN_EVENT } from "../notifications/notification-events";
 
 const PERMIT_VERIFIER_ROLES = new Set(["GURU", "GURU_BK", "WAKEPSEK", "KEPSEK", "SUPERADMIN"]);
 
@@ -48,7 +50,8 @@ const PERMIT_VERIFIER_ROLES = new Set(["GURU", "GURU_BK", "WAKEPSEK", "KEPSEK", 
 export class AttendanceService {
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly rekapService: AttendanceRekapService
+    private readonly rekapService: AttendanceRekapService,
+    private readonly realtime: RealtimeGateway
   ) {}
 
   // ============================================================
@@ -410,6 +413,7 @@ export class AttendanceService {
           method
         }
       });
+      await this.emitCheckedIn(session.class_subject_id, studentId, record.id, session.id, now);
       return this.toScanResponse(record, false);
     } catch (err) {
       // Race: unique (session, student) — kembalikan record yang sudah ada
@@ -458,6 +462,43 @@ export class AttendanceService {
     }
     if (!isWithinRadiusMeters(latitude, longitude, centerLat, centerLng, radiusM)) {
       throw new ForbiddenException("Lokasi di luar radius sekolah");
+    }
+  }
+
+  /**
+   * Sinyal realtime check-in (best-effort, R-27):
+   * - room user:{studentId} → konfirmasi ke siswa yang bersangkutan;
+   * - room class:{classId} → guru/pengamat kelas dapat melihat kehadiran live
+   *   (dipakai emitToClass bila sesi terikat class_subject).
+   * Gagal emit TIDAK menggagalkan scan — REST tetap sumber kebenaran.
+   */
+  private async emitCheckedIn(
+    classSubjectId: string | null,
+    studentId: string,
+    recordId: string,
+    sessionId: string,
+    recordedAt: Date
+  ): Promise<void> {
+    try {
+      const payload = {
+        recordId,
+        sessionId,
+        studentId,
+        status: "HADIR",
+        recordedAt: recordedAt.toISOString()
+      };
+      this.realtime.emitToUser(studentId, ATTENDANCE_CHECKED_IN_EVENT, payload);
+      if (classSubjectId) {
+        const cs = await this.prisma.classSubject.findUnique({
+          where: { id: classSubjectId },
+          select: { class_id: true }
+        });
+        if (cs) {
+          this.realtime.emitToClass(cs.class_id, ATTENDANCE_CHECKED_IN_EVENT, payload);
+        }
+      }
+    } catch {
+      // best-effort — jangan menggagalkan scan karena sinyal realtime
     }
   }
 

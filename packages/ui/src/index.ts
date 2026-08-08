@@ -31,6 +31,9 @@ export { Switch, type SwitchProps } from "./components/switch";
 export { Alert, AlertTitle, AlertDescription } from "./components/alert";
 export { Dialog, ConfirmDialog } from "./components/dialog";
 export { Tabs, TabPanel } from "./components/tabs";
+export { Accordion, AccordionItem } from "./components/accordion";
+export { Tooltip } from "./components/tooltip";
+export { DropdownMenu, DropdownMenuItem } from "./components/dropdown-menu";
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "./components/table";
 export { Progress, type ProgressProps } from "./components/progress";
 export { Skeleton, SkeletonCard, SkeletonList } from "./components/skeleton";
@@ -65,6 +68,9 @@ export {
   IconX,
   IconChevronLeft,
   IconChevronRight,
+  IconChevronDown,
+  IconChevronUp,
+  IconEllipsis,
   IconLogout,
   IconSettings,
   IconDatabase,

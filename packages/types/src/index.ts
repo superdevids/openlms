@@ -29,6 +29,23 @@ export type MembershipStatus = (typeof MEMBERSHIP_STATUS_VALUES)[number];
 export const SCHOOL_TYPE_VALUES = ["SMA", "SMK"] as const;
 export type SchoolType = (typeof SCHOOL_TYPE_VALUES)[number];
 
+/* Tipografi — skala ukuran teks (normal/large/big) + daftar font global (SchoolProfile.settings.font) */
+export const FONT_SCALE_VALUES = ["normal", "large", "big"] as const;
+export type FontScale = (typeof FONT_SCALE_VALUES)[number];
+
+export const FONT_FAMILY_VALUES = [
+  "Plus Jakarta Sans",
+  "Inter",
+  "Open Sans",
+  "Roboto",
+  "Lato",
+  "Montserrat",
+  "Poppins",
+  "Source Sans 3",
+  "Work Sans"
+] as const;
+export type FontFamily = (typeof FONT_FAMILY_VALUES)[number];
+
 export const ENROLLMENT_STATUS_VALUES = [
   "ACTIVE",
   "TRANSFERRED",

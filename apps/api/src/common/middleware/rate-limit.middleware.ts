@@ -118,31 +118,23 @@ export class RateLimitMiddleware implements NestMiddleware {
       (path.includes("/storage/files") || path.includes("/files/upload"));
     if (isUpload) {
       const userId = this.userIdOf(req);
-      if (userId) {
-        return { key: `upload:user:${userId}:${this.uploadMax}`, max: this.uploadMax };
-      }
+      if (userId) return { key: `upload:user:${userId}:${this.uploadMax}`, max: this.uploadMax };
       return { key: `${ip}:upload:${this.uploadMax}`, max: this.uploadMax };
     }
     const userId = this.userIdOf(req);
-    if (userId) {
-      return { key: `user:${userId}:${this.authUserMax}`, max: this.authUserMax };
-    }
+    if (userId) return { key: `user:${userId}:${this.authUserMax}`, max: this.authUserMax };
     return { key: `${ip}:general:${this.generalMax}`, max: this.generalMax };
   }
 
   /** Identitas user dari requestContext (jika sudah ada) atau verifikasi JWT access cookie. */
   private userIdOf(req: Request): string | null {
     const contextUser = (req as RateLimitRequest).requestContext?.userId;
-    if (contextUser) {
-      return contextUser;
-    }
+    if (contextUser) return contextUser;
     const cookies = parseCookies(req.headers?.cookie);
     const token = cookies[SESSION_COOKIE_NAME] ?? cookies[ACCESS_COOKIE_NAME];
     if (token) {
       const payload = verifyAccessToken(token);
-      if (payload?.sub) {
-        return payload.sub;
-      }
+      if (payload?.sub) return payload.sub;
     }
     return null;
   }
@@ -151,9 +143,7 @@ export class RateLimitMiddleware implements NestMiddleware {
   private cleanup(): void {
     const now = Date.now();
     for (const [key, bucket] of this.buckets) {
-      if (bucket.resetAt <= now) {
-        this.buckets.delete(key);
-      }
+      if (bucket.resetAt <= now) this.buckets.delete(key);
     }
   }
 }

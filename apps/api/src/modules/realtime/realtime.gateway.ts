@@ -16,6 +16,7 @@ import { prisma } from "@openlms/database";
 import { ScopeResolver } from "../../common/scope-resolver";
 import { allowedOrigins } from "../../common/cors.util";
 import { redisQueueUrl } from "../queue/queue.types";
+import { CHANGE_LOG_NEW_EVENT } from "../notifications/notification-events";
 import type { RealtimeUser } from "./realtime.auth";
 import { RealtimeAuthService } from "./realtime.auth";
 
@@ -33,6 +34,35 @@ if (process.env.NODE_ENV === "production") {
 
 /** Role dengan akses lintas-kelas (admin/pengajar) — bypass cek keanggotaan room (lihat canAccessRoom). */
 const SCHOOL_SCOPED_ROLES = new Set(["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK", "GURU_BK"]);
+
+/** Payload event changelog:new (best-effort, ringan — klien refetch REST). */
+export interface AuditChangePayload {
+  id: string;
+  entity: string;
+  entityId: string;
+  action: string;
+  createdAt: string;
+}
+
+/**
+ * Emitter audit lintas-instance (R-11 live): writeAudit (modul LMS) memanggil
+ * notifyAuditChange; gateway mendaftarkan emitToAll("changelog:new") saat
+ * afterInit. Best-effort — bila gateway belum siap, sinyal dilewati diam-diam.
+ */
+let auditChangeHandler: ((payload: AuditChangePayload) => void) | null = null;
+
+export function registerAuditChangeEmitter(fn: (payload: AuditChangePayload) => void): void {
+  auditChangeHandler = fn;
+}
+
+/** Panggil dari penulis audit (lms-audit.ts) — tidak pernah throw. */
+export function notifyAuditChange(payload: AuditChangePayload): void {
+  try {
+    auditChangeHandler?.(payload);
+  } catch {
+    // sinyal realtime gagal — jangan menggagalkan alur tulis
+  }
+}
 
 export function userRoom(userId: string): string {
   return `${ROOM_PREFIX_USER}${userId}`;
@@ -94,6 +124,10 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
    * Gagal koneksi Redis tidak menggagalkan boot — log warning, lanjut in-memory.
    */
   afterInit(server: Server): void {
+    // R-11 live: pasang emitter changelog:new (best-effort; REST tetap sumber kebenaran).
+    // Daftar SEBELUM cek Redis agar tetap aktif pada adapter in-memory (tanpa REDIS_URL).
+    registerAuditChangeEmitter((payload) => this.emitToAll(CHANGE_LOG_NEW_EVENT, payload));
+
     const url = redisQueueUrl();
     if (!url) {
       this.logger.log("Socket.IO adapter: in-memory (REDIS_URL tidak diset)");

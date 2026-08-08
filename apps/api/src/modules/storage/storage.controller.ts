@@ -103,9 +103,7 @@ export class StorageController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: AuthUser
   ): Promise<{ path: string }> {
-    if (!file) {
-      throw new BadRequestException("File tidak ditemukan di field 'file'.");
-    }
+    if (!file) throw new BadRequestException("File tidak ditemukan di field 'file'.");
     return this.storageService.upload(bucket, file, user);
   }
 
@@ -125,12 +123,9 @@ export class StorageController {
     @Param("bucket") bucket: string,
     @UploadedFile() file: Express.Multer.File | undefined
   ): Promise<{ path: string }> {
-    if (!PUBLIC_UPLOAD_BUCKETS.has(bucket)) {
+    if (!PUBLIC_UPLOAD_BUCKETS.has(bucket))
       throw new BadRequestException("Bucket tidak diizinkan untuk upload publik.");
-    }
-    if (!file) {
-      throw new BadRequestException("File tidak ditemukan di field 'file'.");
-    }
+    if (!file) throw new BadRequestException("File tidak ditemukan di field 'file'.");
     return this.storageService.upload(bucket, file, undefined);
   }
 
