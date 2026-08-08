@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
+
 import { api, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import {
@@ -18,7 +19,7 @@ import {
   toast,
   IconPlus,
   IconX
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 /**
  * Editor Landing Page — SUPERADMIN + OPERATOR (permission landing:write:school).
@@ -94,7 +95,7 @@ function formatTanggal(value: string | null): string {
   }
 }
 
-export default function SuperadminLandingPage(): React.JSX.Element {
+export default function SuperadminLandingPage(): JSX.Element {
   const sectionsApi = useApi<LandingSection[]>((signal) =>
     api.get<LandingSection[]>("/admin/landing", { signal })
   );
@@ -103,22 +104,22 @@ export default function SuperadminLandingPage(): React.JSX.Element {
   );
 
   // Draf section (lokal, belum disimpan)
-  const [drafts, setDrafts] = React.useState<Record<string, SectionDraft>>({});
-  const [saving, setSaving] = React.useState<Record<string, boolean>>({});
+  const [drafts, setDrafts] = useState<Record<string, SectionDraft>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   // Draf berita + dialog
-  const [newsDialogOpen, setNewsDialogOpen] = React.useState(false);
-  const [editingNewsId, setEditingNewsId] = React.useState<string | null>(null);
-  const [newsDraft, setNewsDraft] = React.useState<NewsDraft>(EMPTY_NEWS_DRAFT);
-  const [newsSaving, setNewsSaving] = React.useState(false);
-  const [deletingNews, setDeletingNews] = React.useState<NewsItem | null>(null);
+  const [newsDialogOpen, setNewsDialogOpen] = useState(false);
+  const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  const [newsDraft, setNewsDraft] = useState<NewsDraft>(EMPTY_NEWS_DRAFT);
+  const [newsSaving, setNewsSaving] = useState(false);
+  const [deletingNews, setDeletingNews] = useState<NewsItem | null>(null);
 
   const sections = sectionsApi.data ?? [];
   const news = newsApi.data ?? [];
 
   // Inisialisasi draft section saat data dimuat.
-  const synced = React.useRef(false);
-  React.useEffect(() => {
+  const synced = useRef(false);
+  useEffect(() => {
     if (!synced.current && sectionsApi.data) {
       const next: Record<string, SectionDraft> = {};
       for (const s of sectionsApi.data) {
@@ -256,8 +257,8 @@ export default function SuperadminLandingPage(): React.JSX.Element {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Landing Page Sekolah</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-foreground">Landing Page Sekolah</h1>
+        <p className="text-sm text-muted-foreground">
           Kelola konten halaman depan website (hero, tentang, piagam, kontak) dan berita. Perubahan
           langsung tampil di <code>/</code>.
         </p>
@@ -274,12 +275,12 @@ export default function SuperadminLandingPage(): React.JSX.Element {
 
       {/* Section konten */}
       <section aria-labelledby="landing-sections-title">
-        <h2 id="landing-sections-title" className="text-lg font-semibold text-neutral-900">
+        <h2 id="landing-sections-title" className="text-lg font-semibold text-foreground">
           Konten Halaman
         </h2>
         {sections.length === 0 ? (
           <Card className="mt-4">
-            <CardContent className="p-4 text-sm text-neutral-500">
+            <CardContent className="p-4 text-sm text-muted-foreground">
               Belum ada section. Jalankan seed atau buat section melalui API.
             </CardContent>
           </Card>
@@ -335,7 +336,7 @@ export default function SuperadminLandingPage(): React.JSX.Element {
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor={`landing-linkurl-${section.slug}`}>
-                          Tautan CTA <span className="text-neutral-400">(opsional)</span>
+                          Tautan CTA <span className="text-muted-foreground">(opsional)</span>
                         </Label>
                         <Input
                           id={`landing-linkurl-${section.slug}`}
@@ -347,7 +348,7 @@ export default function SuperadminLandingPage(): React.JSX.Element {
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor={`landing-linklabel-${section.slug}`}>
-                          Label CTA <span className="text-neutral-400">(opsional)</span>
+                          Label CTA <span className="text-muted-foreground">(opsional)</span>
                         </Label>
                         <Input
                           id={`landing-linklabel-${section.slug}`}
@@ -361,7 +362,7 @@ export default function SuperadminLandingPage(): React.JSX.Element {
                     <div className="space-y-1.5">
                       <Label htmlFor={`landing-extra-${section.slug}`}>
                         Data terstruktur (JSON){" "}
-                        <span className="text-neutral-400">
+                        <span className="text-muted-foreground">
                           (opsional — programs/items/faq/images)
                         </span>
                       </Label>
@@ -391,10 +392,10 @@ export default function SuperadminLandingPage(): React.JSX.Element {
       <section aria-labelledby="landing-news-title">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 id="landing-news-title" className="text-lg font-semibold text-neutral-900">
+            <h2 id="landing-news-title" className="text-lg font-semibold text-foreground">
               Berita
             </h2>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted-foreground">
               Berita yang diterbitkan tampil di beranda dan halaman /berita.
             </p>
           </div>
@@ -405,7 +406,7 @@ export default function SuperadminLandingPage(): React.JSX.Element {
 
         {news.length === 0 ? (
           <Card className="mt-4">
-            <CardContent className="p-4 text-sm text-neutral-500">
+            <CardContent className="p-4 text-sm text-muted-foreground">
               Belum ada berita. Klik &quot;Tambah Berita&quot; untuk membuat berita pertama.
             </CardContent>
           </Card>
@@ -416,14 +417,14 @@ export default function SuperadminLandingPage(): React.JSX.Element {
                 <CardContent className="flex items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-base font-semibold text-neutral-900">
+                      <p className="truncate text-base font-semibold text-foreground">
                         {item.title}
                       </p>
                       <Badge variant={item.isPublished ? "success" : "neutral"}>
                         {item.isPublished ? "Terbit" : "Draf"}
                       </Badge>
                     </div>
-                    <p className="mt-0.5 truncate text-sm text-neutral-500">
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
                       <code>{item.slug}</code> · {formatTanggal(item.publishedAt)}
                       {item.author ? ` · ${item.author}` : ""}
                     </p>
@@ -501,7 +502,7 @@ function NewsEditorDialog({
   saving: boolean;
   onSave: () => void;
   onClose: () => void;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <div
       className="fixed inset-0 z-[150] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
@@ -512,8 +513,8 @@ function NewsEditorDialog({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-xl border border-neutral-200 bg-white p-6 shadow-xl sm:rounded-xl">
-        <h2 className="text-lg font-semibold text-neutral-900">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-xl border border-border bg-card p-6 shadow-xl sm:rounded-xl">
+        <h2 className="text-lg font-semibold text-foreground">
           {editing ? "Edit Berita" : "Tambah Berita"}
         </h2>
         <div className="mt-4 space-y-3">
@@ -530,7 +531,7 @@ function NewsEditorDialog({
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="news-slug">
-                Slug <span className="text-neutral-400">(opsional)</span>
+                Slug <span className="text-muted-foreground">(opsional)</span>
               </Label>
               <Input
                 id="news-slug"

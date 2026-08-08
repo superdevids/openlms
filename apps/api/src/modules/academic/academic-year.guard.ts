@@ -10,7 +10,7 @@
  * exception.getResponse() (lihat test/academic-year.guard.spec.ts).
  */
 import { ForbiddenException } from "@nestjs/common";
-import type { AcademicYearStatus } from "@openlms/types";
+import type { AcademicYearStatus } from "@opensis/types";
 import type { DatabaseClient } from "../database/database.constants";
 
 export const ARCHIVED_YEAR_CODE = "ARCHIVED_YEAR";

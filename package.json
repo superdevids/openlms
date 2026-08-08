@@ -1,8 +1,8 @@
 {
-  "name": "openlms",
+  "name": "opensis",
   "version": "0.1.0",
   "private": true,
-  "description": "openlms — LMS+SIS super-app untuk SATU sekolah (SMA/SMK Indonesia). Monorepo Turborepo.",
+  "description": "opensis — LMS+SIS super-app untuk SATU sekolah (SMA/SMK Indonesia). Monorepo Turborepo.",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -19,10 +19,10 @@
     "test:unit": "turbo run test:unit",
     "test:integration": "turbo run test:integration",
     "dev": "turbo run dev",
-    "db:generate": "npm run db:generate --workspace=@openlms/database",
-    "db:migrate": "npm run db:migrate --workspace=@openlms/database",
-    "db:seed": "npm run db:seed --workspace=@openlms/database",
-    "db:validate": "npm run db:validate --workspace=@openlms/database",
+    "db:generate": "npm run db:generate --workspace=@opensis/database",
+    "db:migrate": "npm run db:migrate --workspace=@opensis/database",
+    "db:seed": "npm run db:seed --workspace=@opensis/database",
+    "db:validate": "npm run db:validate --workspace=@opensis/database",
     "audit": "npm audit --audit-level=high"
   },
   "devDependencies": {

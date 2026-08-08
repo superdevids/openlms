@@ -8,6 +8,7 @@ import { FinanceModule } from "../finance/finance.module";
 import { ExamModule } from "../exam/exam.module";
 import { QuizModule } from "../quiz/quiz.module";
 import { StorageModule } from "../storage/storage.module";
+import { OnboardingModule } from "../onboarding/onboarding.module";
 import { JobsService } from "./jobs.service";
 import { NotificationsProcessor } from "./processors/notifications.processor";
 import { PayrollProcessor } from "./processors/payroll.processor";
@@ -16,6 +17,7 @@ import { ReportProcessor } from "./processors/report.processor";
 import { SppProcessor } from "./processors/spp.processor";
 import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor";
 import { StorageCleanupProcessor } from "./processors/storage-cleanup.processor";
+import { ImportProcessor } from "./processors/import.processor";
 
 /**
  * JobsModule — antrean job + cron (@nestjs/schedule).
@@ -36,7 +38,8 @@ import { StorageCleanupProcessor } from "./processors/storage-cleanup.processor"
     FinanceModule,
     ExamModule,
     QuizModule,
-    StorageModule
+    StorageModule,
+    OnboardingModule
   ],
   providers: [
     JobsService,
@@ -46,7 +49,8 @@ import { StorageCleanupProcessor } from "./processors/storage-cleanup.processor"
     ReportProcessor,
     SppProcessor,
     ExamAutoSubmitProcessor,
-    StorageCleanupProcessor
+    StorageCleanupProcessor,
+    ImportProcessor
   ],
   exports: [JobsService]
 })

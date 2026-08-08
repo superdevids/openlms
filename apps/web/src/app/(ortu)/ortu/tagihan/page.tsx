@@ -1,14 +1,39 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  EmptyState
+} from "@opensis/ui";
 
 import { formatRupiah, formatDate } from "@/lib/format";
 import { DEMO_INVOICES } from "@/lib/demo";
 
-export default function OrtuTagihanPage(): React.JSX.Element {
+// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
+const INVOICE_KOLOM: { key: string; label: string }[] = [
+  { key: "jenis", label: "Jenis" },
+  { key: "periode", label: "Periode" },
+  { key: "jumlah", label: "Jumlah" },
+  { key: "dibayar", label: "Dibayar" },
+  { key: "jatuhTempo", label: "Jatuh Tempo" },
+  { key: "status", label: "Status" }
+];
+
+export default function OrtuTagihanPage(): JSX.Element {
   const list = useApi<
     {
       type: string;
@@ -18,11 +43,34 @@ export default function OrtuTagihanPage(): React.JSX.Element {
       dueDate: string;
       status: string;
     }[]
-  >(() => api.get("/invoices"), [], { fallbackData: DEMO_INVOICES });
+  >(
+    async () => {
+      const rows = await api.get<
+        Array<{
+          type: string;
+          period: string | null;
+          amount: number | string;
+          paidAmount: number | string;
+          due_date: string;
+          status: string;
+        }>
+      >("/finance/invoices");
+      return rows.map((r) => ({
+        type: r.type,
+        period: r.period ?? "",
+        amount: Number(r.amount),
+        paid: Number(r.paidAmount),
+        dueDate: r.due_date,
+        status: r.status
+      }));
+    },
+    [],
+    { fallbackData: DEMO_INVOICES }
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Tagihan Anak (read-only)</h1>
+      <h1 className="text-2xl font-bold text-foreground">Tagihan Anak (read-only)</h1>
       <DataView
         status={list.status}
         error={list.error}
@@ -43,12 +91,9 @@ export default function OrtuTagihanPage(): React.JSX.Element {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Jenis</TableHead>
-                    <TableHead>Periode</TableHead>
-                    <TableHead>Jumlah</TableHead>
-                    <TableHead>Dibayar</TableHead>
-                    <TableHead>Jatuh Tempo</TableHead>
-                    <TableHead>Status</TableHead>
+                    {INVOICE_KOLOM.map((k) => (
+                      <TableHead key={k.key}>{k.label}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>

@@ -1,39 +1,87 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Input, Label, Alert, Dialog, Tabs, TabPanel, EmptyState, toast, IconClock } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Input,
+  Label,
+  Select,
+  Alert,
+  Dialog,
+  Tabs,
+  TabPanel,
+  EmptyState,
+  toast,
+  IconClock
+} from "@opensis/ui";
 
-import { formatDateTime } from "@/lib/format";
+import { useAuth } from "@/components/auth/auth-provider";
 
 import { DEMO_EXAMS } from "@/lib/demo";
 
 interface Exam {
   id: string;
   title: string;
-  subject: string;
-  className: string;
-  startsAt: string;
-  endsAt: string;
+  type?: string;
+  subject_id?: string;
+  duration_min?: number;
   status: string;
+  created_at?: string;
 }
 
-export default function GuruUjianPage(): React.JSX.Element {
-  const list = useApi<Exam[]>(() => api.get("/exams"), [], { fallbackData: DEMO_EXAMS });
-  const [tab, setTab] = React.useState("daftar");
-  const [open, setOpen] = React.useState(false);
-  const [title, setTitle] = React.useState("");
-  const [className, setClassName] = React.useState("");
-  const [durationMin, setDurationMin] = React.useState("90");
-  const [saving, setSaving] = React.useState(false);
+interface ClassSubjectItem {
+  id: string;
+  subject: { id: string; code: string; name: string };
+}
+
+const EXAM_TYPE_LABEL: Record<string, string> = {
+  PTS: "PTS",
+  PAS: "PAS",
+  PAT: "PAT",
+  UJIAN_SEKOLAH: "Ujian Sekolah",
+  UKK: "UKK",
+  LAINNYA: "Lainnya"
+};
+
+export default function GuruUjianPage(): JSX.Element {
+  const { user } = useAuth();
+  const classSubjects = useApi<ClassSubjectItem[]>(() => api.get("/class-subjects"), [], {
+    fallbackData: []
+  });
+  const subjectNameById = (classSubjects.data ?? []).reduce<Record<string, string>>((acc, cs) => {
+    acc[cs.subject.id] = cs.subject.name;
+    return acc;
+  }, {});
+  const list = useApi<Exam[]>(
+    async () => {
+      const res = await api.get<{ items: Exam[]; total: number }>("/exam");
+      return res.items ?? [];
+    },
+    [],
+    { fallbackData: DEMO_EXAMS as unknown as Exam[] }
+  );
+  const [tab, setTab] = useState("daftar");
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [durationMin, setDurationMin] = useState("90");
+  const [saving, setSaving] = useState(false);
 
   // token sesi
-  const [tokenExamId, setTokenExamId] = React.useState<string | null>(null);
-  const [tokenResult, setTokenResult] = React.useState<string | null>(null);
-  const [tokenLoading, setTokenLoading] = React.useState(false);
+  const [tokenExamId, setTokenExamId] = useState<string | null>(null);
+  const [tokenResult, setTokenResult] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
 
-  const create = async (e: React.FormEvent): Promise<void> => {
+  const create = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -41,12 +89,17 @@ export default function GuruUjianPage(): React.JSX.Element {
         await new Promise((r) => setTimeout(r, 200));
         toast({ variant: "success", title: "Ujian dibuat (demo)" });
       } else {
-        await api.post("/exams", { title, className, durationMinutes: Number(durationMin) });
+        await api.post("/exam", {
+          title,
+          type: "PTS",
+          subject_id: subjectId || classSubjects.data?.[0]?.subject.id,
+          duration_min: Number(durationMin)
+        });
         toast({ variant: "success", title: "Ujian dibuat" });
       }
       setOpen(false);
       setTitle("");
-      setClassName("");
+      setSubjectId("");
       list.refetch();
     } catch {
       toast({ variant: "error", title: "Gagal membuat ujian" });
@@ -65,11 +118,19 @@ export default function GuruUjianPage(): React.JSX.Element {
         setTokenResult("7X4K2M");
         return;
       }
-      const session = await api.post<{ id: string }>(`/exams/${examId}/sessions`, {
-        name: "Shift 1"
+      const startsAt = new Date();
+      const endsAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      const session = await api.post<{ id: string }>(`/exam/${examId}/sessions`, {
+        name: "Shift 1",
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        is_serentak: true
       });
-      const res = await api.post<{ token: string }>(`/exam/sessions/${session.id}/token`, {});
-      setTokenResult(res.token);
+      const res = await api.post<{ access_token: string }>(
+        `/exam/sessions/${session.id}/token/generate`,
+        { ttl_minutes: 60, generated_by: user?.id ?? "unknown" }
+      );
+      setTokenResult(res.access_token);
     } catch {
       toast({ variant: "error", title: "Gagal membuat token" });
     } finally {
@@ -80,7 +141,7 @@ export default function GuruUjianPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-neutral-900">Ujian</h1>
+        <h1 className="text-2xl font-bold text-foreground">Ujian</h1>
         <Button onClick={() => setOpen(true)}>Buat Ujian</Button>
       </div>
 
@@ -114,7 +175,9 @@ export default function GuruUjianPage(): React.JSX.Element {
                     <CardHeader>
                       <CardTitle>{e.title}</CardTitle>
                       <CardDescription>
-                        {e.subject} · {e.className} · {formatDateTime(e.startsAt)}
+                        {EXAM_TYPE_LABEL[e.type ?? ""] ?? e.type ?? "-"} ·{" "}
+                        {subjectNameById[e.subject_id ?? ""] ?? "Mapel tidak diketahui"} ·{" "}
+                        {e.duration_min ? `${e.duration_min} mnt` : "-"} · {e.status}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-wrap gap-2">
@@ -155,9 +218,9 @@ export default function GuruUjianPage(): React.JSX.Element {
                 {(list.data ?? []).map((e) => (
                   <li
                     key={e.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-neutral-200 px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                   >
-                    <span className="font-medium text-neutral-900">{e.title}</span>
+                    <span className="font-medium text-foreground">{e.title}</span>
                     <Button
                       size="sm"
                       variant="outline"
@@ -208,13 +271,16 @@ export default function GuruUjianPage(): React.JSX.Element {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="ex-class">Kelas Target</Label>
-            <Input
-              id="ex-class"
-              value={className}
-              onChange={(e) => setClassName(e.target.value)}
+            <Label htmlFor="ex-subject">Mata Pelajaran</Label>
+            <Select
+              id="ex-subject"
+              value={subjectId || classSubjects.data?.[0]?.subject.id || ""}
+              onChange={(e) => setSubjectId(e.target.value)}
+              options={(classSubjects.data ?? []).map((cs) => ({
+                value: cs.subject.id,
+                label: `${cs.subject.name} (${cs.subject.code})`
+              }))}
               required
-              placeholder="XI IPA 1"
             />
           </div>
           <div className="space-y-1.5">

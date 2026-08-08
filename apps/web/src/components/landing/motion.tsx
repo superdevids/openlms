@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX, type ReactNode } from "react";
+
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 /**
@@ -17,10 +18,10 @@ export function FadeInUp({
   className,
   delay = 0
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   delay?: number;
-}): React.JSX.Element {
+}): JSX.Element {
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
   return (
@@ -51,9 +52,9 @@ export function StaggerContainer({
   children,
   className
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   const reduce = useReducedMotion();
   if (reduce) return <div className={className}>{children}</div>;
   return (
@@ -74,9 +75,9 @@ export function StaggerItem({
   children,
   className
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <motion.div className={className} variants={itemVariants}>
       {children}

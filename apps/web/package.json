@@ -1,8 +1,8 @@
 {
-  "name": "@openlms/web",
+  "name": "@opensis/web",
   "version": "0.1.0",
   "private": true,
-  "description": "openlms frontend — Next.js App Router (route groups per role) + Tailwind v4 + shadcn/ui",
+  "description": "opensis frontend — Next.js App Router (route groups per role) + Tailwind v4 + shadcn/ui",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -13,8 +13,8 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@openlms/types": "*",
-    "@openlms/ui": "*",
+    "@opensis/types": "*",
+    "@opensis/ui": "*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^13.0.0",

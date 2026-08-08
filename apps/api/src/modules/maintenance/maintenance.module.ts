@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
-import { prisma } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
+import { prisma } from "@opensis/database";
 import { MaintenanceController } from "./maintenance.controller";
 import { MaintenanceService } from "./maintenance.service";
 

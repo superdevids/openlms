@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type ComponentProps, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
 export function RadioGroup({
@@ -8,9 +9,9 @@ export function RadioGroup({
   options,
   name,
   ...props
-}: React.ComponentProps<"input"> & {
+}: ComponentProps<"input"> & {
   options?: Array<{ value: string; label: string }>;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <div className={cn("flex flex-col gap-2", className)} role="radiogroup">
       {(options ?? []).map((opt) => (

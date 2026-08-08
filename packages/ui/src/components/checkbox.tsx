@@ -1,12 +1,13 @@
 "use client";
 
-import * as React from "react";
+import { type ComponentProps, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
 export function Checkbox({
   className,
   ...props
-}: React.ComponentProps<"input">): React.JSX.Element {
+}: ComponentProps<"input">): JSX.Element {
   return (
     <input
       type="checkbox"

@@ -1,23 +1,27 @@
 /**
  * Helper browser storage (localStorage/sessionStorage) — audit R-23.
  * - SSR guard: semua fungsi no-op aman saat dijalankan di server.
- * - Namespaced key `openlms_*` (satu sumber kebenaran — jangan hardcode
+ * - Namespaced key `opensis_*` (satu sumber kebenaran — jangan hardcode
  *   string key di tempat lain; pakai STORAGE_KEYS).
  * - QuotaExceededError ditangani: safeSet/rawSet return false + console.warn.
  * - PII/disposable data (draft PPDB, attempt ujian) → pakai kind "session".
  */
 
 export const STORAGE_KEYS = {
-  theme: "openlms_theme",
-  fontScale: "openlms_font_scale",
-  onboardingDismissed: "openlms_onboarding_dismissed",
-  demoFlags: "openlms_demo_flags",
-  demoRole: "openlms_demo_role",
-  brandingCache: "openlms_branding_cache",
-  dashboardConfig: "openlms_dashboard_config",
-  permissionSnapshot: "openlms_permissions",
-  ppdbDraft: "openlms_ppdb_draft",
-  examAttempt: "openlms_exam_attempt"
+  theme: "opensis_theme",
+  fontScale: "opensis_font_scale",
+  onboardingDismissed: "opensis_onboarding_dismissed",
+  demoFlags: "opensis_demo_flags",
+  demoRole: "opensis_demo_role",
+  brandingCache: "opensis_branding_cache",
+  dashboardConfig: "opensis_dashboard_config",
+  permissionSnapshot: "opensis_permissions",
+  ppdbDraft: "opensis_ppdb_draft",
+  examAttempt: "opensis_exam_attempt",
+  examPendingAnswers: "opensis_exam_pending_answers",
+  lastReadNotif: "opensis_last_read_notif",
+  dataSaver: "opensis_data_saver",
+  tabState: "opensis_tab_state"
 } as const;
 
 export type StorageKind = "local" | "session";
@@ -36,7 +40,7 @@ export function storageAvailable(kind: StorageKind = "local"): boolean {
   const store = getStore(kind);
   if (!store) return false;
   try {
-    const probe = "__openlms_probe__";
+    const probe = "__opensis_probe__";
     store.setItem(probe, "1");
     store.removeItem(probe);
     return true;
@@ -105,4 +109,72 @@ export function safeSet<T>(key: string, value: T, kind: StorageKind = "local"): 
 /** Hapus key (alias ergonomis untuk safeRemove). */
 export function safeRemove(key: string, kind: StorageKind = "local"): void {
   rawRemove(key, kind);
+}
+
+// ============================================================
+// Cache TTL (audit R-23) — pola { data, savedAt } + umur maksimum.
+// Dipakai branding (1 jam) & dashboard config per role (30 dtk).
+// ============================================================
+
+/** Bentuk entri cache ber-TTL. */
+export interface TtlCacheEntry<T> {
+  data: T;
+  savedAt: number;
+}
+
+/**
+ * Baca cache ber-TTL; null bila tidak ada / kedaluwarsa / SSR.
+ * Kedaluwarsa = (sekarang - savedAt) > ttlMs.
+ */
+export function ttlGet<T>(key: string, ttlMs: number, kind: StorageKind = "local"): T | null {
+  const entry = safeGet<TtlCacheEntry<T>>(key, kind);
+  if (!entry || typeof entry.savedAt !== "number") return null;
+  if (Date.now() - entry.savedAt > ttlMs) {
+    safeRemove(key, kind);
+    return null;
+  }
+  return entry.data;
+}
+
+/** Tulis cache ber-TTL; false bila gagal (quota/private/SSR). */
+export function ttlSet<T>(key: string, data: T, kind: StorageKind = "local"): boolean {
+  return safeSet<TtlCacheEntry<T>>(key, { data, savedAt: Date.now() }, kind);
+}
+
+// ============================================================
+// Preferensi mode hemat data (opensis_data_saver).
+// true = selalu hemat; false = selalu normal; null = ikuti koneksi (default).
+// ============================================================
+
+export type DataSaverPreference = boolean | null;
+
+/** Baca preferensi hemat data user; null bila belum diatur (auto). */
+export function getDataSaverPreference(): DataSaverPreference {
+  const raw = rawGet(STORAGE_KEYS.dataSaver);
+  if (raw === null) return null;
+  return raw === "1";
+}
+
+/** Simpan preferensi hemat data. */
+export function setDataSaverPreference(value: DataSaverPreference): boolean {
+  if (value === null) {
+    rawRemove(STORAGE_KEYS.dataSaver);
+    return true;
+  }
+  return rawSet(STORAGE_KEYS.dataSaver, value ? "1" : "0");
+}
+
+// ============================================================
+// Timestamp baca notifikasi (opensis_last_read_notif) — badge konsisten
+// lintas tab (event `storage` memicu refetch di tab lain).
+// ============================================================
+
+export function getLastReadNotif(): number | null {
+  const raw = rawGet(STORAGE_KEYS.lastReadNotif);
+  const num = raw ? Number(raw) : NaN;
+  return Number.isFinite(num) ? num : null;
+}
+
+export function setLastReadNotif(timestamp = Date.now()): void {
+  rawSet(STORAGE_KEYS.lastReadNotif, String(timestamp));
 }

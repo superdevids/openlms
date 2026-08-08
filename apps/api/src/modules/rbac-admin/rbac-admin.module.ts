@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
-import { prisma } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
+import { prisma } from "@opensis/database";
 import { AuthModule } from "../auth/auth.module";
 import { RbacAdminController } from "./rbac-admin.controller";
 import { RbacAdminService } from "./rbac-admin.service";

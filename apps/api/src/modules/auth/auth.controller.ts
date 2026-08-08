@@ -108,8 +108,8 @@ export class AuthController {
 }
 
 /**
- * Set cookie auth: openlms_access (JWT access) + openlms_refresh + alias
- * openlms_session (= access token, G-04) yang dibaca proxy web.
+ * Set cookie auth: opensis_access (JWT access) + opensis_refresh + alias
+ * opensis_session (= access token, G-04) yang dibaca proxy web.
  * Catatan: saat NEXT_PUBLIC_DEMO=1 di apps/web, login tidak memanggil backend
  * (langsung redirect per role demo) — cookie ini hanya relevan di mode nyata.
  */

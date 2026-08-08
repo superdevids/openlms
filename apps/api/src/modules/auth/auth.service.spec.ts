@@ -1,5 +1,5 @@
 import { HttpStatus, UnauthorizedException } from "@nestjs/common";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import { AuthService } from "./auth.service";
 import { LOGIN_FAIL_LIMIT } from "./auth.constants";
 import { generateTemporaryPassword, hashPassword, verifyPassword } from "./password.util";
@@ -92,7 +92,7 @@ describe("AuthService.login", () => {
 
   const makeUser = async (overrides: Record<string, unknown> = {}) => ({
     id: "u1",
-    email: "admin@openlms.local",
+    email: "admin@opensis.local",
     username: "admin",
     password_hash: await hashPassword("rahasia123"),
     must_change_password: false,
@@ -150,7 +150,7 @@ describe("AuthService.login", () => {
     (prismaMock.user as { update: jest.Mock }).update.mockResolvedValue(user);
 
     const result = await service.login(
-      { emailOrUsername: "Admin@openlms.local", password: "rahasia123" },
+      { emailOrUsername: "Admin@opensis.local", password: "rahasia123" },
       { requestId: "req_test" }
     );
     expect(result.user.id).toBe("u1");
@@ -208,7 +208,7 @@ describe("AuthService.resetPasswordByOperator & me", () => {
 
   const baseUser = {
     id: "u1",
-    email: "admin@openlms.local",
+    email: "admin@opensis.local",
     username: "admin",
     password_hash: "hash-lama",
     must_change_password: false,

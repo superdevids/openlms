@@ -4,7 +4,7 @@
  * Seluruh fetch runtime tetap melalui api-client; fallback hanya untuk preview.
  */
 
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 
 export interface DemoUser {
   id: string;
@@ -25,13 +25,18 @@ export const DEMO_USER: DemoUser = {
 export const DEMO_ROLES: Role[] = [
   "SISWA",
   "GURU",
+  "BK",
+  "KAPRODI",
   "OPERATOR",
   "KEUANGAN",
   "WAKEPSEK",
   "KEPSEK",
+  "AUDITOR",
   "SUPERADMIN",
   "WALI_MURID",
-  "CALON_SISWA"
+  "CALON_SISWA",
+  "PEMBIMBING_INDUSTRI",
+  "PENGUJI_EKSTERNAL"
 ];
 
 export interface DemoClass {
@@ -314,5 +319,5 @@ export const DEMO_ATTENDANCE_SUMMARY = [
   { date: "2026-08-05", subject: "Matematika", present: 21, total: 24, late: 2 }
 ];
 
-export const DEMO_FEATURE_FLAG_OVERRIDES_KEY = "openlms_demo_flags";
-export const DEMO_ROLE_KEY = "openlms_demo_role";
+export const DEMO_FEATURE_FLAG_OVERRIDES_KEY = "opensis_demo_flags";
+export const DEMO_ROLE_KEY = "opensis_demo_role";

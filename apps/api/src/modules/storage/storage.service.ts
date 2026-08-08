@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import type { Role } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { LocalStorageProvider, UploadedFile } from "./local-storage.provider";
 import { BUCKET_POLICIES, PUBLIC_UPLOAD_BUCKETS, UPLOADABLE_BUCKETS } from "./storage.constants";
 import type { AuthUser } from "../../common/auth.guard";
@@ -10,7 +10,7 @@ import { writeAudit } from "../lms/lms-audit";
 const ADMIN_ROLES: readonly Role[] = ["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK"];
 
 /** Role yang boleh upload materi (material:write:class). */
-const TEACHER_ROLES: readonly Role[] = ["GURU", "GURU_BK", ...ADMIN_ROLES];
+const TEACHER_ROLES: readonly Role[] = ["GURU", "BK", ...ADMIN_ROLES];
 
 /** Batas role upload per bucket (defense-in-depth di atas @RequirePermission). */
 const UPLOAD_ROLES: Record<string, readonly Role[]> = {
@@ -78,7 +78,7 @@ export class StorageService {
       return;
     }
     // class-scoped: role pengajar/admin boleh; siswa hanya jika punya classIds.
-    const allowedRoles = ["GURU", "GURU_BK", "OPERATOR", "WAKEPSEK", "KEPSEK", "SUPERADMIN"];
+    const allowedRoles = ["GURU", "BK", "OPERATOR", "WAKEPSEK", "KEPSEK", "SUPERADMIN"];
     if (user.roles.some((r) => allowedRoles.includes(r))) return;
     if (user.classIds.length > 0) return;
     throw new ForbiddenException("Akses file kelas ditolak.");

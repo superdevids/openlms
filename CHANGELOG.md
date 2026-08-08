@@ -1,6 +1,6 @@
-# Changelog — openlms
+# Changelog — opensis
 
-Semua perubahan penting pada proyek **openlms** dicatat di dokumen ini.
+Semua perubahan penting pada proyek **opensis** (sebelumnya `openlms`) dicatat di dokumen ini.
 
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id-ID/1.0.0/) dan
 versi mengikuti [Semantic Versioning](https://semver.org/lang/id/).
@@ -15,6 +15,26 @@ Konvensi tipe perubahan:
 - **Security** — perbaikan keamanan.
 
 ## [Unreleased]
+
+### Changed
+
+- **Rebranding `openlms` → `opensis`**: nama produk kini **opensis** (super-app
+  manajemen sekolah: LMS + SIS + keuangan + payroll + aset + PPDB).
+  - Paket npm & workspace: `@openlms/*` → `@opensis/*`.
+  - Cookie sesi: `openlms_session`/`openlms_access`/`openlms_refresh` →
+    `opensis_*` (semua sesi aktif akan logout — disengaja).
+  - Storage keys (theme, font scale, demo, draft PPDB, exam, branding cache,
+    dashboard config, data saver, onboarding) → prefix `opensis_`.
+  - Metadata keys decorator: `openlms:feature`/`public`/`permissions`/`roles` →
+    `opensis:*`.
+  - Email placeholder: `*@openlms.local` → `*@opensis.local`.
+  - Nama tampilan/identitas: `NEXT_PUBLIC_APP_NAME`, branding default,
+    health service (`opensis-api`), header ekspor nilai, onboarding, dsb.
+  - Infrastruktur: `DATABASE_URL` template → DB `opensis`; Nginx `opensis.conf`;
+    gitleaks rule-id & allowlist; Docker compose names.
+  - Catatan: nama repository GitHub & folder lokal tetap `openlms` (belum
+    direname); referensi `openlms` di `docs/prd`, `docs/riview`, `docs/01`–`07`,
+    dan riwayat changelog di bawah adalah catatan sejarah.
 
 ### Rencana (roadmap — lihat [docs/prd/prd05-development.md](docs/prd/prd05-development.md))
 

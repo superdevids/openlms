@@ -38,7 +38,7 @@ Sebelum mengirim, pastikan:
 - [ ] Kontrak API / `README.<modul>.md` diperbarui bila terdampak
 - [ ] Migrasi Prisma baru disertakan bila skema berubah
 - [ ] Tidak ada secret/token yang ter-commit
-- [ ] Tidak ada referensi `eclass` yang tersisa (rebrand openlms)
+- [ ] Tidak ada referensi `eclass` yang tersisa (rebrand opensis)
 - [ ] Perilaku yang diklaim terverifikasi terhadap implementasi nyata
 
 ## Screenshot (bila ada perubahan UI)

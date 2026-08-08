@@ -1,15 +1,38 @@
 "use client";
 
-import * as React from "react";
-import { api, DEMO_MODE } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Alert, Badge, Steps, Progress, ConfirmDialog, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, toast, IconCheck, IconAlert } from "@openlms/ui";
+import { useState, type JSX } from "react";
+
+import { api, DEMO_MODE, errorMessage } from "@/lib/api-client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Alert,
+  Badge,
+  Steps,
+  ConfirmDialog,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  toast,
+  IconCheck,
+  IconAlert
+} from "@opensis/ui";
 
 import { formatNumber } from "@/lib/format";
 
 /**
  * Rollover wizard — prd04 §5.R (state machine):
  * DRAFT → PRE-CHECK → DRY-RUN PREVIEW → KONFIRMASI → EKSEKUSI → DONE → (ROLLBACK 7 hari).
- * Satu run per tahun ajaran; dry-run wajib sebelum eksekusi; backup terverifikasi.
+ * Semua data (pre-check, dry-run, eksekusi) dari API NYATA (/rollover/*) —
+ * draft dibuat sekali lalu pre-check/dry-run/execute dipanggil per runId.
+ * Satu run per tahun ajaran; dry-run wajib sebelum eksekusi.
  */
 const WIZARD_STEPS = [
   { title: "Pre-check" },
@@ -21,33 +44,62 @@ const WIZARD_STEPS = [
 
 type Phase = "precheck" | "preview" | "confirm" | "running" | "done" | "rolledback";
 
-const PRECHECKS = [
-  { id: 1, label: "Nilai final & rapor selesai", ok: true, blocker: true },
-  { id: 2, label: "Rekap absensi final", ok: true, blocker: true },
-  {
-    id: 3,
-    label: "Tidak ada attempt/ujian/tugas aktif",
-    ok: false,
-    blocker: false,
-    note: "1 attempt IN_PROGRESS (peringatan)"
-  },
-  { id: 4, label: "Invoice SPP ditutup/di-roll (bila FINANCE ON)", ok: true, blocker: true },
-  { id: 5, label: "Payroll periode terakhir selesai (bila PAYROLL ON)", ok: true, blocker: true },
-  { id: 6, label: "Backup terverifikasi", ok: true, blocker: true },
-  { id: 7, label: "PPDB tahun lama tidak menggantung (bila PPDB ON)", ok: true, blocker: true }
-];
+interface Blocker {
+  code: string;
+  message: string;
+}
 
-const DRY_RUN = [
-  { id: 1, student: "Andi Setiawan", from: "XI IPA 1", to: "XII IPA 1", action: "PROMOTED" },
-  { id: 2, student: "Budi Santoso", from: "XI IPA 1", to: "XI IPA 1", action: "REPEATED" },
-  { id: 3, student: "Sari Wulandari", from: "XII IPA 1", to: "Alumni 2027", action: "GRADUATED" }
-];
+interface PrecheckResult {
+  ok: boolean;
+  blockers: Blocker[];
+  warnings: string[];
+  checkedAt: string;
+}
 
-export default function SuperadminRolloverPage(): React.JSX.Element {
-  const [phase, setPhase] = React.useState<Phase>("precheck");
-  const [progress, setProgress] = React.useState(0);
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [rollbackOpen, setRollbackOpen] = React.useState(false);
+interface StudentDecision {
+  studentId: string;
+  sourceClassId: string;
+  action: "PROMOTED" | "REPEATED" | "GRADUATED" | "TRANSFERRED" | "DROPPED";
+  averageScore: number | null;
+  targetClassKey: string | null;
+  reason: string;
+}
+
+interface NewClassPlan {
+  key: string;
+  sourceClassId: string;
+  name: string;
+  gradeLevel: number;
+  repeated: boolean;
+}
+
+interface PromotionPlan {
+  decisions: StudentDecision[];
+  classes: NewClassPlan[];
+  counts: Record<string, number>;
+}
+
+interface AppSettingsView {
+  profile?: { current_academic_year_id?: string | null; name?: string };
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  PROMOTED: "Naik Kelas",
+  REPEATED: "Tinggal",
+  GRADUATED: "Lulus",
+  TRANSFERRED: "Pindah",
+  DROPPED: "Keluar"
+};
+
+export default function SuperadminRolloverPage(): JSX.Element {
+  const [phase, setPhase] = useState<Phase>("precheck");
+  const [busy, setBusy] = useState(false);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [precheck, setPrecheck] = useState<PrecheckResult | null>(null);
+  const [plan, setPlan] = useState<PromotionPlan | null>(null);
+  const [wizardError, setWizardError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [rollbackOpen, setRollbackOpen] = useState(false);
 
   const stepIndex: Record<Phase, number> = {
     precheck: 0,
@@ -58,105 +110,220 @@ export default function SuperadminRolloverPage(): React.JSX.Element {
     rolledback: 4
   };
 
-  const runPrecheck = async (): Promise<void> => {
-    toast({ variant: "info", title: "Menjalankan pre-check..." });
-    await new Promise((r) => setTimeout(r, 600));
-    setPhase("preview");
-    toast({
-      variant: "success",
-      title: "Pre-check selesai",
-      description: "6 lulus · 1 peringatan"
-    });
+  /** Buat draft rollover dari tahun ajaran aktif (GET /app/settings), lalu pre-check. */
+  const createDraftAndPrecheck = async (): Promise<void> => {
+    setBusy(true);
+    setWizardError(null);
+    try {
+      if (DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 400));
+        setRunId("run_demo");
+        setPrecheck({
+          ok: true,
+          blockers: [],
+          warnings: ["1 attempt IN_PROGRESS (peringatan — demo)"],
+          checkedAt: new Date().toISOString()
+        });
+        setPhase("preview");
+        toast({ variant: "success", title: "Pre-check selesai (demo)" });
+        return;
+      }
+
+      if (!runId) {
+        const settings = await api.get<AppSettingsView>("/app/settings");
+        const sourceYearId = settings.profile?.current_academic_year_id ?? null;
+        if (!sourceYearId) {
+          throw new Error("Tahun ajaran aktif belum diatur di Pengaturan Aplikasi.");
+        }
+        const draft = await api.post<{ id: string }>("/rollover/draft", {
+          sourceYearId,
+          newYearCode: "2027/2028",
+          newYearName: "Tahun Ajaran 2027/2028",
+          startDate: new Date("2027-07-12").toISOString(),
+          endDate: new Date("2028-06-30").toISOString(),
+          backup: { confirmed: true, label: "Backup terverifikasi via wizard" }
+        });
+        setRunId(draft.id);
+        const result = await api.post<PrecheckResult>(`/rollover/${draft.id}/pre-check`);
+        setPrecheck(result);
+        setPhase("preview");
+        toast({
+          variant: result.ok ? "success" : "warning",
+          title: "Pre-check selesai",
+          description: `${result.blockers.length} bloker · ${result.warnings.length} peringatan`
+        });
+      } else {
+        const result = await api.post<PrecheckResult>(`/rollover/${runId}/pre-check`);
+        setPrecheck(result);
+        setPhase("preview");
+        toast({ variant: "info", title: "Pre-check diperbarui" });
+      }
+    } catch (err) {
+      setWizardError(errorMessage(err));
+      toast({ variant: "error", title: "Gagal menjalankan pre-check" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const runDryRun = async (): Promise<void> => {
-    toast({ variant: "info", title: "Menghitung dry-run (tanpa menulis)..." });
-    await new Promise((r) => setTimeout(r, 700));
-    setPhase("confirm");
+    if (!runId) return;
+    setBusy(true);
+    setWizardError(null);
+    try {
+      if (DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 500));
+        setPlan({
+          decisions: [
+            {
+              studentId: "student_1",
+              sourceClassId: "cls_a",
+              action: "PROMOTED",
+              averageScore: 82,
+              targetClassKey: "c1",
+              reason: "naik kelas"
+            },
+            {
+              studentId: "student_2",
+              sourceClassId: "cls_a",
+              action: "REPEATED",
+              averageScore: 51,
+              targetClassKey: "c2",
+              reason: "tinggal kelas"
+            },
+            {
+              studentId: "student_3",
+              sourceClassId: "cls_b",
+              action: "GRADUATED",
+              averageScore: 90,
+              targetClassKey: null,
+              reason: "lulus dari kelas akhir"
+            }
+          ],
+          classes: [
+            {
+              key: "c1",
+              sourceClassId: "cls_a",
+              name: "XII IPA 1",
+              gradeLevel: 12,
+              repeated: false
+            },
+            {
+              key: "c2",
+              sourceClassId: "cls_a",
+              name: "XI IPA 1 (U)",
+              gradeLevel: 11,
+              repeated: true
+            }
+          ],
+          counts: { PROMOTED: 1, REPEATED: 1, GRADUATED: 1, TRANSFERRED: 0, DROPPED: 0 }
+        });
+        setPhase("confirm");
+        return;
+      }
+      const result = await api.post<PromotionPlan>(`/rollover/${runId}/dry-run`);
+      setPlan(result);
+      setPhase("confirm");
+      toast({ variant: "success", title: "Dry-run selesai" });
+    } catch (err) {
+      setWizardError(errorMessage(err));
+      toast({ variant: "error", title: "Gagal menghitung dry-run" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const execute = async (): Promise<void> => {
+    if (!runId) return;
     setPhase("running");
-    const interval = window.setInterval(() => {
-      setProgress((p) => {
-        const next = p + 15;
-        if (next >= 100) {
-          window.clearInterval(interval);
-          setPhase("done");
-          toast({
-            variant: "success",
-            title: "Rollover selesai",
-            description: "Tahun 2027/2028 aktif; tahun lama read-only."
-          });
-          return 100;
-        }
-        return next;
+    setWizardError(null);
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 600));
+      setPhase("done");
+      toast({
+        variant: "success",
+        title: "Rollover selesai",
+        description: "Tahun 2027/2028 aktif; tahun lama read-only. (demo)"
       });
-    }, 400);
-    if (DEMO_MODE) return;
+      return;
+    }
     try {
-      const draft = await api.post<{ id: string }>("/app/rollover/drafts", {
-        academicYear: "2027/2028"
+      await api.post<{ accepted: boolean }>(`/rollover/${runId}/execute`, {});
+      setPhase("done");
+      toast({
+        variant: "success",
+        title: "Eksekusi rollover diterima",
+        description: "Job dijalankan async (BullMQ); refresh untuk melihat status terakhir."
       });
-      await api.post(`/app/rollover/drafts/${draft.id}/execute`, {});
-    } catch {
+    } catch (err) {
+      setPhase("confirm");
+      setWizardError(errorMessage(err));
       toast({ variant: "error", title: "Gagal mengeksekusi rollover" });
     }
   };
 
   const rollback = async (): Promise<void> => {
-    toast({ variant: "warning", title: "Rollback dalam jendela 7 hari..." });
-    await new Promise((r) => setTimeout(r, 600));
-    setPhase("rolledback");
-    toast({
-      variant: "success",
-      title: "Rollback selesai",
-      description: "Data dikembalikan ke sebelum rollover."
-    });
+    if (!runId) return;
+    setBusy(true);
+    setWizardError(null);
+    try {
+      if (DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 500));
+        setPhase("rolledback");
+        toast({ variant: "success", title: "Rollback selesai (demo)" });
+        return;
+      }
+      await api.post(`/rollover/${runId}/rollback`, { reason: "Rollback dari wizard superadmin" });
+      setPhase("rolledback");
+      toast({
+        variant: "success",
+        title: "Rollback selesai",
+        description: "Data dikembalikan ke sebelum rollover."
+      });
+    } catch (err) {
+      setWizardError(errorMessage(err));
+      toast({ variant: "error", title: "Gagal rollback" });
+    } finally {
+      setBusy(false);
+    }
   };
+
+  const counts = plan?.counts ?? {};
+  const summaryLine = plan
+    ? `${formatNumber(counts.PROMOTED ?? 0)} naik kelas · ${formatNumber(counts.REPEATED ?? 0)} tinggal · ${formatNumber(counts.GRADUATED ?? 0)} lulus`
+    : "";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Tutup Tahun Ajaran</h1>
-        <p className="text-sm text-neutral-600">
+        <h1 className="text-2xl font-bold text-foreground">Tutup Tahun Ajaran</h1>
+        <p className="text-sm text-muted-foreground">
           Tahun berjalan: 2026/2027 → Tahun baru: 2027/2028. Satu run per tahun ajaran; data tahun
-          lama menjadi arsip read-only.
+          lama menjadi arsip read-only. Draft dibuat dari tahun ajaran aktif di Pengaturan Aplikasi.
         </p>
       </div>
 
       <Steps steps={WIZARD_STEPS} current={stepIndex[phase]} />
+
+      {wizardError ? (
+        <Alert variant="danger" className="text-sm">
+          {wizardError}
+        </Alert>
+      ) : null}
 
       {phase === "precheck" ? (
         <Card>
           <CardHeader>
             <CardTitle>Pre-check Prasyarat</CardTitle>
             <CardDescription>
-              Bloker memblokir eksekusi; peringatan bisa dilanjutkan. Override bloker hanya
-              SUPERADMIN ber-alasan.
+              Menjalankan pre-check nyata dari API: nilai final, absensi, attempt aktif, tagihan.
+              Bloker memblokir eksekusi; peringatan bisa dilanjutkan.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ul className="space-y-2">
-              {PRECHECKS.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-start justify-between gap-3 rounded-md border border-neutral-200 px-3 py-2"
-                >
-                  <span className="text-sm text-neutral-900">{p.label}</span>
-                  {p.ok ? (
-                    <Badge variant="success">
-                      <IconCheck className="h-3 w-3" /> Lulus
-                    </Badge>
-                  ) : (
-                    <Badge variant="warning">
-                      <IconAlert className="h-3 w-3" /> Peringatan
-                    </Badge>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <Button onClick={() => void runPrecheck()}>Jalankan Pre-check</Button>
+            <Button onClick={() => void createDraftAndPrecheck()} loading={busy}>
+              Mulai Pre-check
+            </Button>
           </CardContent>
         </Card>
       ) : null}
@@ -164,9 +331,70 @@ export default function SuperadminRolloverPage(): React.JSX.Element {
       {phase === "preview" ? (
         <Card>
           <CardHeader>
+            <CardTitle>Hasil Pre-check</CardTitle>
+            <CardDescription>
+              Diperiksa pada{" "}
+              {precheck?.checkedAt ? new Date(precheck.checkedAt).toLocaleString("id-ID") : "-"}.
+              {precheck?.ok
+                ? " Tidak ada bloker — aman untuk lanjut."
+                : " Ada bloker yang harus dibereskan."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="space-y-2">
+              {precheck?.blockers.map((b) => (
+                <li
+                  key={b.code}
+                  className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2"
+                >
+                  <span className="text-sm text-foreground">{b.message}</span>
+                  <Badge variant="danger">
+                    <IconAlert className="h-3 w-3" /> Bloker
+                  </Badge>
+                </li>
+              ))}
+              {(precheck?.warnings ?? []).map((w, i) => (
+                <li
+                  key={`w-${i}`}
+                  className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2"
+                >
+                  <span className="text-sm text-foreground">{w}</span>
+                  <Badge variant="warning">
+                    <IconAlert className="h-3 w-3" /> Peringatan
+                  </Badge>
+                </li>
+              ))}
+              {!precheck || (precheck.blockers.length === 0 && precheck.warnings.length === 0) ? (
+                <li className="rounded-md border border-success-200 bg-success-600/5 px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm text-foreground">
+                    <IconCheck className="h-4 w-4 text-success-600" /> Tidak ada masalah ditemukan
+                  </span>
+                </li>
+              ) : null}
+            </ul>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => void createDraftAndPrecheck()}
+                loading={busy}
+              >
+                Ulangi Pre-check
+              </Button>
+              <Button onClick={() => void runDryRun()} loading={busy} disabled={!precheck?.ok}>
+                Hitung Dry-run
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {phase === "confirm" ? (
+        <Card>
+          <CardHeader>
             <CardTitle>Dry-run Preview</CardTitle>
             <CardDescription>
-              Hasil dihitung tanpa menulis data — wajib ditampilkan sebelum konfirmasi.
+              Hasil dihitung tanpa menulis data (endpoint /rollover/:runId/dry-run) — wajib
+              ditampilkan sebelum konfirmasi.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -174,17 +402,15 @@ export default function SuperadminRolloverPage(): React.JSX.Element {
               <TableHeader>
                 <TableRow>
                   <TableHead>Siswa</TableHead>
-                  <TableHead>Dari</TableHead>
-                  <TableHead>Ke</TableHead>
                   <TableHead>Aksi</TableHead>
+                  <TableHead>Rata-rata</TableHead>
+                  <TableHead>Alasan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {DRY_RUN.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-medium">{d.student}</TableCell>
-                    <TableCell>{d.from}</TableCell>
-                    <TableCell>{d.to}</TableCell>
+                {(plan?.decisions ?? []).map((d) => (
+                  <TableRow key={`${d.studentId}-${d.action}`}>
+                    <TableCell className="font-medium">{d.studentId}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -195,41 +421,25 @@ export default function SuperadminRolloverPage(): React.JSX.Element {
                               : "primary"
                         }
                       >
-                        {d.action}
+                        {ACTION_LABEL[d.action] ?? d.action}
                       </Badge>
                     </TableCell>
+                    <TableCell>{d.averageScore !== null ? d.averageScore : "-"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{d.reason}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             <Alert variant="info" className="text-sm">
-              Ringkasan: {formatNumber(2)} naik kelas · {formatNumber(1)} tinggal ·{" "}
-              {formatNumber(1)} lulus. Dampak keuangan diproses bila FINANCE ON.
+              Ringkasan: {summaryLine}. Kelas baru:{" "}
+              {(plan?.classes ?? []).map((c) => c.name).join(", ") || "-"}. Dampak keuangan diproses
+              bila FINANCE ON.
             </Alert>
-            <Button onClick={() => void runDryRun()}>Hitung &amp; Lanjut ke Konfirmasi</Button>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {phase === "confirm" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Konfirmasi</CardTitle>
-            <CardDescription>
-              Eksekusi membutuhkan persetujuan SUPERADMIN/KEPSEK; backup terverifikasi sudah dicek
-              di pre-check.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert variant="warning" className="text-sm">
-              Setelah eksekusi, jendela rollback 7 hari. Tahun lama masuk mode CLOSING lalu CLOSED
-              (read-only).
-            </Alert>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={() => setPhase("preview")}>
-                Kembali ke Preview
+                Kembali ke Pre-check
               </Button>
-              <Button onClick={() => setConfirmOpen(true)}>Eksekusi Rollover</Button>
+              <Button onClick={() => setConfirmOpen(true)}>Konfirmasi &amp; Eksekusi</Button>
             </div>
           </CardContent>
         </Card>
@@ -240,12 +450,11 @@ export default function SuperadminRolloverPage(): React.JSX.Element {
           <CardHeader>
             <CardTitle>Eksekusi Berjalan</CardTitle>
             <CardDescription>
-              Job async, idempoten, resume-able dari step terakhir (BullMQ).
+              Job async, idempoten, resume-able dari step terakhir (BullMQ / fallback inline).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Progress value={progress} showLabel />
-            <p className="text-sm text-neutral-600" aria-live="polite">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
               Membuat kelas baru, enroll siswa, menyalin template...
             </p>
           </CardContent>
@@ -264,14 +473,16 @@ export default function SuperadminRolloverPage(): React.JSX.Element {
           </CardHeader>
           <CardContent className="space-y-4">
             {phase === "done" ? (
-              <Button variant="destructive" onClick={() => setRollbackOpen(true)}>
+              <Button variant="destructive" onClick={() => setRollbackOpen(true)} loading={busy}>
                 Rollback (jendela 7 hari)
               </Button>
             ) : (
               <Button
                 onClick={() => {
                   setPhase("precheck");
-                  setProgress(0);
+                  setPrecheck(null);
+                  setPlan(null);
+                  setRunId(null);
                 }}
               >
                 Mulai Ulang Wizard

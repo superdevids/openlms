@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { AssessmentStatus, AttemptStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { DEFAULT_TOKEN_TTL_MINUTES, generateAccessToken, hashToken } from "./exam.util";
@@ -344,15 +344,28 @@ export class ExamService {
       }[];
     }[] = [];
 
+    // Batch lookup log jawaban untuk SEMUA paket dalam SATU query
+    // (sebelumnya findMany per paket = N+1), lalu group by attempt di memori.
+    const allAttemptIds = packages.flatMap((p) => p.attempts.map((a) => a.id));
+    const allQuestionIds = packages.flatMap((p) => p.questions.map((q) => q.id));
+    const allLogs =
+      allAttemptIds.length > 0 && allQuestionIds.length > 0
+        ? await prisma.examAnswerLog.findMany({
+            where: { attempt_id: { in: allAttemptIds }, question_id: { in: allQuestionIds } }
+          })
+        : [];
+    const logsByAttempt = new Map<string, typeof allLogs>();
+    for (const log of allLogs) {
+      const bucket = logsByAttempt.get(log.attempt_id);
+      if (bucket) {
+        bucket.push(log);
+      } else {
+        logsByAttempt.set(log.attempt_id, [log]);
+      }
+    }
+
     for (const pkg of packages) {
       const attemptIds = pkg.attempts.map((a) => a.id);
-      const questionIds = pkg.questions.map((q) => q.id);
-      const logs =
-        attemptIds.length > 0 && questionIds.length > 0
-          ? await prisma.examAnswerLog.findMany({
-              where: { attempt_id: { in: attemptIds }, question_id: { in: questionIds } }
-            })
-          : [];
 
       const perQuestion = new Map<string, { total: number; correct: number; percent: number }>();
       const byAttempt = new Map<string, Map<string, string>>();
@@ -360,7 +373,7 @@ export class ExamService {
         byAttempt.set(attemptId, new Map<string, string>());
       }
       for (const attemptId of attemptIds) {
-        const attemptLogs = logs.filter((l) => l.attempt_id === attemptId);
+        const attemptLogs = logsByAttempt.get(attemptId) ?? [];
         const latest = latestAnswersByQuestion(attemptLogs);
         byAttempt.set(attemptId, latest);
       }

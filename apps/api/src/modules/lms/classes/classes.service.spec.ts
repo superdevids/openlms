@@ -1,7 +1,7 @@
 import { NotFoundException } from "@nestjs/common";
-import type { RequestContext } from "@openlms/types";
+import type { RequestContext } from "@opensis/types";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     academicYear: { findUnique: jest.fn() },
     user: { findUnique: jest.fn() },
@@ -15,7 +15,7 @@ jest.mock("@openlms/database", () => ({
   }
 }));
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { ClassesService } from "./classes.service";
 
 const prismaMock = prisma as unknown as {

@@ -17,7 +17,7 @@ import type { OfficialLetter } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
-/** Type lokal — @openlms/types belum mengekspor LetterType (ISSUES). */
+/** Type lokal — @opensis/types belum mengekspor LetterType (ISSUES). */
 export type LetterType = "KETERANGAN" | "IZIN" | "UNDANGAN" | "LAINNYA";
 
 export interface CreateLetterInput {

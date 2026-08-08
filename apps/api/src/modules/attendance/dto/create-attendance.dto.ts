@@ -9,7 +9,7 @@ import {
   IsString,
   ValidateNested
 } from "class-validator";
-import { ATTENDANCE_STATUS_VALUES, type AttendanceStatus } from "@openlms/types";
+import { ATTENDANCE_STATUS_VALUES, type AttendanceStatus } from "@opensis/types";
 
 /** Satu baris absensi siswa (absensi manual per kelas-pertemuan). */
 export class RecordItemDto {

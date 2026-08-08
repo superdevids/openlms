@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   NotFoundException
 } from "@nestjs/common";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import type { Attendance } from "@prisma/client";
 import { AttendanceRekapService } from "./attendance-rekap.service";
 import { AttendanceService } from "./attendance.service";
@@ -18,7 +18,7 @@ const realtimeMock = {
 } as unknown as RealtimeGateway;
 
 const STUDENT: ActorContext = { userId: "usr_student1", roles: ["SISWA"], classIds: [] };
-const BK: ActorContext = { userId: "usr_bk", roles: ["GURU_BK"], classIds: [] };
+const BK: ActorContext = { userId: "usr_bk", roles: ["BK"], classIds: [] };
 
 const PERMIT_NOTE = {
   kind: "permit",
@@ -111,7 +111,7 @@ describe("AttendanceService — izin/sakit online (M-ABSQR-T7)", () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it("verifikasi approve -> status IZIN, note APPROVED (homeroom/GURU_BK)", async () => {
+  it("verifikasi approve -> status IZIN, note APPROVED (homeroom/BK)", async () => {
     mocks.attendance.findUnique.mockResolvedValue(makeAttendance());
     mocks.attendance.update.mockResolvedValue({
       ...makeAttendance(),

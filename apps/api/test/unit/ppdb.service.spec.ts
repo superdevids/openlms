@@ -20,10 +20,11 @@ const BASE = {
 describe("PpdbService — consent", () => {
   let db: MockDb;
   let service: PpdbService;
+  const notifications = { createForUser: jest.fn(), createForRoles: jest.fn() };
 
   beforeEach(() => {
     db = createMockDb();
-    service = new PpdbService(db, new AcademicYearGuard(db));
+    service = new PpdbService(db, new AcademicYearGuard(db), notifications as never);
     mockFn(db, "parentalConsent", "create").mockImplementation(
       async ({ data }: { data: Record<string, unknown> }) => ({ id: "consent-1", ...data })
     );

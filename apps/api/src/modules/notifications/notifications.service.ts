@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { prisma } from "@openlms/database";
-import type { NotificationType } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { NotificationType } from "@opensis/types";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { NOTIFICATION_NEW_EVENT, eventForType } from "./notification-events";
 import type {

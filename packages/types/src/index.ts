@@ -1,5 +1,5 @@
 /**
- * openlms — kontrak tipe bersama (single source of truth).
+ * opensis — kontrak tipe bersama (single source of truth).
  * Sumber: docs/03-database-erd.md §5 (enum), docs/prd/prd04.md §4.2/§4.3 (RBAC).
  *
  * Catatan: skema Prisma adalah sumber kebenaran database. Paket ini menyediakan
@@ -9,11 +9,13 @@
 export const ROLE_VALUES = [
   "SISWA",
   "GURU",
-  "GURU_BK",
+  "BK",
+  "KAPRODI",
   "KEUANGAN",
   "OPERATOR",
   "WAKEPSEK",
   "KEPSEK",
+  "AUDITOR",
   "SUPERADMIN",
   "CALON_SISWA",
   "WALI_MURID",

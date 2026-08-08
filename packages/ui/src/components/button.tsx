@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type ButtonHTMLAttributes, type JSX } from "react";
+
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../lib/utils";
 
@@ -29,7 +30,7 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   loading?: boolean;
 }
 
@@ -41,7 +42,7 @@ export function Button({
   disabled,
   children,
   ...props
-}: ButtonProps): React.JSX.Element {
+}: ButtonProps): JSX.Element {
   return (
     <button
       className={cn(buttonVariants({ variant, size, className }))}
@@ -54,7 +55,7 @@ export function Button({
   );
 }
 
-export function Spinner({ className }: { className?: string }): React.JSX.Element {
+export function Spinner({ className }: { className?: string }): JSX.Element {
   return (
     <svg
       className={cn("animate-spin", className)}

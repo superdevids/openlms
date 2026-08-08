@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX, type ReactNode } from "react";
+
 import { SkeletonList } from "./skeleton";
 import { ErrorState, FeatureDisabledState } from "./error-state";
 import { EmptyState } from "./empty-state";
@@ -30,11 +31,11 @@ export function DataView({
   error?: unknown;
   onRetry?: () => void;
   fallbackLabel?: string;
-  loading?: React.ReactNode;
-  empty?: React.ReactNode;
-  children: React.ReactNode;
+  loading?: ReactNode;
+  empty?: ReactNode;
+  children: ReactNode;
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   if (status === "loading")
     return <div className={cn("space-y-3", className)}>{loading ?? <SkeletonList />}</div>;
   if (status === "error") return <ErrorState error={error} onRetry={onRetry} />;
@@ -50,7 +51,7 @@ export function DataView({
   return <div className={className}>{children}</div>;
 }
 
-function DemoBannerInline({ label }: { label?: string }): React.JSX.Element | null {
+function DemoBannerInline({ label }: { label?: string }): JSX.Element | null {
   return (
     <p className="rounded-md border border-info-600 bg-info-100 px-3 py-2 text-sm text-info-700">
       {label ?? "Mode demo"} — data contoh. Backend belum terhubung.

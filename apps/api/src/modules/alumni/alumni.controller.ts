@@ -9,7 +9,7 @@ import {
   Req,
   UnauthorizedException
 } from "@nestjs/common";
-import type { AlumniStatus } from "@openlms/types";
+import type { AlumniStatus } from "@opensis/types";
 import { AlumniService } from "./alumni.service";
 import { CreateAlumniDto } from "./dto/alumni.dto";
 import { RequirePermission } from "../../common/require-permission.decorator";

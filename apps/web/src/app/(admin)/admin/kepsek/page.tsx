@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useState, type JSX } from "react";
+
 import { ChangeLogTable } from "@/components/audit/change-log-table";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
@@ -20,14 +21,23 @@ import {
   TableHead,
   TableCell,
   Alert
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatPercent, formatRupiah } from "@/lib/format";
+import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
 
 const DEMO_PAYROLL = [
   { id: "p1", staff: "Budi Santoso", role: "Guru", takeHome: 4200000, status: "TERKIRIM" },
   { id: "p2", staff: "Sari Wulandari", role: "Guru", takeHome: 3900000, status: "PENDING" },
   { id: "p3", staff: "Dewi Lestari", role: "TU", takeHome: 3300000, status: "TERKIRIM" }
+];
+
+// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
+const PAYROLL_KOLOM: { key: string; label: string }[] = [
+  { key: "staf", label: "Staf" },
+  { key: "role", label: "Role" },
+  { key: "takeHome", label: "Take Home" },
+  { key: "status", label: "Status" }
 ];
 
 interface MonthlySummary {
@@ -38,8 +48,19 @@ interface MonthlySummary {
   outstanding: number;
 }
 
-export default function AdminKepsekPage(): React.JSX.Element {
-  const [tab, setTab] = React.useState("kpi");
+/** Kunci tab per halaman (opensis_tab_state) — tab aktif bertahan saat reload. */
+const TAB_STATE_KEY = `${STORAGE_KEYS.tabState}:kepsek`;
+
+export default function AdminKepsekPage(): JSX.Element {
+  // Tab aktif dipersistenkan ke sessionStorage (audit R-23) agar tidak hilang
+  // saat reload; fallback "kpi".
+  const [tab, setTab] = useState<string>(
+    () => safeGet<{ tab: string }>(TAB_STATE_KEY, "session")?.tab ?? "kpi"
+  );
+
+  useEffect(() => {
+    safeSet(TAB_STATE_KEY, { tab }, "session");
+  }, [tab]);
 
   // KPI tunggakan memakai data NYATA (GET /finance/invoices/summary/monthly) —
   // read-only; KPI lain tetap placeholder sampai endpoint agregat tersedia.
@@ -52,7 +73,7 @@ export default function AdminKepsekPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Dashboard Eksekutif</h1>
+      <h1 className="text-2xl font-bold text-foreground">Dashboard Eksekutif</h1>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi label="Siswa Aktif" value="1,204" hint="48 rombel" />
@@ -122,10 +143,9 @@ export default function AdminKepsekPage(): React.JSX.Element {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Staf</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Take Home</TableHead>
-                  <TableHead>Status</TableHead>
+                  {PAYROLL_KOLOM.map((k) => (
+                    <TableHead key={k.key}>{k.label}</TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -154,21 +174,13 @@ export default function AdminKepsekPage(): React.JSX.Element {
   );
 }
 
-function Kpi({
-  label,
-  value,
-  hint
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}): React.JSX.Element {
+function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }): JSX.Element {
   return (
     <Card>
       <CardContent>
-        <p className="text-sm text-neutral-600">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-neutral-500">{hint}</p> : null}
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );

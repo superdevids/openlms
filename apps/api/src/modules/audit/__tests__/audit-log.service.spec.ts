@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import { AuditLogService } from "../audit-log.service";
 import { QueryAuditLogDto } from "../dto/query-audit-log.dto";
 

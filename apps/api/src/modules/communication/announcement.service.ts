@@ -12,9 +12,10 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import type { Announcement } from "@prisma/client";
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
+import { NotificationService } from "../notifications/notifications.service";
 
 export interface CreateAnnouncementInput {
   title: string;
@@ -27,7 +28,10 @@ export interface CreateAnnouncementInput {
 
 @Injectable()
 export class AnnouncementService {
-  constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
+  constructor(
+    @Inject(DATABASE_CLIENT) private readonly db: DatabaseClient,
+    private readonly notifications: NotificationService
+  ) {}
 
   async create(input: CreateAnnouncementInput, actor: AuditActorContext): Promise<Announcement> {
     if (!input.title || !input.body) {
@@ -57,6 +61,9 @@ export class AnnouncementService {
         published_at: announcement.published_at
       }
     });
+    if (announcement.published_at) {
+      await this.notifyPublished(announcement);
+    }
     return announcement;
   }
 
@@ -76,7 +83,12 @@ export class AnnouncementService {
     if (announcement.published_at) {
       throw new ConflictException("Pengumuman sudah terbit");
     }
-    return this.db.announcement.update({ where: { id }, data: { published_at: new Date() } });
+    const published = await this.db.announcement.update({
+      where: { id },
+      data: { published_at: new Date() }
+    });
+    await this.notifyPublished(published);
+    return published;
   }
 
   async unpublish(id: string): Promise<Announcement> {
@@ -106,6 +118,27 @@ export class AnnouncementService {
   async remove(id: string): Promise<Announcement> {
     await this.requireAnnouncement(id);
     return this.db.announcement.delete({ where: { id } });
+  }
+
+  /**
+   * Kirim notifikasi + emit `announcement:new` (best-effort) ke seluruh user
+   * dengan role target saat pengumuman terbit. NotificationService melakukan
+   * persist bulk + push Socket.IO (notification:new + event domain).
+   */
+  private async notifyPublished(announcement: Announcement): Promise<void> {
+    const roles = (announcement.target_role ?? []) as Role[];
+    if (roles.length === 0) return;
+    try {
+      await this.notifications.createForRoles({
+        roles,
+        type: "ANNOUNCEMENT",
+        title: announcement.title,
+        body: announcement.body,
+        data: { announcementId: announcement.id }
+      });
+    } catch {
+      // notifikasi best-effort — jangan menggagalkan alur publish
+    }
   }
 
   private async requireAnnouncement(id: string): Promise<Announcement> {

@@ -10,7 +10,7 @@ meng-inject via token `QUEUE_TOKEN` (Symbol) — tidak perlu tahu implementasi.
 ## Daftar Fitur
 
 - Kontrak antrean seragam: `enqueue`, `registerHandler`, `isReady`.
-- `BullMQQueue`: satu queue (`openlms-jobs`) + Worker concurrency 5, retry
+- `BullMQQueue`: satu queue (`opensis-jobs`) + Worker concurrency 5, retry
   exponential, `removeOnComplete/Fail` 1000, shutdown rapi.
 - `InProcessQueue`: antrean memori (dev/single-instance).
 - Tanpa `REDIS_URL` aplikasi tetap berjalan (fallback in-process).

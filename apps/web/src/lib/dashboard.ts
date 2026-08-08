@@ -3,9 +3,9 @@
  * - Types mengikuti kontrak GET /dashboard/me (API).
  * - DEFAULT_DASHBOARD_CARDS: fallback offline/DEMO_MODE (tidak pernah dipakai
  *   saat API terhubung; API adalah otoritas kartu yang aktif per role).
- * - Ikon memakai katalog components/dashboard (icon name → Icon* di @openlms/ui).
+ * - Ikon memakai katalog components/dashboard (icon name → Icon* di @opensis/ui).
  */
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 
 export interface DashboardCard {
   featureKey: string;
@@ -23,8 +23,8 @@ export type DashboardRoleGroup = "siswa" | "guru" | "admin" | "superadmin" | "or
 /** Role aktif per grup dashboard (sama dengan lib/roles.ts ROLES). */
 export const DASHBOARD_GROUP_ROLES: Record<DashboardRoleGroup, Role[]> = {
   siswa: ["SISWA"],
-  guru: ["GURU", "GURU_BK"],
-  admin: ["OPERATOR", "KEUANGAN", "WAKEPSEK", "KEPSEK"],
+  guru: ["GURU", "BK", "KAPRODI"],
+  admin: ["OPERATOR", "KEUANGAN", "WAKEPSEK", "KEPSEK", "AUDITOR"],
   superadmin: ["SUPERADMIN"],
   ortu: ["WALI_MURID"]
 };

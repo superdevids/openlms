@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import Link from "next/link";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import {
@@ -13,13 +14,18 @@ import {
   Label,
   Alert,
   Badge,
+  type BadgeVariant,
   IconCheck,
   IconAlert
-} from "@openlms/ui";
+} from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
 
 type Status =
-  | { ok: true; status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED"; next: string }
+  | {
+      ok: true;
+      status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "WAITLIST" | "REJECTED";
+      next: string;
+    }
   | { ok: false; message: string }
   | null;
 
@@ -29,13 +35,35 @@ const DEMO_STATUS: NonNullable<Status> & { ok: true } = {
   next: "Dokumen sedang diverifikasi TU — pengumuman 20 Agustus 2026"
 };
 
-export default function PPDBStatusPage(): React.JSX.Element {
-  const [regNo, setRegNo] = React.useState("");
-  const [status, setStatus] = React.useState<Status>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+// Lookup map — pengganti rantai ternary status (F-part: satu sumber kebenaran label/badge).
+const STATUS_LABEL: Record<string, string> = {
+  SUBMITTED: "Terdaftar",
+  VERIFIED: "Dokumen Diverifikasi",
+  SELECTED: "Diterima",
+  WAITLIST: "Cadangan",
+  REJECTED: "Ditolak",
+  ENROLLED: "Jadi Siswa"
+};
 
-  const check = async (e: React.FormEvent): Promise<void> => {
+const STATUS_BADGE: Record<string, BadgeVariant> = {
+  SUBMITTED: "warning",
+  WAITLIST: "warning",
+  VERIFIED: "info",
+  SELECTED: "primary",
+  REJECTED: "danger",
+  ENROLLED: "success"
+};
+
+// Status yang dianggap sukses → ikon centang (bukan peringatan).
+const STATUS_SUCCESS: ReadonlySet<string> = new Set(["SELECTED", "ENROLLED"]);
+
+export default function PPDBStatusPage(): JSX.Element {
+  const [regNo, setRegNo] = useState("");
+  const [status, setStatus] = useState<Status>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const check = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setStatus(null);
     setError(null);
@@ -46,10 +74,16 @@ export default function PPDBStatusPage(): React.JSX.Element {
         setStatus(DEMO_STATUS);
         return;
       }
-      const res = await api.get<{ status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" }>(
-        `/ppdb/status?registrationNo=${encodeURIComponent(regNo)}`
-      );
-      setStatus({ ok: true, status: res.status, next: "Ikuti informasi lanjutan dari sekolah." });
+      const res = await api.get<{
+        registration_no: string;
+        full_name: string;
+        status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "REJECTED" | "WAITLIST";
+      }>(`/ppdb/track/public?registrationNo=${encodeURIComponent(regNo)}`);
+      setStatus({
+        ok: true,
+        status: res.status,
+        next: `Pendaftar ${res.full_name} — ikuti informasi lanjutan dari sekolah.`
+      });
     } catch (err) {
       setError(err instanceof ApiError ? errorMessage(err) : "Nomor pendaftaran tidak ditemukan.");
     } finally {
@@ -58,13 +92,13 @@ export default function PPDBStatusPage(): React.JSX.Element {
   };
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
+    <main className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-          <Link href="/ppdb" className="text-sm font-medium text-primary-600">
+          <Link href="/ppdb" className="text-sm font-medium text-primary">
             &larr; Halaman PPDB
           </Link>
-          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
+          <p className="text-lg font-bold text-primary">{APP_NAME}</p>
         </div>
       </header>
 
@@ -100,39 +134,20 @@ export default function PPDBStatusPage(): React.JSX.Element {
 
             {status ? (
               status.ok ? (
-                <div
-                  role="status"
-                  className="rounded-lg border border-neutral-200 bg-neutral-50 p-4"
-                >
+                <div role="status" className="rounded-lg border border-border bg-background p-4">
                   <div className="flex items-center gap-2">
-                    {status.status === "SELECTED" || status.status === "ENROLLED" ? (
+                    {STATUS_SUCCESS.has(status.status) ? (
                       <IconCheck className="h-5 w-5 text-success-600" />
                     ) : (
                       <IconAlert className="h-5 w-5 text-warning-700" />
                     )}
-                    <p className="font-semibold text-neutral-900">Status: {status.status}</p>
+                    <p className="font-semibold text-foreground">Status: {status.status}</p>
                   </div>
-                  <p className="mt-1 text-sm text-neutral-600">{status.next}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{status.next}</p>
                   <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-neutral-500">Pipeline:</span>
-                    <Badge
-                      variant={
-                        status.status === "SUBMITTED"
-                          ? "warning"
-                          : status.status === "VERIFIED"
-                            ? "info"
-                            : status.status === "SELECTED"
-                              ? "primary"
-                              : "success"
-                      }
-                    >
-                      {status.status === "SUBMITTED"
-                        ? "Terdaftar"
-                        : status.status === "VERIFIED"
-                          ? "Dokumen Diverifikasi"
-                          : status.status === "SELECTED"
-                            ? "Diterima"
-                            : "Jadi Siswa"}
+                    <span className="text-xs text-muted-foreground">Pipeline:</span>
+                    <Badge variant={STATUS_BADGE[status.status] ?? "neutral"}>
+                      {STATUS_LABEL[status.status] ?? status.status}
                     </Badge>
                   </div>
                 </div>

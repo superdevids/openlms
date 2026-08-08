@@ -6,7 +6,7 @@
  */
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { Alumni } from "@prisma/client";
-import type { AlumniStatus } from "@openlms/types";
+import type { AlumniStatus } from "@opensis/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 

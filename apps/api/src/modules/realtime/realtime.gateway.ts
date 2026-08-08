@@ -12,7 +12,7 @@ import {
 import type { Server, Socket } from "socket.io";
 import { Redis } from "ioredis";
 import { createAdapter } from "@socket.io/redis-adapter";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { ScopeResolver } from "../../common/scope-resolver";
 import { allowedOrigins } from "../../common/cors.util";
 import { redisQueueUrl } from "../queue/queue.types";
@@ -33,7 +33,7 @@ if (process.env.NODE_ENV === "production") {
 }
 
 /** Role dengan akses lintas-kelas (admin/pengajar) — bypass cek keanggotaan room (lihat canAccessRoom). */
-const SCHOOL_SCOPED_ROLES = new Set(["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK", "GURU_BK"]);
+const SCHOOL_SCOPED_ROLES = new Set(["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK", "BK"]);
 
 /** Payload event changelog:new (best-effort, ringan — klien refetch REST). */
 export interface AuditChangePayload {

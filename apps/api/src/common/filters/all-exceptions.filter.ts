@@ -1,6 +1,6 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
 import { Response } from "express";
-import type { ApiErrorBody, ErrorCode } from "@openlms/types";
+import type { ApiErrorBody, ErrorCode } from "@opensis/types";
 import { REQUEST_ID_HEADER } from "../constants";
 import { RequestWithId } from "../middleware/request-id.middleware";
 

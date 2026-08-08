@@ -1,6 +1,6 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import { Injectable } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import type { Prisma } from "@prisma/client";
 import type { AuditAction, Role } from "@prisma/client";
 import {

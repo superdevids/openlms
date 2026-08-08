@@ -1,6 +1,6 @@
 import { ExecutionContext, HttpException, HttpStatus } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import { FeatureFlagGuard } from "../../common/feature-flag.guard";
 import { Feature } from "../../common/feature-flag.decorator";
 

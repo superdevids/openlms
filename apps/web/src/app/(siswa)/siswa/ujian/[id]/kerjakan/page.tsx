@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import {
@@ -12,15 +13,15 @@ import {
   Progress,
   ConfirmDialog,
   toast
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatDuration } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { EXAM_FORCE_SUBMIT_EVENT, EXAM_TICK_EVENT, getSocket } from "@/lib/use-socket";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
-import { cn } from "@openlms/ui";
-import { STORAGE_KEYS, safeGet, safeRemove } from "@/lib/storage";
+import { cn } from "@opensis/ui";
+import { STORAGE_KEYS, safeGet, safeRemove, safeSet } from "@/lib/storage";
 
 interface ExamQuestion {
   id: string;
@@ -33,52 +34,59 @@ interface ExamAttemptDraft {
   examId: string;
   attemptId: string;
   remainingSeconds: number;
-  token: string;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "offline";
 
-export default function SiswaUjianKerjakanPage(): React.JSX.Element {
+export default function SiswaUjianKerjakanPage(): JSX.Element {
   const search = useSearchParams();
   const router = useRouter();
   // Resume: prioritas attemptId dari URL; fallback ke draft sessionStorage
   // (ditulis oleh halaman token di [id]/page.tsx — R-23).
-  const [attemptId] = React.useState<string>(
+  const [attemptId] = useState<string>(
     () =>
       search.get("attempt") ??
       safeGet<ExamAttemptDraft>(STORAGE_KEYS.examAttempt, "session")?.attemptId ??
       ""
   );
 
-  const [questions, setQuestions] = React.useState<ExamQuestion[]>([]);
-  const [answers, setAnswers] = React.useState<Record<string, string>>({});
-  const [flags, setFlags] = React.useState<Record<string, boolean>>({});
-  const [index, setIndex] = React.useState(0);
-  const [remaining, setRemaining] = React.useState<number | null>(null);
-  const [saveStatus, setSaveStatus] = React.useState<SaveStatus>("idle");
-  const [lastSaved, setLastSaved] = React.useState<string | null>(null);
-  const [pendingQueue, setPendingQueue] = React.useState<Record<string, string>>({});
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [finalResult, setFinalResult] = React.useState<{
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
+  const [index, setIndex] = useState(0);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  // Queue jawaban offline dipersistenkan ke sessionStorage (opensis_exam_pending_answers)
+  // agar tidak hilang saat reload; token sesi TIDAK disimpan (hanya attemptId di memori).
+  const [pendingQueue, setPendingQueue] = useState<Record<string, string>>(
+    () => safeGet<Record<string, string>>(STORAGE_KEYS.examPendingAnswers, "session") ?? {}
+  );
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [finalResult, setFinalResult] = useState<{
     submitted: boolean;
     auto: boolean;
   } | null>(null);
-  const [sessionId, setSessionId] = React.useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
-  const answersRef = React.useRef(answers);
+  const answersRef = useRef(answers);
   answersRef.current = answers;
 
   // 0) Hapus draft attempt sesaat sesi berakhir (submit/manual/auto) agar
-  //    reload berikutnya tidak me-resume sesi yang sudah dikumpulkan.
-  React.useEffect(() => {
-    if (finalResult) safeRemove(STORAGE_KEYS.examAttempt, "session");
+  //    reload berikutnya tidak me-resume sesi yang sudah dikumpulkan; queue
+  //    jawaban offline ikut di-flush.
+  useEffect(() => {
+    if (finalResult) {
+      safeRemove(STORAGE_KEYS.examAttempt, "session");
+      safeRemove(STORAGE_KEYS.examPendingAnswers, "session");
+    }
   }, [finalResult]);
 
   // 1) Muat attempt (start attempt bila belum ada / demo fallback)
-  React.useEffect(() => {
+  useEffect(() => {
     const load = async (): Promise<void> => {
       setLoading(true);
       try {
@@ -122,7 +130,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
   }, [attemptId]);
 
   // 2) Timer
-  React.useEffect(() => {
+  useEffect(() => {
     if (remaining === null || finalResult) return;
     const t = window.setInterval(() => {
       setRemaining((r) => {
@@ -140,13 +148,13 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
   }, [remaining === null, finalResult]);
 
   // 3) Autosave tiap 15 detik + retry queue offline
-  React.useEffect(() => {
+  useEffect(() => {
     if (!attemptId || questions.length === 0 || finalResult) return;
     const interval = window.setInterval(() => void saveAll(false), 15000);
     return () => window.clearInterval(interval);
   }, [attemptId, questions.length, finalResult]);
 
-  const saveAll = React.useCallback(
+  const saveAll = useCallback(
     async (manual: boolean): Promise<void> => {
       if (!attemptId) return;
       const current = answersRef.current;
@@ -179,19 +187,21 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
           { idempotencyKey: newIdempotencyKey("exam") }
         );
         setPendingQueue({});
+        safeRemove(STORAGE_KEYS.examPendingAnswers, "session");
         setSaveStatus("saved");
         setLastSaved(
           new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
         );
       } catch {
         setPendingQueue(merged);
+        safeSet(STORAGE_KEYS.examPendingAnswers, merged, "session");
         setSaveStatus("offline");
       }
     },
     [attemptId, pendingQueue]
   );
 
-  const autosubmit = React.useCallback(async (): Promise<void> => {
+  const autosubmit = useCallback(async (): Promise<void> => {
     setFinalResult({ submitted: true, auto: true });
     setSaveStatus("saving");
     try {
@@ -221,7 +231,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
   };
 
   // 4) Deteksi peralihan tab → log + toast peringatan (bukan diskualifikasi otomatis)
-  React.useEffect(() => {
+  useEffect(() => {
     const onVis = (): void => {
       if (document.hidden && !finalResult) {
         toast({
@@ -229,9 +239,13 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
           title: "Peralihan tab dicatat",
           description: "Pengawas mencatat aktivitas. Tetap di halaman ujian."
         });
-        void api
-          .post(`/exam/attempts/${attemptId}/logs`, { event: "TAB_SWITCH" })
-          .catch(() => undefined);
+        void api.post(`/exam/attempts/${attemptId}/log`, { event: "TAB_SWITCH" }).catch((err) => {
+          toast({
+            variant: "error",
+            title: "Gagal mencatat aktivitas",
+            description: errorMessage(err)
+          });
+        });
       }
     };
     document.addEventListener("visibilitychange", onVis);
@@ -241,7 +255,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
   // 5) Realtime exam room (R-29): join `exam:{sessionId}`, terima
   //    exam:force-submit (waktu habis server-side) + exam:tick (sisa waktu
   //    server-authoritative). Best-effort; REST tetap fallback utama.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!attemptId || !sessionId || finalResult || DEMO_MODE) return;
     const socket = getSocket();
     const room = `exam:${sessionId}`;
@@ -275,7 +289,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center" aria-busy="true">
-        <p className="text-sm text-neutral-600">Menyiapkan ujian...</p>
+        <p className="text-sm text-muted-foreground">Menyiapkan ujian...</p>
       </div>
     );
   }
@@ -295,11 +309,11 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
 
   if (finalResult) {
     return (
-      <div className="mx-auto max-w-lg rounded-lg border border-neutral-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-2xl font-bold text-neutral-900">
+      <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+        <p className="text-2xl font-bold text-foreground">
           Ujian telah {finalResult.auto ? "dikumpulkan otomatis" : "terkirim"}
         </p>
-        <p className="mt-2 text-sm text-neutral-600">
+        <p className="mt-2 text-sm text-muted-foreground">
           {finalResult.auto
             ? "Waktu pengerjaan habis. Jawaban terakhir tersimpan telah dikirim ke server."
             : "Jawaban Anda telah dikirim. Anda tidak dapat kembali ke sesi ini."}
@@ -313,13 +327,13 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 pb-8">
-      <header className="sticky top-14 z-30 -mx-4 border-b border-neutral-200 bg-neutral-50/95 px-4 py-2 backdrop-blur">
+      <header className="sticky top-14 z-30 -mx-4 border-b border-border bg-background/95 px-4 py-2 backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <p className="text-lg font-bold text-neutral-900" aria-live="polite">
+            <p className="text-lg font-bold text-foreground" aria-live="polite">
               {formatDuration(remaining ?? 0)}
             </p>
-            <p className="text-sm text-neutral-600" aria-live="polite">
+            <p className="text-sm text-muted-foreground" aria-live="polite">
               {saveStatus === "saving"
                 ? "Menyimpan…"
                 : saveStatus === "offline"
@@ -337,7 +351,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
                   ? "bg-danger-600 text-white"
                   : timerWarn
                     ? "bg-warning-100 text-warning-700"
-                    : "bg-neutral-200 text-neutral-700"
+                    : "bg-muted text-foreground"
               )}
             >
               {timerDanger ? "≤ 1 menit" : timerWarn ? "≤ 10 menit" : "Waktu berjalan"}
@@ -359,11 +373,11 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
 
       {current ? (
         <section
-          className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm"
+          className="rounded-lg border border-border bg-card p-5 shadow-sm"
           aria-live="polite"
         >
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-sm font-medium text-neutral-600">
+            <p className="text-sm font-medium text-muted-foreground">
               Soal {index + 1} dari {questions.length}
             </p>
             <Button
@@ -374,7 +388,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
               {flags[current.id] ? "Batalkan tanda" : "Tandai"}
             </Button>
           </div>
-          <p className="text-base font-medium text-neutral-900">{current.text}</p>
+          <p className="text-base font-medium text-foreground">{current.text}</p>
           <div className="mt-4">
             {current.type === "PILIHAN_GANDA" ? (
               <RadioGroup
@@ -432,7 +446,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
             className={cn(
               "h-9 w-9 rounded-md text-sm font-medium",
               i === index && "ring-2 ring-primary-600",
-              answers[q.id] ? "bg-success-600 text-white" : "bg-neutral-200 text-neutral-700",
+              answers[q.id] ? "bg-success-600 text-white" : "bg-muted text-foreground",
               flags[q.id] && "bg-warning-100 text-warning-700"
             )}
           >
@@ -448,7 +462,7 @@ export default function SiswaUjianKerjakanPage(): React.JSX.Element {
           }
           showLabel
         />
-        <p className="mt-1 text-sm text-neutral-600">
+        <p className="mt-1 text-sm text-muted-foreground">
           {unanswered > 0 ? `${unanswered} soal belum dijawab` : "Semua soal sudah dijawab"} ·
           Jawaban tersimpan otomatis setiap 15 detik.
         </p>

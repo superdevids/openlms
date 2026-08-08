@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient, prisma } from "@openlms/database";
+import { PrismaClient, prisma } from "@opensis/database";
 import { RealtimeModule } from "../realtime/realtime.module";
 import { StorageModule } from "../storage/storage.module";
 import { BrandingController } from "./branding.controller";

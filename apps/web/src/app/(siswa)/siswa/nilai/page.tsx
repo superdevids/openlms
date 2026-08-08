@@ -1,11 +1,39 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+import {
+  useRealtimeRefetch,
+  SUBMISSION_GRADED_EVENT,
+  GRADE_RECORDED_EVENT
+} from "@/lib/use-socket";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  EmptyState
+} from "@opensis/ui";
 
 import { DEMO_GRADES } from "@/lib/demo";
+
+// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
+const GRADE_KOLOM: { key: string; label: string }[] = [
+  { key: "mapel", label: "Mata Pelajaran" },
+  { key: "tugas", label: "Tugas" },
+  { key: "kuis", label: "Kuis" },
+  { key: "ujian", label: "Ujian" },
+  { key: "rata", label: "Rata-rata" }
+];
 
 interface GradeRow {
   subject: string;
@@ -15,12 +43,15 @@ interface GradeRow {
   rata: number | null;
 }
 
-export default function SiswaNilaiPage(): React.JSX.Element {
+export default function SiswaNilaiPage(): JSX.Element {
   const list = useApi<GradeRow[]>(() => api.get("/grades"), [], { fallbackData: DEMO_GRADES });
+
+  // Nilai dinilai/di-record → refetch REST (best-effort; REST sumber kebenaran).
+  useRealtimeRefetch([SUBMISSION_GRADED_EVENT, GRADE_RECORDED_EVENT], list.refetch);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Nilai Saya</h1>
+      <h1 className="text-2xl font-bold text-foreground">Nilai Saya</h1>
       <DataView
         status={list.status}
         error={list.error}
@@ -41,11 +72,9 @@ export default function SiswaNilaiPage(): React.JSX.Element {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Mata Pelajaran</TableHead>
-                    <TableHead>Tugas</TableHead>
-                    <TableHead>Kuis</TableHead>
-                    <TableHead>Ujian</TableHead>
-                    <TableHead>Rata-rata</TableHead>
+                    {GRADE_KOLOM.map((k) => (
+                      <TableHead key={k.key}>{k.label}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>

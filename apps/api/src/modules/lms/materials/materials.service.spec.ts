@@ -1,7 +1,7 @@
 import { ForbiddenException } from "@nestjs/common";
-import type { RequestContext } from "@openlms/types";
+import type { RequestContext } from "@opensis/types";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     classSubject: { findUnique: jest.fn() },
     material: {
@@ -15,7 +15,7 @@ jest.mock("@openlms/database", () => ({
   }
 }));
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { MaterialsService } from "./materials.service";
 import { StorageService } from "../storage/storage.service";
 

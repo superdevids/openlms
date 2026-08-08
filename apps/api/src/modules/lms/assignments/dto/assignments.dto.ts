@@ -11,6 +11,7 @@ import {
   Min
 } from "class-validator";
 import { AssignmentStatus } from "@prisma/client";
+import { StrictBoolean } from "../../dto/transform";
 
 export class CreateAssignmentDto {
   @IsString()
@@ -29,7 +30,7 @@ export class CreateAssignmentDto {
   dueAt!: string;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @StrictBoolean()
   @IsBoolean()
   allowLate?: boolean;
 
@@ -64,7 +65,7 @@ export class UpdateAssignmentDto {
   dueAt?: string;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @StrictBoolean()
   @IsBoolean()
   allowLate?: boolean;
 

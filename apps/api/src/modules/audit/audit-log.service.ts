@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { QueryAuditLogDto } from "./dto/query-audit-log.dto";
 
 /** Satu baris audit untuk UI change-log (camelCase, actorName dari relasi User). */

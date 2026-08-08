@@ -31,11 +31,11 @@ storage file lokal backend (`STORAGE_LOCAL_DIR`).
 2. **Migrasi DB:** `npm run db:migrate:deploy` (atau `npm run db:generate`).
 3. **Seed (dev):** `npm run db:seed` — idempotent.
 4. **Jalankan app:**
-   - API: `npm run start --workspace=@openlms/api` (port `3001`).
-   - Web: `npm run start --workspace=@openlms/web` (port `3000`).
+   - API: `npm run start --workspace=@opensis/api` (port `3001`).
+   - Web: `npm run start --workspace=@opensis/web` (port `3000`).
    - (Opsional) Redis untuk BullMQ: `docker compose --profile full up -d redis`.
 5. **Pasang Nginx:**
-   `cp deploy/nginx.conf /etc/nginx/conf.d/openlms.conf && nginx -t && systemctl reload nginx`
+   `cp deploy/nginx.conf /etc/nginx/conf.d/opensis.conf && nginx -t && systemctl reload nginx`
 6. **TLS:** tambahkan blok `:443` (mis. certbot) + set `COOKIE_SECURE=true`;
    tambahkan `Strict-Transport-Security` di blok HTTPS.
 7. **Env wajib:** `DATABASE_URL`, secret JWT (32+ byte), `CORS_ORIGINS`,

@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { readCacheTtlMs } from "../../common/cache.util";
 import { FeatureFlagGuard } from "../../common/feature-flag.guard";
 import { UpdateFeatureFlagDto } from "./dto/update-feature-flag.dto";

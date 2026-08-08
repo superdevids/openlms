@@ -1,6 +1,6 @@
-# Indeks Dokumentasi openlms
+# Indeks Dokumentasi opensis
 
-Halaman ini adalah **pintu masuk** seluruh dokumentasi repository `openlms`.
+Halaman ini adalah **pintu masuk** seluruh dokumentasi repository `opensis`.
 Dokumentasi produk & teknis disimpan di folder `docs/`, dokumentasi pengguna
 dan kontributor di root repository.
 
@@ -26,40 +26,45 @@ dan kontributor di root repository.
 | `05-implementation-plan.md`    | Rencana implementasi bertahap (F0–F2)                                         | Final        |
 | `06-research-validations.md`   | Riset & validasi keputusan (UU PDP, Dapodik, Kurikulum Merdeka, PPh 21, dll.) | Final        |
 | `07-ux-design.md`              | Spesifikasi UX/UI                                                             | Final        |
-| `note.md`                      | Catatan tim                                                                   | —            |
+| `08-knowledge-base.md`         | Basis pengetahuan tim (keputusan, pola, pelajaran lintas iterasi)             | Final        |
 
 ## PRD (docs/prd/)
 
-| File                   | Isi                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| `prd01.md`             | Fondasi SaaS LMS+SIS (9 role, 7 modul) — **[v1]**                                     |
-| `prd02.md`             | Fase 2: ujian online, absensi online — **[v2]**                                       |
-| `prd03.md`             | Audit 24 gap G1–G24 + prioritisasi — **[v3]**                                         |
-| `prd04.md`             | **PRD flagship** (v4.2) — super-app single-school, 12 role, RBAC penuh, modul lengkap |
-| `prd05-development.md` | **PRD development** — penutupan gap audit (G-01…G-67), roadmap 3 sprint, DoD terukur  |
+| File       | Isi                                                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| `prd01.md` | Fondasi SaaS LMS+SIS (9 role, 7 modul) — **[v1]**                                                     |
+| `prd02.md` | Fase 2: ujian online, absensi online — **[v2]**                                                       |
+| `prd03.md` | Audit 24 gap G1–G24 + prioritisasi — **[v3]**                                                         |
+| `prd04.md` | **PRD flagship** (v4.2) — super-app single-school, 12 role, RBAC penuh, modul lengkap                 |
+| `prd05.md` | **PRD development** — penutupan gap audit (G-01…G-67), roadmap 3 sprint, DoD terukur                  |
+| `prd06.md` | **PRD development v2** — personalisasi (font/ukuran), performa, notifikasi, roadmap                   |
+| `prd07.md` | **PRD development v3** — lanjutan gelombang perbaikan, fitur per role (60+ usulan), kesiapan produksi |
 
 ## Review (docs/riview/)
 
-| File          | Isi                               |
-| ------------- | --------------------------------- |
-| `riview01.md` | Laporan review berkala 2026-08-07 |
+| File          | Isi                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `riview01.md` | Laporan review berkala 2026-08-07                                                                                            |
+| `riview02.md` | Laporan review berkala 2026-08-07 (putaran 2)                                                                                |
+| `riview03.md` | Laporan review berkala 2026-08-08 (putaran 3 — setelah gelombang perbaikan)                                                  |
+| `riview04.md` | Laporan review berkala 2026-08-08 (putaran 4 — role system, clean code, test stability, ISR/landing, dark mode, dokumentasi) |
 
 ## Dokumentasi Per Komponen
 
-| Path                                            | Isi                                                                                                                                                                                                                                                                                       |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deploy/README.deploy.md`                       | Deployment & Nginx                                                                                                                                                                                                                                                                        |
-| `apps/api/README.md`                            | Ikhtisar aplikasi API                                                                                                                                                                                                                                                                     |
-| `apps/api/src/README.api-src.md`                | Struktur & daftar modul API                                                                                                                                                                                                                                                               |
-| `apps/api/src/common/README.common.md`          | Guard, middleware, interceptor, filter                                                                                                                                                                                                                                                    |
-| `apps/api/src/modules/*/README.<modul>.md`      | Kontrak endpoint per modul (auth, lms, quiz, exam, attendance, finance, payroll, asset, ppdb, parent-portal, smk, rollover, alumni, branding, landing, onboarding, maintenance, notifications, rbac-admin, realtime, storage, feature-flags, app-settings, academic, health, queue, jobs) |
-| `apps/api/src/modules/*/README.registration.md` | Kontrak registrasi modul                                                                                                                                                                                                                                                                  |
-| `apps/web/src/README.web.md`                    | Struktur frontend                                                                                                                                                                                                                                                                         |
-| `apps/web/src/app/README.app.md`                | Route groups & halaman                                                                                                                                                                                                                                                                    |
-| `apps/web/src/components/README.components.md`  | Komponen shared web                                                                                                                                                                                                                                                                       |
-| `packages/database/README.database.md`          | Skema, migrasi, seed, RLS                                                                                                                                                                                                                                                                 |
-| `packages/ui/README.ui.md`                      | Komponen UI shared                                                                                                                                                                                                                                                                        |
-| `packages/types/README.types.md`                | Tipe bersama                                                                                                                                                                                                                                                                              |
+| Path                                            | Isi                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy/README.deploy.md`                       | Deployment & Nginx                                                                                                                                                                                                                                                                                                                           |
+| `apps/api/README.md`                            | Ikhtisar aplikasi API                                                                                                                                                                                                                                                                                                                        |
+| `apps/api/src/README.api-src.md`                | Struktur & daftar modul API                                                                                                                                                                                                                                                                                                                  |
+| `apps/api/src/common/README.common.md`          | Guard, middleware, interceptor, filter                                                                                                                                                                                                                                                                                                       |
+| `apps/api/src/modules/*/README.<modul>.md`      | Kontrak endpoint per modul (auth, lms, quiz, exam, attendance, finance, payroll, asset, ppdb, parent-portal, smk, rollover, alumni, branding, landing, onboarding, maintenance, notifications, rbac-admin, realtime, storage, feature-flags, app-settings, academic, health, queue, jobs, users-admin, dashboard-config, audit, admin-stats) |
+| `apps/api/src/modules/*/README.registration.md` | Kontrak registrasi modul                                                                                                                                                                                                                                                                                                                     |
+| `apps/web/src/README.web.md`                    | Struktur frontend                                                                                                                                                                                                                                                                                                                            |
+| `apps/web/src/app/README.app.md`                | Route groups & halaman                                                                                                                                                                                                                                                                                                                       |
+| `apps/web/src/components/README.components.md`  | Komponen shared web                                                                                                                                                                                                                                                                                                                          |
+| `packages/database/README.database.md`          | Skema, migrasi, seed, RLS                                                                                                                                                                                                                                                                                                                    |
+| `packages/ui/README.ui.md`                      | Komponen UI shared                                                                                                                                                                                                                                                                                                                           |
+| `packages/types/README.types.md`                | Tipe bersama                                                                                                                                                                                                                                                                                                                                 |
 
 ## Konvensi Dokumentasi
 

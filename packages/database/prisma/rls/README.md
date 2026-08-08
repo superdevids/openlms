@@ -1,4 +1,4 @@
-# RLS Opsional — openlms (F0-T5)
+# RLS Opsional — opensis (F0-T5)
 
 RLS PostgreSQL adalah **lapisan kedua (defense-in-depth)**. Lapisan utama tetaplah
 guard RBAC NestJS (`@RequirePermission` + scope SENDIRI/KELAS/SEKOLAH) — docs/03 §7,

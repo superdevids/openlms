@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { JSX } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -8,12 +9,15 @@ import {
   CardDescription,
   CardHeader,
   CardTitle
-} from "@openlms/ui";
+} from "@opensis/ui";
 import { API_BASE_FALLBACK, API_TIMEOUT_MS, APP_NAME } from "@/lib/constants";
 
-/** Daftar berita sekolah — GET /public/landing/berita (publik). */
+/**
+ * Daftar berita sekolah — GET /public/landing/berita (publik).
+ * ISR 30s — konten berubah hanya via superadmin.
+ */
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 interface NewsItem {
   id: string;
@@ -46,7 +50,7 @@ async function fetchBerita(): Promise<NewsItem[]> {
     const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
     try {
       const res = await fetch(landingApiUrl("/public/landing/berita"), {
-        cache: "no-store",
+        next: { revalidate: 30 },
         signal: controller.signal
       });
       if (!res.ok) throw new Error(`berita ${res.status}`);
@@ -64,20 +68,20 @@ export const metadata: Metadata = {
   description: "Kabar dan pengumuman terbaru dari sekolah."
 };
 
-export default async function BeritaPage(): Promise<React.JSX.Element> {
+export default async function BeritaPage(): Promise<JSX.Element> {
   const berita = await fetchBerita();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
       <Badge variant="primary">Berita</Badge>
-      <h1 className="mt-3 text-3xl font-bold text-neutral-900">Kabar Sekolah</h1>
-      <p className="mt-2 text-base text-neutral-600">
+      <h1 className="mt-3 text-3xl font-bold text-foreground">Kabar Sekolah</h1>
+      <p className="mt-2 text-base text-muted-foreground">
         Informasi dan pengumuman terbaru dari sekolah.
       </p>
 
       {berita.length === 0 ? (
         <Card className="mt-8">
-          <CardContent className="p-6 text-sm text-neutral-500">
+          <CardContent className="p-6 text-sm text-muted-foreground">
             Belum ada berita yang diterbitkan. Silakan kembali lagi nanti.
           </CardContent>
         </Card>
@@ -90,7 +94,7 @@ export default async function BeritaPage(): Promise<React.JSX.Element> {
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="neutral">{formatTanggal(item.publishedAt)}</Badge>
                     {item.author ? (
-                      <span className="text-xs text-neutral-500">{item.author}</span>
+                      <span className="text-xs text-muted-foreground">{item.author}</span>
                     ) : null}
                   </div>
                   <CardTitle className="line-clamp-2">{item.title}</CardTitle>

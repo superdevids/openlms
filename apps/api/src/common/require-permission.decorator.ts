@@ -1,7 +1,7 @@
 import { SetMetadata } from "@nestjs/common";
 
 /** Kunci metadata permission yang dibutuhkan sebuah handler (F1-T4). */
-export const PERMISSIONS_KEY = "openlms:permissions";
+export const PERMISSIONS_KEY = "opensis:permissions";
 
 /**
  * @RequirePermission("resource:action[:scope]") — prd04 §4, F1-T4.

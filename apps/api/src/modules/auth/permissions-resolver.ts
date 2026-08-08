@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PermissionEffect, PermissionScope, Role } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { TtlCache } from "../../common/cache/ttl-cache";
 
 export interface PermissionGrant {

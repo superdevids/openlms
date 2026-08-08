@@ -4,8 +4,8 @@ import type { Job } from "bullmq";
 import { Redis } from "ioredis";
 import type { EnqueueOptions, IJobQueue, JobHandler } from "./queue.types";
 
-/** Nama queue BullMQ tunggal untuk seluruh job openlms. */
-export const BULLMQ_QUEUE_NAME = "openlms-jobs";
+/** Nama queue BullMQ tunggal untuk seluruh job opensis. */
+export const BULLMQ_QUEUE_NAME = "opensis-jobs";
 
 /** Opsi koneksi ioredis: producer wajib maxRetriesPerRequest=1. */
 function producerRedis(url: string): Redis {

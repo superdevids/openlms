@@ -5,10 +5,10 @@
 # - .env        → TIDAK dikecualikan; bila ter-commit, secret di dalamnya tetap terdeteksi.
 #   (lihat .gitignore — .env memang sudah di-ignore; proteksi berlapis).
 # - *.pem/.key  → rule private-key di bawah + rule default gitleaks (privatekey).
-# - JWT secret  → rule openlms-jwt-secret (JWT_*_SECRET non-placeholder).
+# - JWT secret  → rule opensis-jwt-secret (JWT_*_SECRET non-placeholder).
 # - .env.example → dikecualikan (nilai placeholder dev, bukan secret nyata).
 
-title = "openlms gitleaks config"
+title = "opensis gitleaks config"
 
 [extend]
 useDefault = true
@@ -28,14 +28,14 @@ paths = [
 
 # Placeholder dev (.env.example) — nilai contoh, bukan secret.
 [[rules]]
-id = "openlms-env-placeholder"
+id = "opensis-env-placeholder"
 description = "Nilai placeholder di .env.example adalah contoh, bukan secret"
 regex = '''(change-me-32-bytes-random)'''
 secret-group = 1
 
 # JWT secret yang di-set via env (nilai nyata >= 16 char; placeholder dikecualikan).
 [[rules]]
-id = "openlms-jwt-secret"
+id = "opensis-jwt-secret"
 description = "JWT secret nyata (JWT_*_SECRET) — wajib acak 32+ byte di production"
 regex = '''(?i)(JWT_(ACCESS|REFRESH|INVITATION)_SECRET|JWT_SECRET)\s*[:=]\s*"?([A-Za-z0-9_\-\.\/+]{16,})"?'''
 secret-group = 3
@@ -44,14 +44,14 @@ regexes = ["change-me-32-bytes-random"]
 
 # Private key ter-commit (*.pem, *.key) — insiden serius.
 [[rules]]
-id = "openlms-private-key"
+id = "opensis-private-key"
 description = "Private key ter-commit (PEM/OpenSSH/PGP)"
 regex = '''-----BEGIN (RSA |EC |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----'''
 secret-group = 1
 
 # Secret lain di file env/konfigurasi (bukan placeholder, bukan template ${...}).
 [[rules]]
-id = "openlms-env-secret"
+id = "opensis-env-secret"
 description = "Nilai secret non-placeholder di env/konfigurasi"
 regex = '''(?i)[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|API_KEY)\s*[:=]\s*"?([^"'\s]{16,})"?'''
 secret-group = 2

@@ -1,11 +1,11 @@
 /**
- * openlms — seed Fase 0 (F0-T4). Idempotent: aman dijalankan berulang.
+ * opensis — seed Fase 0 (F0-T4). Idempotent: aman dijalankan berulang.
  *
  * Isi:
  * - SchoolProfile demo (single-school) + AcademicYear contoh (2026/2027 OPEN).
  * - SUPERADMIN dev (password dev "password" — hanya untuk development lokal).
  * - FeatureFlag global (prd04 §5.N).
- * - Katalog Permission (13 kategori) + RolePermission untuk 12 role.
+ * - Katalog Permission (13 kategori) + RolePermission untuk 14 role.
  * - Data demo: Class, Subject, ClassSubject.
  *
  * Komponen gaji, kategori aset + umur manfaat, dan template tagihan
@@ -23,7 +23,7 @@ const prisma = new PrismaClient();
 
 const DEV_ADMIN = {
   username: "admin",
-  email: "admin@openlms.local",
+  email: "admin@opensis.local",
   fullName: "Admin Sekolah (SUPERADMIN)",
   // Password dev yang DIDOKUMENTASIKAN — "password" untuk semua user seed
   // agar mudah login saat development (must_change_password=false).
@@ -43,7 +43,7 @@ async function main(): Promise<void> {
       school_type: "SMA",
       address: "Jl. Pendidikan No. 1",
       phone: "021-0000000",
-      email: "info@openlms.local",
+      email: "info@opensis.local",
       timezone: "Asia/Jakarta",
       settings: {
         attendance: { absence_threshold_per_month: 3 },
@@ -131,7 +131,7 @@ async function main(): Promise<void> {
     update: {},
     create: {
       id: "branding_default",
-      app_name: "openlms",
+      app_name: "opensis",
       tagline: "LMS & SIS Sekolah",
       primary_color: "#2563eb",
       secondary_color: "#1d4ed8",
@@ -180,7 +180,7 @@ async function main(): Promise<void> {
     prodiIds.set(p.code, row.id);
   }
 
-  // 5. Permission catalog + RolePermission (12 role)
+  // 5. Permission catalog + RolePermission (14 role)
   const permissionIds = new Map<string, string>();
   for (const perm of PERMISSIONS) {
     const row = await prisma.permission.upsert({
@@ -304,8 +304,9 @@ async function main(): Promise<void> {
     data: { current_academic_year_id: yearNow.id }
   });
 
-  // 7. Landing page — konten sekolah (hero, sambutan, tentang, visi-misi, piagam,
-  // program-keahlian, ekskul, prestasi, fasilitas, galeri, faq, kontak) + berita contoh.
+  // 7. Landing page — konten sekolah (hero, statistik, sambutan, tentang, visi-misi,
+  // piagam, struktur-organisasi, program-keahlian, ekskul, prestasi, agenda, fasilitas,
+  // galeri, testimoni, faq, ppdb-cta, kontak) + berita contoh (8 artikel).
   // CTA terstruktur (link_url/link_label) + `extra` JSON per slug.
   // Hanya menambah baris landing; TIDAK menyentuh user/password (ditangani seed lain).
   for (const s of LANDING_SECTIONS_SEED) {
@@ -342,19 +343,82 @@ async function main(): Promise<void> {
       excerpt:
         "Pendaftaran peserta didik baru dibuka mulai 1 Maret 2026. Kuota terbatas, daftar segera!",
       slug: "ppdb-2026-2027-dibuka",
-      body: "Pendaftaran peserta didik baru (PPDB) untuk Tahun Ajaran 2026/2027 resmi dibuka. Calon peserta didik dapat mendaftar secara daring melalui portal PPDB sekolah. Persiapkan dokumen yang dibutuhkan dan pantau jadwal seleksi secara berkala.",
+      body: "Pendaftaran peserta didik baru (PPDB) untuk Tahun Ajaran 2026/2027 resmi dibuka. Calon peserta didik dapat mendaftar secara daring melalui portal PPDB sekolah dengan jalur zonasi, afirmasi, perpindahan orang tua, dan prestasi. Persiapkan dokumen yang dibutuhkan dan pantau jadwal seleksi secara berkala.",
       author: "Panitia PPDB",
       category: "pengumuman",
       published_at: new Date("2026-03-01T02:00:00.000Z")
     },
     {
       title: "Pembelajaran Digital Dimulai dengan LMS",
-      excerpt: "Sekolah mengadopsi openlms untuk pembelajaran dan administrasi terpadu.",
+      excerpt: "Sekolah mengadopsi opensis untuk pembelajaran dan administrasi terpadu.",
       slug: "pembelajaran-digital-lms",
-      body: "Mulai semester ini, seluruh kegiatan pembelajaran daring, tugas, kuis, dan ujian dikelola melalui platform openlms. Guru dan siswa dapat mengakses materi kapan saja, dan orang tua dapat memantau perkembangan belajar anaknya.",
+      body: "Mulai semester ini, seluruh kegiatan pembelajaran daring, tugas, kuis, dan ujian dikelola melalui platform opensis. Guru dan siswa dapat mengakses materi kapan saja, dan orang tua dapat memantau perkembangan belajar anaknya.",
       author: "Tim IT Sekolah",
-      category: "kegiatan",
+      category: "berita",
       published_at: new Date("2026-07-13T02:00:00.000Z")
+    },
+    {
+      title: "Pengumuman Jadwal Penilaian Tengah Semester Ganjil",
+      excerpt:
+        "PTS ganjil 2026/2027 dijadwalkan berlangsung 21–25 September 2026 untuk seluruh jenjang.",
+      slug: "jadwal-pts-ganjil-2026-2027",
+      body: "Kepada seluruh peserta didik dan orang tua/wali, Penilaian Tengah Semester (PTS) ganjil Tahun Ajaran 2026/2027 dijadwalkan berlangsung pada 21–25 September 2026. Siswa diharapkan menyiapkan diri dengan mempelajari materi yang telah diberikan. Informasi teknis lebih lanjut akan disampaikan oleh wali kelas masing-masing.",
+      author: "Waka Bidang Kurikulum",
+      category: "pengumuman",
+      published_at: new Date("2026-08-05T02:00:00.000Z")
+    },
+    {
+      title: "Siswa TKJ Raih Juara 1 LKS Web Technologies Tingkat Provinsi",
+      excerpt:
+        "Tim sekolah berhasil menjadi yang terbaik di antara 30 peserta se-provinsi dalam ajang LKS Web Technologies 2026.",
+      slug: "juara-1-lks-web-technologies",
+      body: "Prestasi membanggakan kembali diraih siswa program keahlian Teknik Komputer & Jaringan pada ajang Lomba Kompetensi Siswa (LKS) tingkat provinsi kategori Web Technologies. Setelah melalui seleksi yang ketat, tim sekolah berhasil meraih juara pertama dan berhak melaju ke tingkat nasional. Pembina mengapresiasi kerja keras dan disiplin latihan para siswa selama tiga bulan terakhir.",
+      author: "Tim Humas",
+      category: "prestasi",
+      published_at: new Date("2026-06-20T02:00:00.000Z"),
+      cover_image_path: "/storage/files/public/landing/berita-1.jpg"
+    },
+    {
+      title: "Kegiatan P5: Siswa Praktik Kewirausahaan di Pasar Sekolah",
+      excerpt:
+        "Puluhan stan siswa memamerkan produk hasil projek kewirausahaan pada gelar karya P5.",
+      slug: "p5-kewirausahaan-pasar-sekolah",
+      body: "Sebagai bagian dari Projek Penguatan Profil Pelajar Pancasila (P5) tema kewirausahaan, siswa kelas X dan XI menggelar pasar sekolah. Puluhan stan memamerkan produk makanan, kerajinan, dan jasa digital hasil karya siswa. Kegiatan ini melatih jiwa wirausaha, kerja sama tim, dan pengelolaan keuangan sederhana.",
+      author: "Tim Humas",
+      category: "berita",
+      published_at: new Date("2026-07-25T02:00:00.000Z")
+    },
+    {
+      title: "Kunjungan Industri Siswa RPL ke Perusahaan Teknologi",
+      excerpt:
+        "Siswa Rekayasa Perangkat Lunak belajar langsung alur kerja pengembangan produk digital.",
+      slug: "kunjungan-industri-rpl",
+      body: "Program keahlian Rekayasa Perangkat Lunak mengadakan kunjungan industri ke perusahaan teknologi mitra sekolah. Siswa berkesempatan melihat langsung proses perencanaan, pengembangan, hingga peluncuran produk digital. Kegiatan ini merupakan bagian dari pembelajaran berbasis industri untuk mempersiapkan siswa memasuki dunia kerja.",
+      author: "Waka Bidang Humas & Industri",
+      category: "berita",
+      published_at: new Date("2026-05-12T02:00:00.000Z"),
+      cover_image_path: "/storage/files/public/landing/berita-2.jpg"
+    },
+    {
+      title: "Rapat Orang Tua/Wali Semester Ganjil 2026/2027",
+      excerpt:
+        "Sosialisasi program semester ganjil dan pembagian laporan perkembangan peserta didik.",
+      slug: "rapat-orang-tua-semester-ganjil",
+      body: "Sekolah mengundang seluruh orang tua/wali peserta didik untuk hadir pada Rapat Orang Tua/Wali Semester Ganjil Tahun Ajaran 2026/2027 yang akan diselenggarakan pada 5 September 2026 di Aula Sekolah. Agenda rapat meliputi sosialisasi program sekolah, tata tertib, dan mekanisme pemantauan perkembangan belajar melalui aplikasi.",
+      author: "Panitia Sekolah",
+      category: "agenda",
+      published_at: new Date("2026-08-20T02:00:00.000Z")
+    },
+    {
+      title: "Perkemahan Pramuka dan Kemah Bakti Siswa",
+      excerpt:
+        "Ratusan anggota Pramuka mengikuti perkemahan sekaligus bakti sosial di sekitar sekolah.",
+      slug: "perkemahan-pramuka-kemah-bakti",
+      body: "Gerakan Pramuka sekolah menyelenggarakan perkemahan dan kemah bakti bagi anggota aktif. Selain kegiatan kepramukaan seperti pioneering dan jelajah alam, peserta juga melaksanakan bakti sosial membersihkan lingkungan dan berbagi kepada warga sekitar. Kegiatan ini menumbuhkan jiwa kepemimpinan, kemandirian, dan kepedulian sosial.",
+      author: "Pembina Pramuka",
+      category: "agenda",
+      published_at: new Date("2026-07-05T02:00:00.000Z"),
+      cover_image_path: "/storage/files/public/landing/berita-3.jpg"
     }
   ];
   for (const n of LANDING_NEWS) {
@@ -366,6 +430,7 @@ async function main(): Promise<void> {
         body: n.body,
         author: n.author,
         category: n.category,
+        cover_image_path: n.cover_image_path ?? null,
         published_at: n.published_at,
         is_published: true
       },
@@ -376,6 +441,7 @@ async function main(): Promise<void> {
         body: n.body,
         author: n.author,
         category: n.category,
+        cover_image_path: n.cover_image_path ?? null,
         published_at: n.published_at,
         is_published: true,
         updated_by: admin.id
@@ -437,7 +503,7 @@ async function main(): Promise<void> {
   console.log(`- AcademicYear aktif: ${yearNow.code}`);
   console.log(`- SUPERADMIN dev: ${DEV_ADMIN.username} (password: "${DEV_ADMIN.devPassword}")`);
   console.log(`- FeatureFlag: ${flagTotal} flag`);
-  console.log(`- Branding: openlms (config_version 1)`);
+  console.log(`- Branding: opensis (config_version 1)`);
   console.log(`- Prodi: ${prodiTotal} jurusan (TKJ, RPL, TKR, AKL, MM, TSM)`);
   console.log(
     `- Permission: ${permissionTotal} | RolePermission: ${rolePermissionTotal} (baru: ${rolePermissionCount})`

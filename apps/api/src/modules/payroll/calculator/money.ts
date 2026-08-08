@@ -11,7 +11,15 @@ export type MoneyInput = Decimal | number | string;
 export const ZERO: Decimal = new Decimal(0);
 
 export function money(value: MoneyInput): Decimal {
-  const d = value instanceof Decimal ? value : new Decimal(value);
+  let d: Decimal;
+  try {
+    d = value instanceof Decimal ? value : new Decimal(value);
+  } catch {
+    // Nilai non-numerik (data korup) TIDAK boleh mematikan seluruh run payroll;
+    // kembalikan Decimal NaN sebagai penanda — pemanggil yang bertanggung jawab
+    // menyaring hasil (mis. bpjs/tax mengembalikan 0 untuk base <= 0).
+    return new Decimal(Number.NaN);
+  }
   return d.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
 }
 

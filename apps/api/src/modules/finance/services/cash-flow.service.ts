@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { money, ZERO } from "../calculator/money";
 import { FinanceStore } from "../finance.store";

@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { AuditAction, ImportType, JobStatus, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { ImportRowsDto } from "./dto/import.dto";
 import { generateTemporaryPassword, hashPassword } from "../auth/password.util";
+import { JOB_NAMES, QUEUE_TOKEN, type IJobQueue } from "../queue/queue.types";
 
 export interface ImportTemplateColumn {
   key: string;
@@ -42,6 +43,19 @@ export interface ImportRunResult {
   failedRows: number;
   status: JobStatus;
   errors: ImportRowError[];
+}
+
+/** Payload job import.commit (dienqueue REST, dieksekusi ImportProcessor). */
+export interface ImportCommitPayload {
+  batchId: string;
+  importType: ImportType;
+  /** baris yang lolos validasi (sudah ber-_rowNumber) */
+  rows: (Record<string, unknown> & { _rowNumber: number })[];
+  actorId: string;
+  ip?: string;
+  totalRows: number;
+  /** jumlah error validasi yang sudah ditulis REST (createMany) */
+  validationErrorsCount: number;
 }
 
 const IMPORT_TEMPLATES: ImportTemplate[] = [
@@ -136,7 +150,12 @@ const IMPORT_TEMPLATES: ImportTemplate[] = [
  */
 @Injectable()
 export class ImportService {
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly logger = new Logger(ImportService.name);
+
+  constructor(
+    private readonly prisma: PrismaClient,
+    @Inject(QUEUE_TOKEN) private readonly queue: IJobQueue
+  ) {}
 
   getTemplates(): ImportTemplate[] {
     return IMPORT_TEMPLATES;
@@ -174,9 +193,6 @@ export class ImportService {
       throw new BadRequestException("Impor ASSIGNMENT belum didukung di fase ini.");
     }
 
-    const school = await this.prisma.schoolProfile.findFirst();
-    const academicYearId = school?.current_academic_year_id ?? null;
-
     const all = this.validateAll(dto);
     const batch = await this.prisma.importBatch.create({
       data: {
@@ -189,14 +205,58 @@ export class ImportService {
       }
     });
 
+    // Error validasi ditulis SEKALI (createMany), bukan create per baris.
+    if (all.errors.length > 0) {
+      await this.prisma.importError.createMany({
+        data: all.errors.map((err) => ({
+          import_batch_id: batch.id,
+          row_number: err.rowNumber,
+          field: err.field,
+          message: err.message
+        }))
+      });
+    }
+
+    // Proses berat (loop per baris + pembuatan data) dipindah ke queue agar
+    // HTTP cepat; batch tetap berstatus PROCESSING sampai processor selesai.
+    const payload: ImportCommitPayload = {
+      batchId: batch.id,
+      importType: dto.importType,
+      rows: all.valid,
+      actorId,
+      ip,
+      totalRows: all.totalRows,
+      validationErrorsCount: all.errors.length
+    };
+    await this.queue.enqueue(JOB_NAMES.IMPORT_COMMIT, payload);
+
+    return {
+      batchId: batch.id,
+      importType: dto.importType,
+      totalRows: all.totalRows,
+      successRows: 0,
+      failedRows: all.errors.length,
+      status: JobStatus.PROCESSING,
+      errors: all.errors.slice(0, 100)
+    };
+  }
+
+  /**
+   * Commit impor (dipanggil ImportProcessor via queue) — loop per baris valid,
+   * error runtime ditulis createMany, batch diselesaikan + AuditLog.
+   */
+  async commit(payload: ImportCommitPayload): Promise<ImportRunResult> {
+    const school = await this.prisma.schoolProfile.findFirst();
+    const academicYearId = school?.current_academic_year_id ?? null;
+
     let successRows = 0;
     let failedRows = 0;
     const errors: ImportRowError[] = [];
 
-    for (const row of all.valid) {
+    for (const row of payload.rows) {
       const rowNumber = row._rowNumber ?? 0;
       try {
-        await this.importRow(dto.importType, row, actorId, academicYearId);
+        await this.importRow(payload.importType, row, payload.actorId, academicYearId);
         successRows += 1;
       } catch (error) {
         failedRows += 1;
@@ -205,71 +265,67 @@ export class ImportService {
             ? error.message
             : "Gagal menyimpan baris (duplikat atau data tidak valid).";
         errors.push({ rowNumber, field: null, message });
-        await this.prisma.importError.create({
-          data: {
-            import_batch_id: batch.id,
-            row_number: rowNumber,
-            message,
-            raw_row: row as Prisma.InputJsonValue
-          }
-        });
       }
     }
 
-    for (const err of all.errors) {
-      failedRows += 1;
-      errors.push(err);
-      await this.prisma.importError.create({
-        data: {
-          import_batch_id: batch.id,
+    // Error runtime baris ditulis SEKALI (createMany) — bukan create per baris.
+    if (errors.length > 0) {
+      await this.prisma.importError.createMany({
+        data: errors.map((err) => ({
+          import_batch_id: payload.batchId,
           row_number: err.rowNumber,
           field: err.field,
-          message: err.message
-        }
+          message: err.message,
+          raw_row: (payload.rows.find((r) => (r._rowNumber ?? 0) === err.rowNumber) ??
+            undefined) as Prisma.InputJsonValue | undefined
+        }))
       });
     }
 
-    const status = failedRows === 0 ? JobStatus.COMPLETED : JobStatus.FAILED;
+    const totalFailed = payload.validationErrorsCount + failedRows;
+    const status = totalFailed === 0 ? JobStatus.COMPLETED : JobStatus.FAILED;
     const updated = await this.prisma.importBatch.update({
-      where: { id: batch.id },
+      where: { id: payload.batchId },
       data: {
         status,
         success_rows: successRows,
-        failed_rows: failedRows,
+        failed_rows: totalFailed,
         finished_at: new Date()
       }
     });
 
     await this.prisma.auditLog.create({
       data: {
-        actor_id: actorId,
+        actor_id: payload.actorId,
         action: AuditAction.CREATE,
         entity: "import_batch",
-        entity_id: batch.id,
+        entity_id: payload.batchId,
         after: {
-          import_type: dto.importType,
-          total: all.totalRows,
+          import_type: payload.importType,
+          total: payload.totalRows,
           success: successRows,
-          failed: failedRows
+          failed: totalFailed
         } as unknown as Prisma.InputJsonValue,
-        ip_address: ip
+        ip_address: payload.ip
       }
     });
 
+    this.logger.log(
+      `Impor batch ${payload.batchId}: ${successRows} berhasil, ${totalFailed} gagal (status ${status})`
+    );
+
     return {
       batchId: updated.id,
-      importType: dto.importType,
-      totalRows: all.totalRows,
+      importType: payload.importType,
+      totalRows: payload.totalRows,
       successRows,
-      failedRows,
+      failedRows: totalFailed,
       status: updated.status,
       errors: errors.slice(0, 100)
     };
   }
 
-  async listBatches(
-    limit = 20
-  ): Promise<
+  async listBatches(limit = 20): Promise<
     {
       id: string;
       importType: ImportType;

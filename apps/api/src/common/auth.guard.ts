@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { MembershipStatus, Role } from "@prisma/client";
-import type { RequestContext } from "@openlms/types";
+import type { RequestContext } from "@opensis/types";
 import type { Request as ExpressRequest } from "express";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { GLOBAL_PREFIX } from "./constants";
 import { IS_PUBLIC_KEY } from "./public.decorator";
 import { ScopeResolver } from "./scope-resolver";
@@ -114,8 +114,8 @@ function isHealthRequest(request: AuthenticatedRequest): boolean {
 
 function extractAccessToken(request: AuthenticatedRequest): string | undefined {
   const cookies = parseCookies(request.headers.cookie);
-  // Prioritas: openlms_session (kontrak W2) → openlms_access (F0/web) → Bearer.
-  const fromSession = cookies["openlms_session"];
+  // Prioritas: opensis_session (kontrak W2) → opensis_access (F0/web) → Bearer.
+  const fromSession = cookies["opensis_session"];
   if (fromSession) {
     return fromSession;
   }

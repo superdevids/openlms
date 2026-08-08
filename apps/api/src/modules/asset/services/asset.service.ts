@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { Asset, AssetStatus } from "@prisma/client";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { AssetStore } from "../asset.store";
 import { AssetExtensionRecord } from "../asset.types";

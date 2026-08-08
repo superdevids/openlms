@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { AppSettingsController } from "./app-settings.controller";
 import { AppSettingsService } from "./app-settings.service";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 
 @Module({
   controllers: [AppSettingsController],

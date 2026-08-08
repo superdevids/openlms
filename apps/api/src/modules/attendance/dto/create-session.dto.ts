@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from "class-validator";
-import type { AttendanceMethod } from "@openlms/types";
+import type { AttendanceMethod } from "@opensis/types";
 import { ALLOWED_SESSION_METHODS } from "../attendance.constants";
 
 /** Buat sesi absensi QR/geofencing/manual (M-ABSQR-T1). */

@@ -6,7 +6,7 @@ import {
   Injectable
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { readCacheTtlMs } from "./cache.util";
 import { FEATURE_KEY } from "./feature-flag.decorator";
 

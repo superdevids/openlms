@@ -2,7 +2,7 @@ import { SetMetadata } from "@nestjs/common";
 import type { Role } from "@prisma/client";
 
 /** Kunci metadata role yang diizinkan (F1-T4, gula sintaks di atas permission). */
-export const ROLES_KEY = "openlms:roles";
+export const ROLES_KEY = "opensis:roles";
 
 /**
  * @Roles("SUPERADMIN", "OPERATOR") — gula sintaks; memeriksa UserRole aktif

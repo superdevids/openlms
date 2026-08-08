@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Button, Input, Label, Select, Textarea, Alert, Dialog, Badge, EmptyState, toast } from "@openlms/ui";
+import { DataView, Card, CardContent, Button, Input, Label, Select, Textarea, Alert, Dialog, Badge, EmptyState, toast } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 
@@ -14,7 +15,7 @@ interface Material {
   updatedAt: string;
 }
 
-export default function GuruMateriPage(): React.JSX.Element {
+export default function GuruMateriPage(): JSX.Element {
   const list = useApi<Material[]>(() => api.get("/materials"), [], {
     fallbackData: [
       { id: "mat_1", title: "Bab 4 Vektor", kind: "FILE", updatedAt: new Date().toISOString() },
@@ -32,13 +33,13 @@ export default function GuruMateriPage(): React.JSX.Element {
       }
     ]
   });
-  const [open, setOpen] = React.useState(false);
-  const [title, setTitle] = React.useState("");
-  const [kind, setKind] = React.useState<"FILE" | "VIDEO" | "LINK">("FILE");
-  const [content, setContent] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [kind, setKind] = useState<"FILE" | "VIDEO" | "LINK">("FILE");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const create = async (e: React.FormEvent): Promise<void> => {
+  const create = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -63,7 +64,7 @@ export default function GuruMateriPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-neutral-900">Materi</h1>
+        <h1 className="text-2xl font-bold text-foreground">Materi</h1>
         <Button onClick={() => setOpen(true)}>Tambah Materi</Button>
       </div>
       <DataView
@@ -85,8 +86,8 @@ export default function GuruMateriPage(): React.JSX.Element {
                 <Card>
                   <CardContent className="flex min-h-14 items-center justify-between gap-3">
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-neutral-900">{m.title}</span>
-                      <span className="block text-sm text-neutral-600">
+                      <span className="block truncate font-medium text-foreground">{m.title}</span>
+                      <span className="block text-sm text-muted-foreground">
                         {m.kind === "FILE" ? "Dokumen" : m.kind === "VIDEO" ? "Video" : "Tautan"} ·{" "}
                         {formatRelative(m.updatedAt)}
                       </span>

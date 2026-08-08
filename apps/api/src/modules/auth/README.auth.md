@@ -21,7 +21,7 @@ undangan pengguna. Modul ini juga memasang guard global
 
 | Method | Path                       | Permission                   | Deskripsi                                              |
 | ------ | -------------------------- | ---------------------------- | ------------------------------------------------------ |
-| POST   | `/auth/login`              | Publik                       | Login; set cookie `openlms_access` + `openlms_refresh` |
+| POST   | `/auth/login`              | Publik                       | Login; set cookie `opensis_access` + `opensis_refresh` |
 | POST   | `/auth/refresh`            | Publik                       | Rotasi refresh token; set cookie baru                  |
 | POST   | `/auth/logout`             | Publik                       | Hapus sesi + bersihkan cookie                          |
 | GET    | `/auth/me`                 | `auth:me:self`               | Profil user + roles + scope                            |

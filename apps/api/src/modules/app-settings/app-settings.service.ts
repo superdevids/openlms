@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { AuditAction, SchoolType } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
-import { FONT_FAMILY_VALUES, FONT_SCALE_VALUES } from "@openlms/types";
+import { PrismaClient } from "@opensis/database";
+import { FONT_FAMILY_VALUES, FONT_SCALE_VALUES } from "@opensis/types";
+import { readCacheTtlMs } from "../../common/cache.util";
 import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
 
 export interface SchoolSettings {
@@ -44,17 +45,28 @@ function asSettings(raw: Prisma.JsonValue | null | undefined): SchoolSettings {
 /**
  * AppSettingsService — pengaturan aplikasi (profil sekolah, ambang, current_academic_year_id,
  * settings Json) berbasis SchoolProfile single-school (prd04 §5.D, §9.1 langkah 2).
+ * GET /app/settings di-cache in-memory TTL (pola BrandingService TtlCache) dan
+ * di-invalidate otomatis saat PATCH updateSettings.
  */
 @Injectable()
 export class AppSettingsService {
+  private readonly cacheTtlMs = readCacheTtlMs(30_000);
+  private settingsCache: { view: AppSettingsView; expiresAt: number } | null = null;
+
   constructor(private readonly prisma: PrismaClient) {}
 
   async getSettings(): Promise<AppSettingsView> {
+    const now = Date.now();
+    if (this.settingsCache && this.settingsCache.expiresAt > now) {
+      return this.settingsCache.view;
+    }
     const school = await this.prisma.schoolProfile.findFirst();
     if (!school) {
       throw new NotFoundException("Profil sekolah belum diatur.");
     }
-    return this.toView(school);
+    const view = this.toView(school);
+    this.settingsCache = { view, expiresAt: now + this.cacheTtlMs };
+    return view;
   }
 
   /**
@@ -63,23 +75,15 @@ export class AppSettingsService {
    * app:read:school). Hanya nilai kosmetik; tidak membocorkan data sekolah.
    */
   async getFontSettings(): Promise<{ font_family: string | null; base_font_scale: string }> {
+    const now = Date.now();
+    if (this.settingsCache && this.settingsCache.expiresAt > now) {
+      return this.toFontSettings(this.settingsCache.view);
+    }
     const school = await this.prisma.schoolProfile.findFirst();
     if (!school) {
       return { font_family: null, base_font_scale: "normal" };
     }
-    const font = asSettings(school.settings).font ?? {};
-    return {
-      font_family: FONT_FAMILY_VALUES.includes(
-        font.font_family as (typeof FONT_FAMILY_VALUES)[number]
-      )
-        ? (font.font_family ?? null)
-        : null,
-      base_font_scale: FONT_SCALE_VALUES.includes(
-        font.base_font_scale as (typeof FONT_SCALE_VALUES)[number]
-      )
-        ? (font.base_font_scale ?? "normal")
-        : "normal"
-    };
+    return this.toFontSettings(this.toView(school));
   }
 
   async updateSettings(
@@ -128,10 +132,16 @@ export class AppSettingsService {
       }
     });
 
+    this.invalidate();
     return this.toView(updated);
   }
 
-  /** Validasi nilai font dari settings (daftar kurasi @openlms/types — mencegah input arbitrer). */
+  /** Settings berubah → cache publik dibuang (di-fill ulang saat GET berikutnya). */
+  private invalidate(): void {
+    this.settingsCache = null;
+  }
+
+  /** Validasi nilai font dari settings (daftar kurasi @opensis/types — mencegah input arbitrer). */
   private assertValidFont(font: unknown): void {
     if (typeof font !== "object" || font === null) {
       throw new BadRequestException("settings.font harus objek.");
@@ -183,6 +193,25 @@ export class AppSettingsService {
       },
       settings: asSettings(school.settings),
       updatedAt: school.updated_at
+    };
+  }
+
+  private toFontSettings(view: AppSettingsView): {
+    font_family: string | null;
+    base_font_scale: string;
+  } {
+    const font = view.settings.font ?? {};
+    return {
+      font_family: FONT_FAMILY_VALUES.includes(
+        font.font_family as (typeof FONT_FAMILY_VALUES)[number]
+      )
+        ? (font.font_family ?? null)
+        : null,
+      base_font_scale: FONT_SCALE_VALUES.includes(
+        font.base_font_scale as (typeof FONT_SCALE_VALUES)[number]
+      )
+        ? (font.base_font_scale ?? "normal")
+        : "normal"
     };
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { Alert, AlertDescription, AlertTitle } from "./alert";
 import { Button } from "./button";
 
@@ -25,7 +26,7 @@ export function ErrorState({
   title?: string;
   /** Pesan penjelas opsional (ditampilkan di bawah pesan error otomatis). */
   description?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   const message = error instanceof Error ? error.message : errorMessage(error);
   const requestId = (error as { requestId?: string } | undefined)?.requestId;
   return (
@@ -47,7 +48,7 @@ export function ErrorState({
   );
 }
 
-export function FeatureDisabledState({ feature }: { feature?: string }): React.JSX.Element {
+export function FeatureDisabledState({ feature }: { feature?: string }): JSX.Element {
   return (
     <Alert variant="warning">
       <AlertTitle>Fitur dinonaktifkan</AlertTitle>
@@ -65,7 +66,7 @@ export function FeatureDisabledState({ feature }: { feature?: string }): React.J
  * Banner mode demo. Ditampilkan oleh pemanggil saat data fallback dipakai
  * (status "fallback" pada DataView — status itu hanya muncul saat demo aktif).
  */
-export function DemoBanner({ label = "Mode demo" }: { label?: string }): React.JSX.Element | null {
+export function DemoBanner({ label = "Mode demo" }: { label?: string }): JSX.Element | null {
   return (
     <Alert variant="info" className="mb-4">
       <AlertDescription>

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX, type ReactNode } from "react";
+
 import { cn } from "../lib/utils";
 
 export function EmptyState({
@@ -11,9 +12,9 @@ export function EmptyState({
 }: {
   title: string;
   description?: string;
-  action?: React.ReactNode;
+  action?: ReactNode;
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <div
       className={cn(

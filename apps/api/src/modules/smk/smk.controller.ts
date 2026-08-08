@@ -140,6 +140,13 @@ export class SmkController {
     );
   }
 
+  /** Jadwal UKK untuk penguji yang sedang login (PENGUJI_EKSTERNAL / GURU). */
+  @Get("competency-tests/by-examiner")
+  @RequirePermission("competency:grade:self", "competency:grade:school")
+  competencyTestsByExaminer(@Req() req: AuthenticatedRequest) {
+    return this.competencyTestService.listByExaminer(this.actorId(req));
+  }
+
   @Post("competency-tests/:testId/grade")
   @RequirePermission("competency:grade:self", "competency:grade:school")
   gradeCompetencyTest(

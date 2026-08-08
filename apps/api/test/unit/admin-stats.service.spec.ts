@@ -19,7 +19,7 @@ describe("AdminStatsService", () => {
       { role: "SISWA" },
       { role: "SISWA" },
       { role: "GURU" },
-      { role: "GURU_BK" },
+      { role: "BK" },
       { role: "OPERATOR" }
     ]);
     mockFn(db, "class", "count").mockResolvedValue(48);

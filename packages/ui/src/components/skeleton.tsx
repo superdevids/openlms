@@ -1,17 +1,18 @@
 "use client";
 
-import * as React from "react";
+import { type HTMLAttributes, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
 /** Skeleton sesuai bentuk layout — hindari layout shift (07-ux §6.5 Loading). */
 export function Skeleton({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLDivElement>): JSX.Element {
   return <div className={cn("animate-pulse rounded-md bg-muted", className)} {...props} />;
 }
 
-export function SkeletonCard({ lines = 3 }: { lines?: number }): React.JSX.Element {
+export function SkeletonCard({ lines = 3 }: { lines?: number }): JSX.Element {
   return (
     <div
       className="space-y-3 rounded-lg border border-border bg-card p-4"
@@ -32,7 +33,7 @@ export function SkeletonList({
 }: {
   count?: number;
   lines?: number;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Memuat konten">
       {Array.from({ length: count }).map((_, i) => (

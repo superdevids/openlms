@@ -1,10 +1,12 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useAuth } from "@/components/auth/auth-provider";
-import { Button, Dialog, IconInfo, Progress } from "@openlms/ui";
+import { Button, Dialog, IconInfo, Progress } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
+import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
 
 /**
  * OnboardingTour — tur fitur per role (semua role kecuali guest).
@@ -20,6 +22,8 @@ import { APP_NAME } from "@/lib/constants";
  *   dismissed → tur terbuka otomatis.
  * - "Berikutnya"/"Sebelumnya" navigasi langkah; "Selesai" → PUT complete;
  *   "Lewati" → PUT dismiss.
+ * - Dismiss/complete di-cache lokal (opensis_onboarding_dismissed) agar tur
+ *   tidak muncul ulang saat API offline/lambat (audit R-23).
  * - Offline/error fetch → tidak mengganggu (tidak ada tur otomatis).
  */
 
@@ -38,15 +42,15 @@ interface OnboardingMe {
   steps: OnboardingStepData[];
 }
 
-export function OnboardingTour(): React.JSX.Element {
+export function OnboardingTour(): JSX.Element {
   const { user, status } = useAuth();
-  const [open, setOpen] = React.useState(false);
-  const [stepIndex, setStepIndex] = React.useState(0);
-  const [steps, setSteps] = React.useState<OnboardingStepData[]>([]);
-  const [busy, setBusy] = React.useState(false);
-  const autoChecked = React.useRef(false);
+  const [open, setOpen] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [steps, setSteps] = useState<OnboardingStepData[]>([]);
+  const [busy, setBusy] = useState(false);
+  const autoChecked = useRef(false);
 
-  const loadMe = React.useCallback(async (): Promise<OnboardingMe | null> => {
+  const loadMe = useCallback(async (): Promise<OnboardingMe | null> => {
     try {
       return await api.get<OnboardingMe>("/onboarding/me");
     } catch {
@@ -55,9 +59,13 @@ export function OnboardingTour(): React.JSX.Element {
   }, []);
 
   // Auto-show saat pertama login: belum selesai && belum dismissed.
-  React.useEffect(() => {
+  // Dismiss/complete lokal (opensis_onboarding_dismissed) mencegah tur
+  // muncul ulang saat API offline/lambat.
+  useEffect(() => {
     if (autoChecked.current || status !== "ready" || !user) return;
     autoChecked.current = true;
+    const dismissedLocal = safeGet<{ at: number }>(STORAGE_KEYS.onboardingDismissed);
+    if (dismissedLocal) return;
     void loadMe().then((me) => {
       if (!me || me.steps.length === 0) return;
       setSteps(me.steps);
@@ -69,7 +77,7 @@ export function OnboardingTour(): React.JSX.Element {
   }, [status, user, loadMe]);
 
   // Highlight elemen target langkah (defensive; hilang saat pindah langkah).
-  React.useEffect(() => {
+  useEffect(() => {
     const target = steps[stepIndex]?.targetSelector;
     let el: HTMLElement | null = null;
     if (target) {
@@ -109,6 +117,7 @@ export function OnboardingTour(): React.JSX.Element {
     setBusy(true);
     try {
       await api.put("/onboarding/me/complete");
+      safeSet(STORAGE_KEYS.onboardingDismissed, { at: Date.now() });
     } catch {
       // tetap tutup — gagal complete tidak memblokir UX
     } finally {
@@ -124,6 +133,7 @@ export function OnboardingTour(): React.JSX.Element {
     } catch {
       // tetap tutup
     } finally {
+      safeSet(STORAGE_KEYS.onboardingDismissed, { at: Date.now() });
       setBusy(false);
       setOpen(false);
     }

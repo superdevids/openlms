@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient, prisma } from "@openlms/database";
+import { PrismaClient, prisma } from "@opensis/database";
 import { QueueModule } from "../queue/queue.module";
+import { NotificationsModule } from "../notifications/notifications.module";
+import { RealtimeModule } from "../realtime/realtime.module";
 import { FinanceController } from "./finance.controller";
 import { FinanceConfigService } from "./services/finance-config.service";
 import { InvoiceService } from "./services/invoice.service";
@@ -28,7 +30,7 @@ import { FINANCE_STORE } from "./finance.constants";
  */
 
 @Module({
-  imports: [QueueModule],
+  imports: [QueueModule, NotificationsModule, RealtimeModule],
   controllers: [FinanceController],
   providers: [
     FinanceConfigService,

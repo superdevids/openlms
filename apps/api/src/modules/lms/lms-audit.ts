@@ -1,5 +1,5 @@
 import { AuditAction, Prisma, Role } from "@prisma/client";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { notifyAuditChange } from "../realtime/realtime.gateway";
 
 /** Minimal konteks aktor — dipenuhi RequestContext (auth.guard) dan ActorContext (modul). */
@@ -34,10 +34,12 @@ function toJson(value: unknown): Prisma.InputJsonValue | undefined {
 export const ROLE_PRIORITY: Role[] = [
   "SUPERADMIN",
   "KEPSEK",
+  "AUDITOR",
   "WAKEPSEK",
+  "KAPRODI",
   "OPERATOR",
   "KEUANGAN",
-  "GURU_BK",
+  "BK",
   "GURU",
   "SISWA",
   "WALI_MURID",

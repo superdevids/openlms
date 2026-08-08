@@ -1,10 +1,19 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState
+} from "@opensis/ui";
 
 import { DEMO_CLASSES } from "@/lib/demo";
 
@@ -16,12 +25,12 @@ interface ClassItem {
   progress?: number;
 }
 
-export default function SiswaKelasPage(): React.JSX.Element {
+export default function SiswaKelasPage(): JSX.Element {
   const list = useApi<ClassItem[]>(() => api.get("/classes"), [], { fallbackData: DEMO_CLASSES });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Kelas Saya</h1>
+      <h1 className="text-2xl font-bold text-foreground">Kelas Saya</h1>
       <DataView
         status={list.status}
         error={list.error}
@@ -44,7 +53,7 @@ export default function SiswaKelasPage(): React.JSX.Element {
                       <CardDescription>{c.subject}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-sm text-neutral-600">Guru: {c.teacher}</p>
+                      <p className="text-sm text-muted-foreground">Guru: {c.teacher}</p>
                     </CardContent>
                   </Card>
                 </Link>

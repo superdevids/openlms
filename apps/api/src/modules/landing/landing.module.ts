@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient, prisma } from "@openlms/database";
+import { PrismaClient, prisma } from "@opensis/database";
 import { LandingController } from "./landing.controller";
 import { LandingService } from "./landing.service";
 

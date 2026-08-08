@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
@@ -15,10 +16,11 @@ import {
   Badge,
   Button,
   EmptyState
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { DEMO_EXAMS, DEMO_TASKS, DEMO_CLASSES } from "@/lib/demo";
+import { TASK_STATUS_BADGE } from "@/lib/constants";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 import { dayName, mapScheduleEntry, todayDayOfWeek, type ScheduleEntryView } from "@/lib/schedule";
@@ -59,7 +61,7 @@ interface RawScheduleEntry {
   teacher?: { id: string; full_name: string } | null;
 }
 
-export default function SiswaDashboardPage(): React.JSX.Element {
+export default function SiswaDashboardPage(): JSX.Element {
   const { user } = useAuth();
   const firstName = user?.fullName.split(" ")[0] ?? "Siswa";
 
@@ -99,7 +101,7 @@ export default function SiswaDashboardPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">
+      <h1 className="text-2xl font-bold text-foreground">
         {greeting}, {firstName}
       </h1>
 
@@ -111,10 +113,10 @@ export default function SiswaDashboardPage(): React.JSX.Element {
 
       <section aria-label="Jadwal hari ini">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">
+          <h2 className="text-lg font-semibold text-foreground">
             Jadwal Hari Ini ({dayName(today)})
           </h2>
-          <Link href="/siswa/kalender" className="text-sm font-medium text-primary-600">
+          <Link href="/siswa/kalender" className="text-sm font-medium text-primary">
             Lihat kalender
           </Link>
         </div>
@@ -133,12 +135,12 @@ export default function SiswaDashboardPage(): React.JSX.Element {
             <ul className="space-y-2">
               {todayEntries.map((e) => (
                 <li key={e.id}>
-                  <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3">
+                  <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
                     <span className="min-w-0">
-                      <span className="block truncate text-base font-medium text-neutral-900">
+                      <span className="block truncate text-base font-medium text-foreground">
                         {e.subject}
                       </span>
-                      <span className="block text-sm text-neutral-600">
+                      <span className="block text-sm text-muted-foreground">
                         Jam ke-{e.periods}
                         {e.className ? ` · ${e.className}` : ""}
                         {e.room ? ` · ${e.room}` : ""}
@@ -161,7 +163,7 @@ export default function SiswaDashboardPage(): React.JSX.Element {
           fallbackLabel="Daftar ujian"
         >
           {ongoing ? (
-            <Card className="border-primary-600 bg-primary-100">
+            <Card className="border-primary-600 bg-primary-100 dark:bg-primary-100/20 dark:text-primary-foreground">
               <CardHeader>
                 <Badge variant="primary" className="w-fit">
                   Ujian aktif
@@ -188,8 +190,8 @@ export default function SiswaDashboardPage(): React.JSX.Element {
 
       <section aria-label="Tugas tenggat terdekat">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Tugas tenggat terdekat</h2>
-          <Link href="/siswa/tugas" className="text-sm font-medium text-primary-600">
+          <h2 className="text-lg font-semibold text-foreground">Tugas tenggat terdekat</h2>
+          <Link href="/siswa/tugas" className="text-sm font-medium text-primary">
             Lihat semua
           </Link>
         </div>
@@ -210,19 +212,17 @@ export default function SiswaDashboardPage(): React.JSX.Element {
                 <li key={t.id}>
                   <Link
                     href="/siswa/tugas"
-                    className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 hover:bg-neutral-50"
+                    className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-muted/70"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-base font-medium text-neutral-900">
+                      <span className="block truncate text-base font-medium text-foreground">
                         {t.title}
                       </span>
-                      <span className="block text-sm text-neutral-600">
+                      <span className="block text-sm text-muted-foreground">
                         {t.subject} · {formatRelative(t.dueAt)}
                       </span>
                     </span>
-                    <Badge variant={t.status === "TERLAMBAT" ? "danger" : "primary"}>
-                      {t.status}
-                    </Badge>
+                    <Badge variant={TASK_STATUS_BADGE[t.status] ?? "primary"}>{t.status}</Badge>
                   </Link>
                 </li>
               ))}
@@ -233,8 +233,8 @@ export default function SiswaDashboardPage(): React.JSX.Element {
 
       <section aria-label="Kelas saya">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Kelas Saya</h2>
-          <Link href="/siswa/kelas" className="text-sm font-medium text-primary-600">
+          <h2 className="text-lg font-semibold text-foreground">Kelas Saya</h2>
+          <Link href="/siswa/kelas" className="text-sm font-medium text-primary">
             Lihat semua
           </Link>
         </div>
@@ -260,7 +260,7 @@ export default function SiswaDashboardPage(): React.JSX.Element {
                         <CardDescription>{c.subject}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-neutral-600">{c.teacher}</p>
+                        <p className="text-sm text-muted-foreground">{c.teacher}</p>
                       </CardContent>
                     </Card>
                   </Link>

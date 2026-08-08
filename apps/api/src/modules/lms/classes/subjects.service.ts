@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@openlms/database";
-import type { RequestContext } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { RequestContext } from "@opensis/types";
 import { assertHasRole, MASTER_WRITE_ROLES } from "../lms-scope";
 import { writeAudit } from "../lms-audit";
 import { CreateSubjectDto, FindSubjectsQueryDto, UpdateSubjectDto } from "./dto/subjects.dto";

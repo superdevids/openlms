@@ -1,29 +1,51 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useState, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Label, Select, Input, Alert, ConfirmDialog, Badge, toast, IconQr } from "@openlms/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Label,
+  Select,
+  Input,
+  Alert,
+  ConfirmDialog,
+  Badge,
+  toast,
+  IconQr
+} from "@opensis/ui";
 
 import { formatDuration } from "@/lib/format";
 
 import { DEMO_ATTENDANCE_SUMMARY } from "@/lib/demo";
+import { getSocket, ATTENDANCE_CHECKED_IN_EVENT } from "@/lib/use-socket";
 
 /**
  * Absensi QR guru — generate sesi → token QR sekali pakai (expire ±7 mnt),
  * countdown, daftar scan real-time (Socket.IO saat backend siap).
+ * Guru join room `class:{classId}` agar menerima event attendance:checked-in
+ * (payload memuat total scan sesi) — best-effort; REST tetap sumber kebenaran.
  */
-export default function GuruAbsensiPage(): React.JSX.Element {
-  const [className, setClassName] = React.useState("XI IPA 1 - Matematika");
-  const [method, setMethod] = React.useState<"QR_CODE" | "MANUAL">("QR_CODE");
-  const [sessionId, setSessionId] = React.useState<string | null>(null);
-  const [qrToken, setQrToken] = React.useState<string | null>(null);
-  const [expiresAt, setExpiresAt] = React.useState<number | null>(null);
-  const [creating, setCreating] = React.useState(false);
-  const [closed, setClosed] = React.useState(false);
-  const [closeOpen, setCloseOpen] = React.useState(false);
+export default function GuruAbsensiPage(): JSX.Element {
+  const [className, setClassName] = useState("XI IPA 1 - Matematika");
+  const [method, setMethod] = useState<"QR_CODE" | "MANUAL">("QR_CODE");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [classSubjectId, setClassSubjectId] = useState<string | null>(null);
+  const [qrToken, setQrToken] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [closed, setClosed] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
+  // Jumlah scan live dari event realtime (best-effort).
+  const [liveCount, setLiveCount] = useState(0);
 
-  const [now, setNow] = React.useState(Date.now());
-  React.useEffect(() => {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
@@ -42,18 +64,24 @@ export default function GuruAbsensiPage(): React.JSX.Element {
         toast({ variant: "info", title: "Sesi absensi demo dibuat" });
         return;
       }
-      const res = await api.post<{ id: string }>("/attendance/sessions", {
-        className,
-        method: "QR_CODE",
-        kind: "MASUK"
-      });
-      setSessionId(res.id);
-      const qr = await api.get<{ qrToken: string; expiresAt: string }>(
-        `/attendance/sessions/${res.id}/qr`
+      const res = await api.post<{ id: string; class_subject_id?: string | null }>(
+        "/attendance/sessions",
+        {
+          className,
+          method: "QR_CODE",
+          kind: "MASUK"
+        }
       );
-      setQrToken(qr.qrToken);
-      setExpiresAt(new Date(qr.expiresAt).getTime());
+      setSessionId(res.id);
+      setClassSubjectId(res.class_subject_id ?? null);
+      const qr = await api.post<{ token: string; expires_at: string }>(
+        `/attendance/sessions/${res.id}/tokens`,
+        { ttl_minutes: 7 }
+      );
+      setQrToken(qr.token);
+      setExpiresAt(new Date(qr.expires_at).getTime());
       setClosed(false);
+      setLiveCount(0);
       toast({ variant: "success", title: "Sesi absensi dibuat" });
     } catch {
       toast({ variant: "error", title: "Gagal membuat sesi absensi" });
@@ -70,11 +98,12 @@ export default function GuruAbsensiPage(): React.JSX.Element {
         toast({ variant: "success", title: "QR diperpanjang 5 menit (demo)" });
         return;
       }
-      const qr = await api.get<{ qrToken: string; expiresAt: string }>(
-        `/attendance/sessions/${sessionId}/qr`
+      const qr = await api.post<{ token: string; expires_at: string }>(
+        `/attendance/sessions/${sessionId}/tokens`,
+        { ttl_minutes: 5 }
       );
-      setQrToken(qr.qrToken);
-      setExpiresAt(new Date(qr.expiresAt).getTime());
+      setQrToken(qr.token);
+      setExpiresAt(new Date(qr.expires_at).getTime());
       toast({ variant: "success", title: "QR baru diterbitkan" });
     } catch {
       toast({ variant: "error", title: "Gagal memperpanjang QR" });
@@ -87,9 +116,30 @@ export default function GuruAbsensiPage(): React.JSX.Element {
     toast({ variant: "success", title: "Sesi ditutup" });
   };
 
+  // Realtime scan live (best-effort, R-27): join room class:{classId} saat
+  // sesi dibuat, hitung event attendance:checked-in untuk sesi ini.
+  useEffect(() => {
+    if (!sessionId || !classSubjectId || closed || DEMO_MODE) return;
+    const socket = getSocket();
+    const room = `class:${classSubjectId}`;
+    socket.emit("room:join", { room });
+
+    const onCheckedIn = (payload: { sessionId?: string; total?: number }): void => {
+      if (payload.sessionId && payload.sessionId === sessionId) {
+        setLiveCount(payload.total ?? ((prev) => prev + 1));
+      }
+    };
+    socket.on(ATTENDANCE_CHECKED_IN_EVENT, onCheckedIn);
+
+    return () => {
+      socket.off(ATTENDANCE_CHECKED_IN_EVENT, onCheckedIn);
+      socket.emit("room:leave", { room });
+    };
+  }, [sessionId, classSubjectId, closed]);
+
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Absensi QR</h1>
+      <h1 className="text-2xl font-bold text-foreground">Absensi QR</h1>
 
       <Card>
         <CardHeader>
@@ -136,12 +186,12 @@ export default function GuruAbsensiPage(): React.JSX.Element {
             {!closed && qrToken ? (
               <>
                 <div
-                  className="flex flex-col items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 p-6"
+                  className="flex flex-col items-center gap-2 rounded-lg border border-border bg-background p-6"
                   aria-label="QR Code absensi"
                 >
-                  <IconQr className="h-40 w-40 text-neutral-900" />
+                  <IconQr className="h-40 w-40 text-foreground" />
                   <p className="font-mono text-lg font-semibold tracking-widest">{qrToken}</p>
-                  <p className="text-sm text-neutral-600" aria-live="polite">
+                  <p className="text-sm text-muted-foreground" aria-live="polite">
                     Kedaluwarsa: {formatDuration(remaining)}{" "}
                     {remaining <= 60 ? "— segera perpanjang!" : ""}
                   </p>
@@ -167,17 +217,24 @@ export default function GuruAbsensiPage(): React.JSX.Element {
             )}
 
             <div aria-label="Ringkasan scan">
-              <p className="mb-2 text-sm font-semibold text-neutral-900">Sudah scan</p>
+              <p className="mb-2 text-sm font-semibold text-foreground">Sudah scan</p>
+              {!DEMO_MODE && sessionId ? (
+                <div className="mb-2 rounded-md border border-primary-200 bg-primary-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-primary-800" aria-live="polite">
+                    {liveCount}
+                  </p>
+                  <p className="text-xs text-muted-foreground dark:text-primary-800">
+                    scan live sesi ini
+                  </p>
+                </div>
+              ) : null}
               <div className="grid grid-cols-3 gap-2">
                 {DEMO_ATTENDANCE_SUMMARY.map((d) => (
-                  <div
-                    key={d.date}
-                    className="rounded-md border border-neutral-200 p-3 text-center"
-                  >
-                    <p className="text-lg font-bold text-neutral-900">
+                  <div key={d.date} className="rounded-md border border-border p-3 text-center">
+                    <p className="text-lg font-bold text-foreground">
                       {d.present}/{d.total}
                     </p>
-                    <p className="text-xs text-neutral-600">Hadir</p>
+                    <p className="text-xs text-muted-foreground">Hadir</p>
                     {d.late > 0 ? (
                       <Badge variant="warning" className="mt-1">
                         {d.late} terlambat

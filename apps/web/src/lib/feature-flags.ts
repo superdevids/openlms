@@ -1,4 +1,4 @@
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 import { DEMO_MODE } from "@/lib/api-client";
 
 /**
@@ -488,7 +488,7 @@ export function isFeatureEnabled(flags: FeatureFlag[], key: string): boolean {
 
 function loadLocalOverrides(): Record<string, boolean> {
   try {
-    const raw = localStorage.getItem("openlms_demo_flags");
+    const raw = localStorage.getItem("opensis_demo_flags");
     return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
   } catch {
     return {};
@@ -538,7 +538,7 @@ export function writeFeatureFlagForDemo(key: string, enabled: boolean): void {
   const overrides = loadLocalOverrides();
   overrides[key] = enabled;
   try {
-    localStorage.setItem("openlms_demo_flags", JSON.stringify(overrides));
+    localStorage.setItem("opensis_demo_flags", JSON.stringify(overrides));
   } catch {
     // storage penuh / private mode — abaikan
   }

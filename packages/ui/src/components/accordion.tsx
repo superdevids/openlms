@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useId, useState, type JSX, type ReactNode } from "react";
+
 import { cn } from "../lib/utils";
 import { IconChevronDown } from "./icons";
 
@@ -14,8 +15,8 @@ export function Accordion({
   children
 }: {
   className?: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
+  children: ReactNode;
+}): JSX.Element {
   return <div className={cn("space-y-2", className)}>{children}</div>;
 }
 
@@ -24,12 +25,12 @@ export function AccordionItem({
   children,
   defaultOpen = false
 }: {
-  title: React.ReactNode;
-  children: React.ReactNode;
+  title: ReactNode;
+  children: ReactNode;
   defaultOpen?: boolean;
-}): React.JSX.Element {
-  const [open, setOpen] = React.useState(defaultOpen);
-  const id = React.useId();
+}): JSX.Element {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
 
   return (
     <div className="rounded-lg border border-border bg-card">

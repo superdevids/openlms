@@ -44,7 +44,7 @@ describe("lib/storage (R-39)", () => {
   });
 
   it("STORAGE_KEYS tidak berubah (satu sumber kebenaran)", () => {
-    expect(STORAGE_KEYS.examAttempt).toBe("openlms_exam_attempt");
-    expect(STORAGE_KEYS.theme).toBe("openlms_theme");
+    expect(STORAGE_KEYS.examAttempt).toBe("opensis_exam_attempt");
+    expect(STORAGE_KEYS.theme).toBe("opensis_theme");
   });
 });

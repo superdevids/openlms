@@ -83,7 +83,7 @@ async function bootstrap(): Promise<void> {
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
-  app.get(Logger).log(`openlms API listening on :${port}/${GLOBAL_PREFIX}`, "Bootstrap");
+  app.get(Logger).log(`opensis API listening on :${port}/${GLOBAL_PREFIX}`, "Bootstrap");
 }
 
 void bootstrap();

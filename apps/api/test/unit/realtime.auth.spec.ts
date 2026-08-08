@@ -2,14 +2,14 @@ const SECRET = "unit-test-secret-32bytes-abcdefghijklmnop";
 // Wajib di-set SEBELUM import: jwt.util menangkap JWT_ACCESS_SECRET saat modul dimuat.
 process.env.JWT_ACCESS_SECRET = SECRET;
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     userRole: { findMany: jest.fn() }
   }
 }));
 
 import { createHmac } from "node:crypto";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { RealtimeAuthService } from "../../src/modules/realtime/realtime.auth";
 
 const userRoleModel = prisma.userRole as unknown as { findMany: jest.Mock };
@@ -48,12 +48,12 @@ describe("RealtimeAuthService (handshake Socket.IO — docs/02 §7.1)", () => {
     });
   });
 
-  it("menerima token dari cookie httpOnly openlms_access", async () => {
+  it("menerima token dari cookie httpOnly opensis_access", async () => {
     userRoleModel.findMany.mockResolvedValue([{ role: "GURU" }]);
 
     const user = await service.authenticate(
       undefined,
-      `theme=dark; openlms_access=${signToken({ sub: "u2", exp: futureExp })}; other=1`
+      `theme=dark; opensis_access=${signToken({ sub: "u2", exp: futureExp })}; other=1`
     );
 
     expect(user?.userId).toBe("u2");

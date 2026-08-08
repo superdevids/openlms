@@ -1,4 +1,4 @@
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 import { ROLE_GROUP_LABEL, type RoleGroup } from "./constants";
 
 export { ROLE_GROUP_LABEL };
@@ -22,21 +22,25 @@ export function roleGroupFor(role: Role | undefined): RoleGroup | null {
     case "SISWA":
       return "siswa";
     case "GURU":
-    case "GURU_BK":
+    case "BK":
+    case "KAPRODI":
       return "guru";
     case "OPERATOR":
     case "KEUANGAN":
     case "WAKEPSEK":
     case "KEPSEK":
+    case "AUDITOR":
       return "admin";
     case "SUPERADMIN":
       return "superadmin";
     case "WALI_MURID":
       return "ortu";
     case "CALON_SISWA":
+      return "calonsiswa";
     case "PEMBIMBING_INDUSTRI":
+      return "pembimbing";
     case "PENGUJI_EKSTERNAL":
-      return null;
+      return "penguji";
     default:
       return null;
   }
@@ -55,6 +59,12 @@ export function roleHome(role: Role | undefined): string {
       return "/superadmin/dashboard";
     case "ortu":
       return "/ortu/dashboard";
+    case "calonsiswa":
+      return "/calonsiswa/dashboard";
+    case "pembimbing":
+      return "/pembimbing/dashboard";
+    case "penguji":
+      return "/penguji/dashboard";
     default:
       return "/login";
   }
@@ -62,10 +72,13 @@ export function roleHome(role: Role | undefined): string {
 
 const ROLES: Record<RoleGroup, Role[]> = {
   siswa: ["SISWA"],
-  guru: ["GURU", "GURU_BK"],
-  admin: ["OPERATOR", "KEUANGAN", "WAKEPSEK", "KEPSEK"],
+  guru: ["GURU", "BK", "KAPRODI"],
+  admin: ["OPERATOR", "KEUANGAN", "WAKEPSEK", "KEPSEK", "AUDITOR"],
   superadmin: ["SUPERADMIN"],
-  ortu: ["WALI_MURID"]
+  ortu: ["WALI_MURID"],
+  calonsiswa: ["CALON_SISWA"],
+  pembimbing: ["PEMBIMBING_INDUSTRI"],
+  penguji: ["PENGUJI_EKSTERNAL"]
 };
 
 export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
@@ -243,6 +256,33 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       roles: ROLES.ortu,
       featureFlagKey: "FINANCE_INVOICE"
     }
+  ],
+  calonsiswa: [
+    { label: "Beranda", href: "/calonsiswa/dashboard", icon: "home", roles: ROLES.calonsiswa },
+    {
+      label: "Pengumuman",
+      href: "/calonsiswa/pengumuman",
+      icon: "file",
+      roles: ROLES.calonsiswa
+    }
+  ],
+  pembimbing: [
+    { label: "Beranda", href: "/pembimbing/dashboard", icon: "home", roles: ROLES.pembimbing },
+    {
+      label: "Siswa PKL",
+      href: "/pembimbing/siswa",
+      icon: "briefcase",
+      roles: ROLES.pembimbing
+    }
+  ],
+  penguji: [
+    { label: "Beranda", href: "/penguji/dashboard", icon: "home", roles: ROLES.penguji },
+    {
+      label: "Jadwal UKK",
+      href: "/penguji/jadwal",
+      icon: "calendar",
+      roles: ROLES.penguji
+    }
   ]
 };
 
@@ -265,11 +305,13 @@ export function roleLabel(role: Role): string {
   const map: Record<Role, string> = {
     SISWA: "Siswa",
     GURU: "Guru",
-    GURU_BK: "Guru BK",
+    BK: "Guru BK",
+    KAPRODI: "Kepala Program Keahlian",
     KEUANGAN: "Keuangan",
     OPERATOR: "Operator / TU",
     WAKEPSEK: "Wakil Kepala Sekolah",
     KEPSEK: "Kepala Sekolah",
+    AUDITOR: "Auditor",
     SUPERADMIN: "Superadmin",
     CALON_SISWA: "Calon Siswa",
     WALI_MURID: "Orang Tua / Wali",

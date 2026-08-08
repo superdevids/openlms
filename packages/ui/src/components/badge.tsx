@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { type HTMLAttributes, type JSX, type ReactNode } from "react";
+
 import { cn } from "../lib/utils";
 
-type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info" | "primary";
+export type BadgeVariant = "neutral" | "success" | "warning" | "danger" | "info" | "primary";
 
 const variantClasses: Record<BadgeVariant, string> = {
   neutral: "border-transparent bg-muted text-foreground",
@@ -14,9 +15,9 @@ const variantClasses: Record<BadgeVariant, string> = {
   primary: "border-transparent bg-primary-100 text-primary-800"
 };
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
 }
 
 export function Badge({
@@ -25,7 +26,7 @@ export function Badge({
   icon,
   children,
   ...props
-}: BadgeProps): React.JSX.Element {
+}: BadgeProps): JSX.Element {
   return (
     <span
       className={cn(

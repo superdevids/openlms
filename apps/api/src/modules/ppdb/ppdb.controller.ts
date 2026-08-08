@@ -51,6 +51,14 @@ export class PpdbController {
     return this.ppdbService.track(registrationNo);
   }
 
+  /** Tracking publik tanpa login — hanya membocorkan data minimal (registration_no,
+   *  full_name, status) agar halaman "Cek Status" publik bisa berfungsi aman. */
+  @Get("track/public")
+  @Public()
+  trackPublic(@Query("registrationNo") registrationNo: string) {
+    return this.ppdbService.trackPublic(registrationNo);
+  }
+
   @Get("selection")
   @RequirePermission("ppdb:verify:school", "ppdb:select:school")
   listSelection() {

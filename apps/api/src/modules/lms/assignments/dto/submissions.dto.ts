@@ -1,4 +1,3 @@
-import { Type } from "class-transformer";
 import { IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
 
 export class SubmitSubmissionDto {
@@ -13,7 +12,8 @@ export class SubmitSubmissionDto {
 }
 
 export class GradeSubmissionDto {
-  @Type(() => Number)
+  // Tanpa @Type(() => Number): score body harus number asli (bukan string
+  // "90"), IsInt menolak string — mencegah coercion tak terduga.
   @IsInt()
   @Min(0)
   @Max(10000)

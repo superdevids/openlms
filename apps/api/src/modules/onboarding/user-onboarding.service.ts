@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type { Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { UpdateOnboardingProgressDto } from "./dto/onboarding-progress.dto";
 
 export interface OnboardingStep {
@@ -29,7 +29,7 @@ interface OnboardingRow {
 
 /**
  * Tur onboarding fitur per user (semua role kecuali guest).
- * Langkah role-specific (Bahasa Indonesia formal, branding openlms).
+ * Langkah role-specific (Bahasa Indonesia formal, branding opensis).
  * Progres per user disimpan di tabel user_onboarding (bukan settings sekolah).
  */
 
@@ -43,8 +43,8 @@ const s = (
 const STEPS_SUPERADMIN: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms adalah sistem informasi sekolah (SIS) dan learning management system (LMS) terpadu. Tur singkat ini akan memandu Anda memahami fitur utama sebagai Superadmin."
+    "Selamat Datang di opensis",
+    "opensis adalah sistem informasi sekolah (SIS) dan learning management system (LMS) terpadu. Tur singkat ini akan memandu Anda memahami fitur utama sebagai Superadmin."
   ),
   s(
     "dashboard",
@@ -81,8 +81,8 @@ const STEPS_SUPERADMIN: OnboardingStep[] = [
 const STEPS_KEPSEK: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms membantu Anda memantau seluruh kegiatan sekolah dalam satu platform: akademik, keuangan, kesiswaan, dan pelaporan."
+    "Selamat Datang di opensis",
+    "opensis membantu Anda memantau seluruh kegiatan sekolah dalam satu platform: akademik, keuangan, kesiswaan, dan pelaporan."
   ),
   s(
     "dashboard",
@@ -119,7 +119,7 @@ const STEPS_KEPSEK: OnboardingStep[] = [
 const STEPS_WAKEPSEK: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
+    "Selamat Datang di opensis",
     "Sebagai Wakil Kepala Sekolah, Anda mengelola operasional akademik dan pembelajaran: kelas, jadwal, materi, tugas, dan penilaian."
   ),
   s(
@@ -157,8 +157,8 @@ const STEPS_WAKEPSEK: OnboardingStep[] = [
 const STEPS_OPERATOR: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms membantu Anda mengelola administrasi sekolah sehari-hari: data pengguna, akademik, keuangan, dan pengaturan aplikasi."
+    "Selamat Datang di opensis",
+    "opensis membantu Anda mengelola administrasi sekolah sehari-hari: data pengguna, akademik, keuangan, dan pengaturan aplikasi."
   ),
   s(
     "dashboard",
@@ -195,8 +195,8 @@ const STEPS_OPERATOR: OnboardingStep[] = [
 const STEPS_KEUANGAN: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "Modul keuangan openlms mengelola tagihan, pembayaran, dan laporan keuangan sekolah secara transparan dan akuntabel."
+    "Selamat Datang di opensis",
+    "Modul keuangan opensis mengelola tagihan, pembayaran, dan laporan keuangan sekolah secara transparan dan akuntabel."
   ),
   s(
     "dashboard",
@@ -227,8 +227,8 @@ const STEPS_KEUANGAN: OnboardingStep[] = [
 const STEPS_GURU: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms membantu Anda mengelola pembelajaran: materi, tugas, kuis, ujian, penilaian, dan absensi kelas."
+    "Selamat Datang di opensis",
+    "opensis membantu Anda mengelola pembelajaran: materi, tugas, kuis, ujian, penilaian, dan absensi kelas."
   ),
   s(
     "dashboard",
@@ -265,8 +265,8 @@ const STEPS_GURU: OnboardingStep[] = [
 const STEPS_SISWA: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms adalah platform belajarmu: akses materi, tugas, kuis, ujian, nilai, dan absensi dalam satu tempat."
+    "Selamat Datang di opensis",
+    "opensis adalah platform belajarmu: akses materi, tugas, kuis, ujian, nilai, dan absensi dalam satu tempat."
   ),
   s(
     "dashboard",
@@ -303,8 +303,8 @@ const STEPS_SISWA: OnboardingStep[] = [
 const STEPS_WALI_MURID: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms membantu Anda memantau perkembangan belajar anak: nilai, kehadiran, dan tagihan sekolah."
+    "Selamat Datang di opensis",
+    "opensis membantu Anda memantau perkembangan belajar anak: nilai, kehadiran, dan tagihan sekolah."
   ),
   s(
     "dashboard",
@@ -335,8 +335,8 @@ const STEPS_WALI_MURID: OnboardingStep[] = [
 const STEPS_DEFAULT: OnboardingStep[] = [
   s(
     "welcome",
-    "Selamat Datang di openlms",
-    "openlms adalah sistem informasi sekolah dan LMS terpadu. Tur singkat ini akan memperkenalkan fitur utama yang tersedia untuk akun Anda."
+    "Selamat Datang di opensis",
+    "opensis adalah sistem informasi sekolah dan LMS terpadu. Tur singkat ini akan memperkenalkan fitur utama yang tersedia untuk akun Anda."
   ),
   s(
     "dashboard",
@@ -367,11 +367,13 @@ const STEPS_DEFAULT: OnboardingStep[] = [
 const TEMPLATES: Record<string, OnboardingStep[]> = {
   SUPERADMIN: STEPS_SUPERADMIN,
   KEPSEK: STEPS_KEPSEK,
+  AUDITOR: STEPS_KEPSEK,
   WAKEPSEK: STEPS_WAKEPSEK,
+  KAPRODI: STEPS_WAKEPSEK,
   OPERATOR: STEPS_OPERATOR,
   KEUANGAN: STEPS_KEUANGAN,
   GURU: STEPS_GURU,
-  GURU_BK: STEPS_GURU,
+  BK: STEPS_GURU,
   SISWA: STEPS_SISWA,
   WALI_MURID: STEPS_WALI_MURID
 };
@@ -380,16 +382,18 @@ const TEMPLATES: Record<string, OnboardingStep[]> = {
 const ROLE_PRIORITY: Record<string, number> = {
   SUPERADMIN: 0,
   KEPSEK: 1,
-  WAKEPSEK: 2,
-  OPERATOR: 3,
-  KEUANGAN: 4,
-  GURU_BK: 5,
-  GURU: 6,
-  SISWA: 7,
-  WALI_MURID: 8,
-  CALON_SISWA: 9,
-  PEMBIMBING_INDUSTRI: 10,
-  PENGUJI_EKSTERNAL: 11
+  AUDITOR: 2,
+  WAKEPSEK: 3,
+  KAPRODI: 4,
+  OPERATOR: 5,
+  KEUANGAN: 6,
+  BK: 7,
+  GURU: 8,
+  SISWA: 9,
+  WALI_MURID: 10,
+  CALON_SISWA: 11,
+  PEMBIMBING_INDUSTRI: 12,
+  PENGUJI_EKSTERNAL: 13
 };
 
 export function resolvePrimaryRole(roles: readonly Role[]): string {

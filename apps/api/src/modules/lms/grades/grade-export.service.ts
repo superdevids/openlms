@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { prisma } from "@openlms/database";
-import type { RequestContext } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { RequestContext } from "@opensis/types";
 import { assertCanManageClass, assertCanAccessStudent, scopeOf } from "../lms-scope";
 import { buildCsv, buildSimplePdf } from "./export-file";
 import { GradesService } from "./grades.service";
@@ -56,7 +56,7 @@ export class GradeExportService {
   async exportPdf(filter: ExportGradesDto, ctx: RequestContext): Promise<ExportResult> {
     const grades = await this.loadScoped(filter, ctx);
     const lines = [
-      "openlms - Rekap Nilai",
+      "opensis - Rekap Nilai",
       `Semester: ${filter.semester ?? "-"}   Kelas: ${filter.classId ?? "-"}`,
       "----------------------------------------"
     ];

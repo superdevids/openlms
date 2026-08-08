@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 
 export interface AdminUserView {
   id: string;

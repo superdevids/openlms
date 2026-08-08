@@ -9,7 +9,7 @@ import {
 import { createHash } from "node:crypto";
 import { AuditAction, MembershipStatus, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { LoginDto } from "./dto/login.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { ChangePasswordDto } from "./dto/change-password.dto";

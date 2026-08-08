@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Difficulty, Prisma, QuestionType } from "@prisma/client";
 import { MAX_IMPORT_ROWS } from "./quiz.constants";
 import { parseCsv, validateQuestionPayload } from "./quiz.util";

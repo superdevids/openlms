@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useRef, type JSX, type KeyboardEvent, type ReactNode } from "react";
+
 import { cn } from "../lib/utils";
 
 interface TabItem {
@@ -16,10 +17,10 @@ interface TabsProps {
 }
 
 /** Tabs aksesibel: role=tablist, arrow keys (07-ux §6.4 Tabs). */
-export function Tabs({ tabs, value, onValueChange, className }: TabsProps): React.JSX.Element {
-  const refs = React.useRef<Array<HTMLButtonElement | null>>([]);
+export function Tabs({ tabs, value, onValueChange, className }: TabsProps): JSX.Element {
+  const refs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const onKeyDown = (e: React.KeyboardEvent, index: number): void => {
+  const onKeyDown = (e: KeyboardEvent, index: number): void => {
     let next = index;
     if (e.key === "ArrowRight") next = (index + 1) % tabs.length;
     if (e.key === "ArrowLeft") next = (index - 1 + tabs.length) % tabs.length;
@@ -77,9 +78,9 @@ export function TabPanel({
 }: {
   value: string;
   activeValue: string;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <div
       id={`panel-${value}`}

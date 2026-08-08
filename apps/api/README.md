@@ -63,7 +63,7 @@ Catatan:
 ## 4. Socket.IO — namespace `/ws`
 
 - **Handshake auth:** `auth.token` (JWT Bearer in-house, HS256) **atau** cookie
-  httpOnly `openlms_access`. Ditolak → `connection_error` + disconnect `UNAUTHORIZED`.
+  httpOnly `opensis_access`. Ditolak → `connection_error` + disconnect `UNAUTHORIZED`.
   Validasi tambahan: user harus punya ≥1 `UserRole` berstatus `ACTIVE`
   (role di-resolve dari DB, JWT hanya identitas — P2).
 - **Room:** `user:{userId}` (auto-join saat koneksi), `class:{classId}`,
@@ -87,7 +87,7 @@ Client → server: `exam:answer:save`, `room:join`, `room:leave`.
 Namespace tunggal sudah siap adapter Redis; aktifkan dengan:
 
 ```bash
-npm install @socket.io/redis-adapter ioredis --workspace=@openlms/api
+npm install @socket.io/redis-adapter ioredis --workspace=@opensis/api
 ```
 
 Lalu di `main.ts` (atau `onModuleInit` gateway) setelah `app.listen`:

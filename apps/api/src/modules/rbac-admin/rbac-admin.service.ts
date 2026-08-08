@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { AuditAction, PermissionEffect, PermissionScope, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { PermissionsResolver } from "../auth/permissions-resolver";
 import { UpdateRolePermissionDto } from "./dto/update-role-permission.dto";
 import { UpsertUserOverrideDto } from "./dto/upsert-user-override.dto";

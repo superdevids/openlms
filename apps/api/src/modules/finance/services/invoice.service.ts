@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Invoice, PaymentStatus } from "@prisma/client";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { computeInvoiceTotals } from "../calculator/invoice-status";
 import { money } from "../calculator/money";
@@ -82,16 +82,43 @@ export class InvoiceService {
     });
   }
 
-  /** Buat massal per kelas/angkatan (prd04 §5.F.1). */
+  /**
+   * Buat massal per kelas/angkatan (prd04 §5.F.1).
+   * @deprecated Gunakan createManyForStudents (batch createMany + validasi IN).
+   * Dipertahankan hanya untuk kompatibilitas kontrak endpoint /invoices/bulk
+   * yang mengembalikan Invoice[]; implementasi lama memanggil create() per
+   * siswa (2 query per siswa = N+1). Sekarang mendelegasikan ke
+   * createManyForStudents lalu membaca ulang baris yang dibuat (3 query tetap,
+   * tidak bergantung jumlah siswa).
+   */
   async createBulk(
     students: string[],
     base: Omit<CreateInvoiceInput, "studentId">
   ): Promise<Invoice[]> {
-    const results: Invoice[] = [];
-    for (const studentId of students) {
-      results.push(await this.create({ ...base, studentId }));
+    if (students.length === 0) return [];
+    if (base.type === "UANG_OSIS" || base.type === "DENDA") {
+      throw new BadRequestException(
+        `InvoiceType ${base.type} tidak didukung endpoint bulk (lihat create())`
+      );
     }
-    return results;
+    const startedAt = new Date();
+    const createdCount = await this.createManyForStudents(students, base);
+    if (createdCount === 0) return [];
+
+    // Baca ulang baris yang baru dibuat (batas waktu panggilan + slice ke
+    // jumlah yang benar-benar dibuat) — 1 query tambahan, bukan per siswa.
+    const rows = await prisma.invoice.findMany({
+      where: {
+        student_id: { in: students },
+        type: base.type,
+        period: base.period ?? monthPeriod(base.dueDate),
+        academic_year: base.academicYear,
+        created_by: base.createdBy,
+        created_at: { gte: startedAt }
+      },
+      orderBy: { created_at: "asc" }
+    });
+    return rows.slice(-createdCount);
   }
 
   /**

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
@@ -14,7 +15,7 @@ import {
   Badge,
   Button,
   EmptyState
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatDateTime } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_SUBMISSIONS } from "@/lib/demo";
@@ -45,7 +46,8 @@ interface ClassSubjectRecapView {
 interface ExamSchedule {
   id: string;
   title: string;
-  startsAt: string;
+  status?: string;
+  created_at?: string;
 }
 
 interface Assignment {
@@ -56,15 +58,20 @@ interface Assignment {
   _count?: { submissions: number };
 }
 
-export default function GuruDashboardPage(): React.JSX.Element {
+export default function GuruDashboardPage(): JSX.Element {
   const classes = useApi<{ id: string; name: string; subject: string }[]>(
     () => api.get("/classes"),
     [],
     { fallbackData: DEMO_CLASSES }
   );
-  const exams = useApi<ExamSchedule[]>(() => api.get("/exams"), [], {
-    fallbackData: []
-  });
+  const exams = useApi<ExamSchedule[]>(
+    async () => {
+      const res = await api.get<{ items: ExamSchedule[]; total: number }>("/exam");
+      return res.items ?? [];
+    },
+    [],
+    { fallbackData: [] }
+  );
   // Kontrak R-08: Assignment TIDAK punya field score — yang perlu dinilai adalah
   // submission. Rekap grading memakai jumlah submission per assignment (real).
   const assignments = useApi<Assignment[]>(() => api.get<Assignment[]>("/assignments"), [], {
@@ -120,7 +127,7 @@ export default function GuruDashboardPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-neutral-900">Beranda Guru</h1>
+        <h1 className="text-2xl font-bold text-foreground">Beranda Guru</h1>
         <Link href="/guru/tugas">
           <Button>Buat Tugas</Button>
         </Link>
@@ -129,7 +136,7 @@ export default function GuruDashboardPage(): React.JSX.Element {
       <DashboardCards role="guru" cards={DEFAULT_DASHBOARD_CARDS.guru} fallbackLabel="Menu guru" />
 
       <section aria-label="Rekap penilaian">
-        <h2 className="mb-2 text-lg font-semibold text-neutral-900">
+        <h2 className="mb-2 text-lg font-semibold text-foreground">
           Rekap penilaian ({gradingRecap} submission)
         </h2>
         <DataView
@@ -147,7 +154,7 @@ export default function GuruDashboardPage(): React.JSX.Element {
             <Link href="/guru/penilaian" className="block">
               <Card className="transition-colors hover:border-primary-600">
                 <CardContent className="flex min-h-14 items-center justify-between">
-                  <span className="text-base font-medium text-neutral-900">
+                  <span className="text-base font-medium text-foreground">
                     {gradingRecap} submission menunggu dinilai ({pendingGrade} tugas)
                   </span>
                   <Badge variant="danger">{gradingRecap}</Badge>
@@ -160,8 +167,8 @@ export default function GuruDashboardPage(): React.JSX.Element {
 
       <section aria-label="Kelas saya">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Kelas Saya</h2>
-          <Link href="/guru/kelas" className="text-sm font-medium text-primary-600">
+          <h2 className="text-lg font-semibold text-foreground">Kelas Saya</h2>
+          <Link href="/guru/kelas" className="text-sm font-medium text-primary">
             Lihat semua
           </Link>
         </div>
@@ -199,8 +206,8 @@ export default function GuruDashboardPage(): React.JSX.Element {
 
       <section aria-label="Rekap nilai kelas">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Rekap Nilai Kelas</h2>
-          <Link href="/guru/kelas" className="text-sm font-medium text-primary-600">
+          <h2 className="text-lg font-semibold text-foreground">Rekap Nilai Kelas</h2>
+          <Link href="/guru/kelas" className="text-sm font-medium text-primary">
             Lihat semua kelas
           </Link>
         </div>
@@ -226,7 +233,7 @@ export default function GuruDashboardPage(): React.JSX.Element {
                         <CardDescription>{r.className}</CardDescription>
                       </CardHeader>
                       <CardContent className="flex items-center justify-between">
-                        <span className="text-sm text-neutral-600">
+                        <span className="text-sm text-muted-foreground">
                           {r.students > 0 ? `${r.students} siswa` : "Belum ada nilai"}
                         </span>
                         {r.average !== null ? (
@@ -245,7 +252,7 @@ export default function GuruDashboardPage(): React.JSX.Element {
       </section>
 
       <section aria-label="Ujian terjadwal">
-        <h2 className="mb-2 text-lg font-semibold text-neutral-900">Ujian Terjadwal</h2>
+        <h2 className="mb-2 text-lg font-semibold text-foreground">Ujian Terjadwal</h2>
         <DataView
           status={exams.status}
           error={exams.error}
@@ -265,11 +272,12 @@ export default function GuruDashboardPage(): React.JSX.Element {
                     <Card className="transition-colors hover:border-primary-600">
                       <CardContent className="flex min-h-14 items-center justify-between gap-3">
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-neutral-900">
+                          <span className="block truncate font-medium text-foreground">
                             {e.title}
                           </span>
-                          <span className="block text-sm text-neutral-600">
-                            {formatDateTime(e.startsAt)}
+                          <span className="block text-sm text-muted-foreground">
+                            {e.status ?? "—"}
+                            {e.created_at ? ` · ${formatDateTime(e.created_at)}` : ""}
                           </span>
                         </span>
                         <Button variant="outline" size="sm">

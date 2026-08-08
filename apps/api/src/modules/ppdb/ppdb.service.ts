@@ -22,6 +22,7 @@ import type { PpdbApplicant } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 import { AcademicYearGuard } from "../academic/academic-year.guard";
+import { NotificationService } from "../notifications/notifications.service";
 
 export interface ConsentProofInput {
   parentName: string;
@@ -53,7 +54,8 @@ export interface SelectionInput {
 export class PpdbService {
   constructor(
     @Inject(DATABASE_CLIENT) private readonly db: DatabaseClient,
-    private readonly yearGuard: AcademicYearGuard
+    private readonly yearGuard: AcademicYearGuard,
+    private readonly notifications: NotificationService
   ) {}
 
   /** Register publik: membuat ParentalConsent (GRANTED + timestamp) + applicant. */
@@ -114,6 +116,20 @@ export class PpdbService {
     return applicant;
   }
 
+  /** Tracking publik TANPA login: hanya field minimal (anti bocor PII). */
+  async trackPublic(registrationNo: string): Promise<{
+    registration_no: string;
+    full_name: string;
+    status: string;
+  }> {
+    const applicant = await this.db.ppdbApplicant.findFirst({
+      where: { registration_no: registrationNo },
+      select: { registration_no: true, full_name: true, status: true }
+    });
+    if (!applicant) throw new NotFoundException("Pendaftar tidak ditemukan");
+    return applicant;
+  }
+
   /** Verifikasi OPERATOR: VERIFIED atau REJECTED (dengan alasan opsional). */
   async verify(
     applicantId: string,
@@ -139,6 +155,7 @@ export class PpdbService {
       before: { status: applicant.status, registration_no: applicant.registration_no },
       after: { status, registration_no: applicant.registration_no }
     });
+    await this.notifyStatusChange(applicant, status, "Dokumen pendaftaran telah diverifikasi");
     return updated;
   }
 
@@ -167,6 +184,7 @@ export class PpdbService {
       before: { status: applicant.status },
       after: { status: "SELECTED", selection_score: input.selectionScore }
     });
+    await this.notifyStatusChange(applicant, "SELECTED", "Selamat, Anda lolos seleksi PPDB");
     return updated;
   }
 
@@ -191,6 +209,7 @@ export class PpdbService {
       before: { status: applicant.status },
       after: { status: "WAITLIST", selection_score: input.selectionScore }
     });
+    await this.notifyStatusChange(applicant, "WAITLIST", "Anda masuk daftar cadangan seleksi PPDB");
     return updated;
   }
 
@@ -273,7 +292,35 @@ export class PpdbService {
         academic_year_id: academicYearId
       }
     });
+    await this.notifyStatusChange(applicant, "ENROLLED", "Selamat! Anda resmi menjadi siswa baru");
     return updated;
+  }
+
+  /**
+   * Notifikasi ke user CALON_SISWA (hanya bila akun sudah tertaut) saat status
+   * berubah. NotificationService → inbox (notification:new + ppdb:status).
+   * Best-effort — user_id nullable; tanpa akun sinyal dilewati.
+   */
+  private async notifyStatusChange(
+    applicant: { user_id: string | null; registration_no: string },
+    status: string,
+    message: string
+  ): Promise<void> {
+    if (!applicant.user_id) return;
+    try {
+      await this.notifications.createForUser({
+        userId: applicant.user_id,
+        type: "PPDB_STATUS",
+        title: `Status PPDB: ${status}`,
+        body: message,
+        data: {
+          registrationNo: applicant.registration_no,
+          status
+        }
+      });
+    } catch {
+      // best-effort
+    }
   }
 
   private async requireApplicant(applicantId: string): Promise<PpdbApplicant> {

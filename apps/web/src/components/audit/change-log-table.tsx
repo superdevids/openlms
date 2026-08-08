@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useState, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import {
@@ -26,7 +27,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconSearch
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 /**
  * ChangeLogTable — tampilan change-log sistem (R-11).
@@ -115,14 +116,14 @@ function entityLabel(entity: string): string {
   return entity.replace(/_/g, " ");
 }
 
-export function ChangeLogTable(): React.JSX.Element {
-  const [entity, setEntity] = React.useState("");
-  const [actorId, setActorId] = React.useState("");
-  const [action, setAction] = React.useState("");
-  const [from, setFrom] = React.useState("");
-  const [to, setTo] = React.useState("");
-  const [page, setPage] = React.useState(1);
-  const [applied, setApplied] = React.useState(0);
+export function ChangeLogTable(): JSX.Element {
+  const [entity, setEntity] = useState("");
+  const [actorId, setActorId] = useState("");
+  const [action, setAction] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [applied, setApplied] = useState(0);
   const pageSize = 20;
 
   const entitiesApi = useApi<string[]>(
@@ -261,7 +262,7 @@ export function ChangeLogTable(): React.JSX.Element {
             description="Coba ubah filter atau cek kembali nanti."
           />
         ) : (
-          <div className="overflow-x-auto rounded-md border border-neutral-200">
+          <div className="overflow-x-auto rounded-md border border-border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -279,14 +280,14 @@ export function ChangeLogTable(): React.JSX.Element {
                     <TableCell>
                       <span className="font-medium">{l.actorName ?? "-"}</span>
                       {l.actorRole ? (
-                        <span className="ml-1 text-xs text-neutral-500">({l.actorRole})</span>
+                        <span className="ml-1 text-xs text-muted-foreground">({l.actorRole})</span>
                       ) : null}
                     </TableCell>
                     <TableCell>
                       <Badge variant={actionVariant(l.action)}>{l.action}</Badge>
                     </TableCell>
                     <TableCell>
-                      <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                         {entityLabel(l.entity)}
                       </code>
                     </TableCell>
@@ -301,7 +302,7 @@ export function ChangeLogTable(): React.JSX.Element {
         )}
 
         {/* Pagination */}
-        <div className="flex items-center justify-between gap-2 text-sm text-neutral-600">
+        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>
             Total {total} catatan · halaman {page} / {totalPages}
           </span>

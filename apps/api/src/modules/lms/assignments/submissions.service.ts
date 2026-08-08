@@ -5,11 +5,14 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { prisma } from "@openlms/database";
-import type { RequestContext } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { RequestContext } from "@opensis/types";
 import { assertTeacherOfClassSubject, isSchoolScope } from "../lms-scope";
 import { writeAudit } from "../lms-audit";
 import { StorageService } from "../storage/storage.service";
+import { NotificationService } from "../../notifications/notifications.service";
+import { RealtimeGateway } from "../../realtime/realtime.gateway";
+import { SUBMISSION_GRADED_EVENT } from "../../notifications/notification-events";
 import { GradeSubmissionDto, SubmitSubmissionDto } from "./dto/submissions.dto";
 
 /**
@@ -35,7 +38,11 @@ export interface SubmitResult {
 
 @Injectable()
 export class SubmissionsService {
-  constructor(private readonly storageService: StorageService) {}
+  constructor(
+    private readonly storageService: StorageService,
+    private readonly notifications: NotificationService,
+    private readonly realtime: RealtimeGateway
+  ) {}
 
   /** Minta signed URL upload jawaban ke bucket `submissions` (F2-T4). */
   async requestSignedUpload(
@@ -317,7 +324,37 @@ export class SubmissionsService {
       before: sub,
       after: graded
     });
+    await this.notifyGraded(graded, sub.assignment.title);
     return graded;
+  }
+
+  /**
+   * Notifikasi + event realtime ke siswa saat submission dinilai (best-effort):
+   * - NotificationService → notifikasi inbox (notification:new + assignment:graded);
+   * - event eksplisit submission:graded ke room user:{studentId} (payload ringan).
+   * Gagal emit tidak menggagalkan penilaian — REST tetap sumber kebenaran.
+   */
+  private async notifyGraded(
+    graded: { id: string; student_id: string; score: number | null; status: string },
+    assignmentTitle: string
+  ): Promise<void> {
+    try {
+      await this.notifications.createForUser({
+        userId: graded.student_id,
+        type: "TASK_GRADED",
+        title: "Tugas dinilai",
+        body: `${assignmentTitle} — skor ${graded.score ?? "-"}`,
+        data: { submissionId: graded.id, score: graded.score }
+      });
+      this.realtime.emitToUser(graded.student_id, SUBMISSION_GRADED_EVENT, {
+        submissionId: graded.id,
+        assignmentTitle,
+        score: graded.score,
+        status: graded.status
+      });
+    } catch {
+      // best-effort
+    }
   }
 
   private async isEnrolled(studentId: string, classSubjectId: string): Promise<boolean> {

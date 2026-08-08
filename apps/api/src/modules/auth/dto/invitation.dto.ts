@@ -1,5 +1,5 @@
 import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
-import { ROLE_VALUES } from "@openlms/types";
+import { ROLE_VALUES } from "@opensis/types";
 
 /**
  * Undangan akun (F1-T6, prd04 §9.1 langkah 4).

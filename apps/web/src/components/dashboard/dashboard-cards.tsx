@@ -1,8 +1,9 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from "@openlms/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from "@opensis/ui";
 import {
   IconAcademic,
   IconBank,
@@ -31,12 +32,13 @@ import {
   IconUser,
   IconWallet,
   type IconProps
-} from "@openlms/ui";
+} from "@opensis/ui";
 import { useApi } from "@/lib/use-api";
 import { api } from "@/lib/api-client";
+import { STORAGE_KEYS, ttlGet, ttlSet } from "@/lib/storage";
 import type { DashboardCard, DashboardRoleGroup } from "@/lib/dashboard";
 
-const ICON_MAP: Record<string, (props: IconProps) => React.JSX.Element> = {
+const ICON_MAP: Record<string, (props: IconProps) => JSX.Element> = {
   home: IconHome,
   book: IconBook,
   clipboard: IconClipboard,
@@ -66,16 +68,20 @@ const ICON_MAP: Record<string, (props: IconProps) => React.JSX.Element> = {
   info: IconInfo
 };
 
-function DashboardIcon({ name }: { name: string | null }): React.JSX.Element {
+function DashboardIcon({ name }: { name: string | null }): JSX.Element {
   const Cmp = (name && ICON_MAP[name]) || IconHome;
   return <Cmp className="h-5 w-5" aria-hidden="true" />;
 }
 
 /**
  * DashboardCards — grid kartu navigasi per role (R-05/R-10).
- * Data dari GET /dashboard/me (filter is_enabled + required_permission + urut).
- * Bila API tidak tersedia (offline), fallback ke props.cards (default per role).
+ * Data dari GET /dashboard/me (filter is_enabled + required_permission + urut),
+ * di-cache per role `opensis_dashboard_config:{role}` TTL 30 dtk agar navigasi
+ * antar halaman tidak bolak-balik hit API. Bila API tidak tersedia (offline),
+ * fallback ke props.cards (default per role).
  */
+const DASHBOARD_CONFIG_TTL_MS = 30_000;
+
 export function DashboardCards({
   role,
   cards,
@@ -84,8 +90,19 @@ export function DashboardCards({
   role: DashboardRoleGroup;
   cards: DashboardCard[];
   fallbackLabel?: string;
-}): React.JSX.Element {
-  const remote = useApi<DashboardCard[]>(() => api.get<DashboardCard[]>("/dashboard/me"), []);
+}): JSX.Element {
+  const cacheKey = `${STORAGE_KEYS.dashboardConfig}:${role}`;
+  const remote = useApi<DashboardCard[]>(
+    (signal) => {
+      const cached = ttlGet<DashboardCard[]>(cacheKey, DASHBOARD_CONFIG_TTL_MS);
+      if (cached && cached.length > 0) return Promise.resolve(cached);
+      return api.get<DashboardCard[]>("/dashboard/me", { signal }).then((cardsFromApi) => {
+        ttlSet(cacheKey, cardsFromApi);
+        return cardsFromApi;
+      });
+    },
+    [cacheKey]
+  );
 
   // API /dashboard/me adalah otoritas; fallback props hanya saat gagal/offline.
   const effective =
@@ -109,14 +126,14 @@ export function DashboardCards({
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{c.label}</CardTitle>
-                  <span className="rounded-md bg-neutral-100 p-1.5 text-primary-700">
+                  <span className="rounded-md bg-muted p-1.5 text-primary">
                     <DashboardIcon name={c.icon} />
                   </span>
                 </div>
                 {c.description ? <CardDescription>{c.description}</CardDescription> : null}
               </CardHeader>
               <CardContent>
-                <span className="text-sm font-medium text-primary-600">Buka</span>
+                <span className="text-sm font-medium text-primary">Buka</span>
               </CardContent>
             </Card>
           </Link>

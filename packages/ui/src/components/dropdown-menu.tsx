@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useId, useRef, useState, type JSX, type ReactNode } from "react";
+
 import { cn } from "../lib/utils";
 
 /**
@@ -16,17 +17,17 @@ export function DropdownMenu({
   label,
   className
 }: {
-  trigger: React.ReactNode;
-  children: React.ReactNode;
+  trigger: ReactNode;
+  children: ReactNode;
   align?: "start" | "end";
   label?: string;
   className?: string;
-}): React.JSX.Element {
-  const [open, setOpen] = React.useState(false);
-  const rootRef = React.useRef<HTMLDivElement>(null);
-  const buttonId = React.useId();
+}): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const buttonId = useId();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === "Escape") setOpen(false);
@@ -79,9 +80,9 @@ export function DropdownMenuItem({
   className
 }: {
   onSelect?: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <button
       type="button"

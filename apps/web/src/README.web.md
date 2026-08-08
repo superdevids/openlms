@@ -2,7 +2,7 @@
 
 ## Fungsi Folder
 
-Frontend **Next.js 16 (App Router)** untuk openlms: satu aplikasi yang melayani
+Frontend **Next.js 16 (App Router)** untuk opensis: satu aplikasi yang melayani
 semua peran (siswa, guru, admin, superadmin, wali murid) + halaman publik
 (landing, PPDB). Otorisasi final di backend (API); web hanya UX-level via
 `src/proxy.ts` (pengganti middleware Next 16).

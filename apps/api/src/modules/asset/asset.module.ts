@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient, prisma } from "@openlms/database";
+import { PrismaClient, prisma } from "@opensis/database";
 import { AssetController } from "./asset.controller";
 import { AssetService } from "./services/asset.service";
 import { DepreciationService } from "./services/depreciation.service";

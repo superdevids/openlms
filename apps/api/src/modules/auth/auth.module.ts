@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { InvitationsService } from "./invitations.service";
@@ -9,7 +9,7 @@ import { ScopeResolver } from "../../common/scope-resolver";
 import { AuthGuard } from "../../common/auth.guard";
 import { PermissionsGuard } from "../../common/permissions.guard";
 import { FeatureFlagGuard } from "../../common/feature-flag.guard";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 
 /**
  * AuthModule — F1 (auth in-house + RBAC + feature flags).

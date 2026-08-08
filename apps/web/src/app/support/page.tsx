@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@openlms/ui";
+import type { JSX } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -33,14 +34,14 @@ const FAQ = [
   }
 ];
 
-export default function SupportPage(): React.JSX.Element {
+export default function SupportPage(): JSX.Element {
   return (
-    <main className="min-h-screen bg-neutral-50">
+    <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-4 py-10">
         <header className="mb-8">
-          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
-          <h1 className="mt-2 text-2xl font-bold text-neutral-900">Bantuan & FAQ</h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <p className="text-lg font-bold text-primary">{APP_NAME}</p>
+          <h1 className="mt-2 text-2xl font-bold text-foreground">Bantuan & FAQ</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Butuh bantuan? Hubungi operator sekolah. Pertanyaan umum di bawah ini dijawab ringkas.
           </p>
         </header>
@@ -52,13 +53,13 @@ export default function SupportPage(): React.JSX.Element {
                 <CardTitle>{f.q}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-neutral-700">{f.a}</p>
+                <p className="text-sm text-foreground">{f.a}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <Card className="mt-8 bg-primary-100">
+        <Card className="mt-8 bg-primary-100 dark:bg-primary-100/20 dark:text-primary-foreground">
           <CardHeader>
             <CardTitle>Kontak Operator Sekolah</CardTitle>
             <CardDescription>

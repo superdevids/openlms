@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { RolloverService } from "../../rollover/rollover.service";
 
 /**

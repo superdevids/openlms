@@ -1,14 +1,22 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { API_BASE } from "@/lib/api-client";
 import { formatRelative } from "@/lib/format";
+import { setLastReadNotif } from "@/lib/storage";
+import {
+  ANNOUNCEMENT_NEW_EVENT,
+  INVOICE_PAID_EVENT,
+  SUBMISSION_GRADED_EVENT,
+  useRealtimeRefetch
+} from "@/lib/use-socket";
 
 /**
  * NotificationPanel (R-26/R-46) — panel notifikasi di app-shell.
  * Dibuka lewat URL `?notif=1` (deep link dari badge) atau klik tombol bell.
  * Data dari REST `/notifications` (sumber kebenaran); event Socket.IO hanya
- * memicu refresh badge di app-shell (best-effort).
+ * memicu refresh (best-effort). Event domain announcement:new / invoice:paid /
+ * submission:graded ikut memicu reload saat panel terbuka.
  */
 export interface NotificationItem {
   id: string;
@@ -27,12 +35,14 @@ export function NotificationPanel({
   open: boolean;
   onClose: () => void;
   onUnreadChanged: () => void;
-}): React.JSX.Element | null {
-  const [items, setItems] = React.useState<NotificationItem[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+}): JSX.Element | null {
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const openRef = useRef(open);
+  openRef.current = open;
 
-  const load = React.useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -47,8 +57,19 @@ export function NotificationPanel({
     }
   }, []);
 
-  React.useEffect(() => {
-    if (open) void load();
+  // Event domain → refetch list saat panel terbuka (best-effort).
+  useRealtimeRefetch(
+    [ANNOUNCEMENT_NEW_EVENT, INVOICE_PAID_EVENT, SUBMISSION_GRADED_EVENT],
+    useCallback(() => {
+      if (openRef.current) void load();
+    }, [load])
+  );
+
+  useEffect(() => {
+    if (open) {
+      setLastReadNotif();
+      void load();
+    }
   }, [open, load]);
 
   const markRead = async (id: string): Promise<void> => {
@@ -56,6 +77,7 @@ export function NotificationPanel({
       method: "POST",
       credentials: "include"
     }).catch(() => undefined);
+    setLastReadNotif();
     onUnreadChanged();
     void load();
   };
@@ -65,6 +87,7 @@ export function NotificationPanel({
       method: "POST",
       credentials: "include"
     }).catch(() => undefined);
+    setLastReadNotif();
     onUnreadChanged();
     void load();
   };
@@ -85,7 +108,7 @@ export function NotificationPanel({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-md px-2 py-1 text-xs font-medium text-primary-700 hover:bg-muted"
+              className="rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
               onClick={() => void markAllRead()}
             >
               Tandai semua dibaca
@@ -117,7 +140,9 @@ export function NotificationPanel({
                   type="button"
                   onClick={() => void markRead(item.id)}
                   className={`w-full rounded-lg border p-3 text-left hover:bg-muted ${
-                    item.readAt ? "border-border" : "border-primary-200 bg-primary-50"
+                    item.readAt
+                      ? "border-border"
+                      : "border-primary-200 bg-primary-50 dark:bg-primary-100/20 dark:text-primary-foreground"
                   }`}
                 >
                   <p className="text-sm font-semibold text-foreground">{item.title}</p>

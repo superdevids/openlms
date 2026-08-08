@@ -1,19 +1,30 @@
 "use client";
 
-import * as React from "react";
+import { useState, type JSX } from "react";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Tabs, TabPanel, Badge, Button, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  Tabs,
+  TabPanel,
+  Badge,
+  Button,
+  EmptyState
+} from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_TASKS } from "@/lib/demo";
+import { TASK_STATUS_BADGE } from "@/lib/constants";
 
-export default function GuruKelasDetailPage(): React.JSX.Element {
+export default function GuruKelasDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
-  const [tab, setTab] = React.useState("materi");
+  const [tab, setTab] = useState("materi");
 
   const detail = useApi<{ id: string; name: string; subject: string }>(
     () => api.get(`/classes/${id}`),
@@ -37,10 +48,10 @@ export default function GuruKelasDetailPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/guru/kelas" className="text-sm font-medium text-primary-600">
+        <Link href="/guru/kelas" className="text-sm font-medium text-primary">
           &larr; Kembali ke kelas
         </Link>
-        <h1 className="mt-1 text-2xl font-bold text-neutral-900">
+        <h1 className="mt-1 text-2xl font-bold text-foreground">
           {cls?.name ?? "Detail Kelas"} {cls ? `— ${cls.subject}` : ""}
         </h1>
       </div>
@@ -98,16 +109,14 @@ export default function GuruKelasDetailPage(): React.JSX.Element {
                     <Card>
                       <CardContent className="flex min-h-14 items-center justify-between gap-3">
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-neutral-900">
+                          <span className="block truncate font-medium text-foreground">
                             {t.title}
                           </span>
-                          <span className="block text-sm text-neutral-600">
+                          <span className="block text-sm text-muted-foreground">
                             Tenggat {formatRelative(t.dueAt)}
                           </span>
                         </span>
-                        <Badge variant={t.status === "TERLAMBAT" ? "danger" : "primary"}>
-                          {t.status}
-                        </Badge>
+                        <Badge variant={TASK_STATUS_BADGE[t.status] ?? "primary"}>{t.status}</Badge>
                       </CardContent>
                     </Card>
                   </li>
@@ -142,10 +151,10 @@ export default function GuruKelasDetailPage(): React.JSX.Element {
                 description="Siswa akan muncul setelah admin enroll ke kelas."
               />
             ) : (
-              <ul className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
+              <ul className="divide-y divide-border rounded-lg border border-border bg-card">
                 {(students.data ?? []).map((s) => (
                   <li key={s.id} className="flex min-h-12 items-center px-4 py-2">
-                    <span className="text-base font-medium text-neutral-900">{s.fullName}</span>
+                    <span className="text-base font-medium text-foreground">{s.fullName}</span>
                   </li>
                 ))}
               </ul>

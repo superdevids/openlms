@@ -1,26 +1,77 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  EmptyState,
+  Badge
+} from "@opensis/ui";
+import { useAuth } from "@/components/auth/auth-provider";
 
-import { DEMO_GRADES } from "@/lib/demo";
+interface ParentGuardian {
+  id: string;
+  full_name: string;
+}
 
-export default function OrtuNilaiPage(): React.JSX.Element {
-  const list = useApi<
-    {
-      subject: string;
-      tugas: number | null;
-      kuis: number | null;
-      ujian: number | null;
-      rata: number | null;
-    }[]
-  >(() => api.get("/parent/students").then(() => []), [], { fallbackData: DEMO_GRADES });
+interface ParentChild {
+  id: string;
+  student: { id: string; full_name: string };
+}
+
+interface ChildGrades {
+  studentId: string;
+  studentName: string;
+  gradesCount: number;
+}
+
+export default function OrtuNilaiPage(): JSX.Element {
+  const { user } = useAuth();
+  // Kontrak parent-portal NYATA: GET /parent-portal/me → children →
+  // GET /parent-portal/:id/children/:studentId/overview (nilai tercatat).
+  const list = useApi<ChildGrades[]>(
+    async () => {
+      const parent = await api.get<ParentGuardian | null>("/parent-portal/me");
+      if (!parent) return [];
+      const children = await api.get<ParentChild[]>(`/parent-portal/${parent.id}/children`);
+      const rows = await Promise.all(
+        children.map(async (child) => {
+          try {
+            const overview = await api.get<{
+              studentId: string;
+              studentName: string;
+              gradesCount: number;
+            }>(`/parent-portal/${parent.id}/children/${child.student.id}/overview`);
+            return {
+              studentId: overview.studentId,
+              studentName: overview.studentName,
+              gradesCount: overview.gradesCount
+            };
+          } catch {
+            return {
+              studentId: child.student.id,
+              studentName: child.student.full_name,
+              gradesCount: 0
+            };
+          }
+        })
+      );
+      return rows;
+    },
+    [],
+    { enabled: !!(user && user.roles.includes("WALI_MURID")) }
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Nilai Anak — Andi Setiawan</h1>
+      <h1 className="text-2xl font-bold text-foreground">Nilai Anak (read-only)</h1>
       <DataView
         status={list.status}
         error={list.error}
@@ -28,37 +79,27 @@ export default function OrtuNilaiPage(): React.JSX.Element {
         fallbackLabel="Nilai anak"
       >
         {list.data?.length === 0 ? (
-          <EmptyState title="Belum ada nilai" />
+          <EmptyState
+            title="Belum ada data nilai"
+            description="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan nilai."
+          />
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Rekap Nilai per Mapel (read-only)</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mapel</TableHead>
-                    <TableHead>Tugas</TableHead>
-                    <TableHead>Kuis</TableHead>
-                    <TableHead>Ujian</TableHead>
-                    <TableHead>Rata-rata</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(list.data ?? []).map((g) => (
-                    <TableRow key={g.subject}>
-                      <TableCell className="font-medium">{g.subject}</TableCell>
-                      <TableCell>{g.tugas ?? "-"}</TableCell>
-                      <TableCell>{g.kuis ?? "-"}</TableCell>
-                      <TableCell>{g.ujian ?? "-"}</TableCell>
-                      <TableCell className="font-semibold">{g.rata?.toFixed(1) ?? "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(list.data ?? []).map((g) => (
+              <Card key={g.studentId}>
+                <CardHeader>
+                  <CardTitle>{g.studentName}</CardTitle>
+                  <CardDescription>Ringkasan nilai tercatat</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{g.gradesCount} nilai tercatat</span>
+                  <Badge variant={g.gradesCount > 0 ? "primary" : "neutral"}>
+                    {g.gradesCount > 0 ? "ADA DATA" : "KOSONG"}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </DataView>
     </div>

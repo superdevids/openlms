@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { AttendanceStatus } from "@openlms/types";
+import type { AttendanceStatus } from "@opensis/types";
 import type { AttendanceRekapSummary, DisciplineStudentSummary } from "./attendance.types";
 
 /**

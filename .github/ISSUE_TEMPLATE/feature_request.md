@@ -1,6 +1,6 @@
 ---
 name: Permintaan Fitur
-about: Usulkan fitur atau peningkatan baru untuk openlms
+about: Usulkan fitur atau peningkatan baru untuk opensis
 title: "[Fitur]: "
 labels: ["enhancement"]
 assignees: ""

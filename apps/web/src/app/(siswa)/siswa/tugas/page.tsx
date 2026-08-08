@@ -1,9 +1,22 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Badge, Button, Textarea, Label, Alert, Dialog, EmptyState, toast } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  Badge,
+  Button,
+  Textarea,
+  Label,
+  Alert,
+  Dialog,
+  EmptyState,
+  toast
+} from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
@@ -19,16 +32,16 @@ interface Task {
   status: string;
 }
 
-export default function SiswaTugasPage(): React.JSX.Element {
+export default function SiswaTugasPage(): JSX.Element {
   const list = useApi<Task[]>(() => api.get("/assignments"), [], { fallbackData: DEMO_TASKS });
-  const [openId, setOpenId] = React.useState<string | null>(null);
-  const [content, setContent] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
-  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const open = list.data?.find((t) => t.id === openId) ?? null;
 
-  const submit = async (e: React.FormEvent): Promise<void> => {
+  const submit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     if (!open) return;
     setSubmitting(true);
@@ -55,7 +68,7 @@ export default function SiswaTugasPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Tugas Saya</h1>
+      <h1 className="text-2xl font-bold text-foreground">Tugas Saya</h1>
       <DataView
         status={list.status}
         error={list.error}
@@ -74,8 +87,8 @@ export default function SiswaTugasPage(): React.JSX.Element {
                 <Card>
                   <CardContent className="flex min-h-14 items-center justify-between gap-3">
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-neutral-900">{t.title}</span>
-                      <span className="block text-sm text-neutral-600">
+                      <span className="block truncate font-medium text-foreground">{t.title}</span>
+                      <span className="block text-sm text-muted-foreground">
                         {t.subject} · Tenggat {formatRelative(t.dueAt)}
                       </span>
                     </span>

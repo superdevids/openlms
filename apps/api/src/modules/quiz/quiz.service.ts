@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { AssessmentStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { CreateQuizDto } from "./dto/create-quiz.dto";

@@ -1,12 +1,13 @@
 "use client";
 
-import * as React from "react";
+import { type HTMLAttributes, type JSX, type TdHTMLAttributes, type ThHTMLAttributes } from "react";
+
 import { cn } from "../lib/utils";
 
 export function Table({
   className,
   ...props
-}: React.HTMLAttributes<HTMLTableElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLTableElement>): JSX.Element {
   return (
     <div className="w-full overflow-x-auto rounded-md border border-border">
       <table className={cn("w-full min-w-full text-left text-sm", className)} {...props} />
@@ -17,28 +18,28 @@ export function Table({
 export function TableHeader({
   className,
   ...props
-}: React.HTMLAttributes<HTMLTableSectionElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLTableSectionElement>): JSX.Element {
   return <thead className={cn("border-b border-border bg-muted", className)} {...props} />;
 }
 
 export function TableBody({
   className,
   ...props
-}: React.HTMLAttributes<HTMLTableSectionElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLTableSectionElement>): JSX.Element {
   return <tbody className={cn("divide-y divide-border", className)} {...props} />;
 }
 
 export function TableRow({
   className,
   ...props
-}: React.HTMLAttributes<HTMLTableRowElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLTableRowElement>): JSX.Element {
   return <tr className={cn("hover:bg-muted/50", className)} {...props} />;
 }
 
 export function TableHead({
   className,
   ...props
-}: React.ThHTMLAttributes<HTMLTableCellElement>): React.JSX.Element {
+}: ThHTMLAttributes<HTMLTableCellElement>): JSX.Element {
   return (
     <th
       scope="col"
@@ -51,6 +52,6 @@ export function TableHead({
 export function TableCell({
   className,
   ...props
-}: React.TdHTMLAttributes<HTMLTableCellElement>): React.JSX.Element {
+}: TdHTMLAttributes<HTMLTableCellElement>): JSX.Element {
   return <td className={cn("px-4 py-3 text-foreground", className)} {...props} />;
 }

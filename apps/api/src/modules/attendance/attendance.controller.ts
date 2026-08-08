@@ -92,7 +92,7 @@ export class AttendanceController {
     return this.attendanceService.requestPermit(dto, this.actor(req));
   }
 
-  /** Verifikasi pengajuan izin oleh homeroom/GURU_BK. */
+  /** Verifikasi pengajuan izin oleh homeroom/BK. */
   @Post("permits/:id/verify")
   @RequirePermission("permit:verify:class")
   async verifyPermit(

@@ -5,7 +5,7 @@
 import { ForbiddenException } from "@nestjs/common";
 import { AttemptStatus } from "@prisma/client";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     quiz: { findUnique: jest.fn() },
     quizAttempt: { findUnique: jest.fn(), findMany: jest.fn() },
@@ -14,7 +14,7 @@ jest.mock("@openlms/database", () => ({
   }
 }));
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { QuizAttemptService } from "../../src/modules/quiz/quiz-attempt.service";
 
 const db = prisma as unknown as {

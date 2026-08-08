@@ -14,21 +14,18 @@ import { memoryStorage } from "multer";
 import type { Request, Response } from "express";
 import { createReadStream } from "fs";
 import { stat } from "fs/promises";
-import { extname } from "path";
+import { basename, extname } from "path";
 import { StorageService } from "./storage.service";
-import { MAX_FILE_SIZE, PUBLIC_UPLOAD_BUCKETS } from "./storage.constants";
+import {
+  EXTENSION_MIMETYPE,
+  IMAGE_EXTENSIONS,
+  MAX_FILE_SIZE,
+  PUBLIC_UPLOAD_BUCKETS
+} from "./storage.constants";
 import { CurrentUser } from "../../common/current-user.decorator";
 import { Public } from "../../common/public.decorator";
 import { RequirePermission } from "../../common/require-permission.decorator";
 import type { AuthUser } from "../../common/auth.guard";
-
-const MIME_BY_EXT: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".pdf": "application/pdf"
-};
 
 /**
  * StorageController — serve file lokal + upload.
@@ -135,12 +132,17 @@ export class StorageController {
 
     const s = await stat(absolute);
     const ext = extname(absolute).toLowerCase();
-    const contentType = MIME_BY_EXT[ext] ?? "application/octet-stream";
+    const contentType = EXTENSION_MIMETYPE[ext] ?? "application/octet-stream";
 
     res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Length", s.size);
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     res.setHeader("X-Content-Type-Options", "nosniff");
+    // File non-gambar dilayani sebagai download (attachment) — cegah eksekusi
+    // inline (HTML/SVG/script) dan render dokumen berbahaya di browser (R-26).
+    if (!IMAGE_EXTENSIONS.has(ext)) {
+      res.setHeader("Content-Disposition", `attachment; filename="${basename(absolute)}"`);
+    }
 
     const stream = createReadStream(absolute);
     stream.on("error", () => {

@@ -1,7 +1,7 @@
 /**
  * Attendance — tipe internal modul (bukan kontrak publik).
  */
-import type { AttendanceMethod, AttendanceStatus } from "@openlms/types";
+import type { AttendanceMethod, AttendanceStatus } from "@opensis/types";
 
 /** Payload pengajuan izin/sakit yang disimpan di kolom note (JSON string). */
 export interface PermitNotePayload {

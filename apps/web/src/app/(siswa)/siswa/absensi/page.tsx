@@ -1,20 +1,49 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, Button, Input, Label, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, toast } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Badge,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  EmptyState,
+  toast
+} from "@opensis/ui";
 
-import { formatDate, formatTime } from "@/lib/format";
+import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
-import { DEMO_ATTENDANCE } from "@/lib/demo";
-import { cn } from "@openlms/ui";
+import { cn } from "@opensis/ui";
 
-interface AttendanceRecord {
-  date: string;
-  subject: string;
-  status: "HADIR" | "IZIN" | "SAKIT" | "ALPA" | "TERLAMBAT";
+interface AttendanceRekapSummary {
+  total: number;
+  hadir: number;
+  izin: number;
+  sakit: number;
+  alpa: number;
+  terlambat: number;
+  kehadiranPercent: number;
+  alpaPercent: number;
+}
+
+interface AttendanceRekap {
+  period: { start: string | null; end: string | null };
+  summary: AttendanceRekapSummary;
+  perStudent: Array<{ studentId: string; summary: AttendanceRekapSummary }>;
 }
 
 type ScanResult =
@@ -22,16 +51,30 @@ type ScanResult =
   | { ok: false; message: string }
   | null;
 
-export default function SiswaAbsensiPage(): React.JSX.Element {
-  const list = useApi<AttendanceRecord[]>(() => api.get("/attendance/records"), [], {
-    fallbackData: DEMO_ATTENDANCE
+export default function SiswaAbsensiPage(): JSX.Element {
+  // Rekap nyata siswa: GET /attendance/rekap (scope SENDIRI — selalu dirinya sendiri).
+  const list = useApi<AttendanceRekap>(() => api.get("/attendance/rekap"), [], {
+    fallbackData: {
+      period: { start: null, end: null },
+      summary: {
+        total: 12,
+        hadir: 10,
+        izin: 1,
+        sakit: 1,
+        alpa: 0,
+        terlambat: 0,
+        kehadiranPercent: 100,
+        alpaPercent: 0
+      },
+      perStudent: []
+    }
   });
-  const [sessionId, setSessionId] = React.useState("");
-  const [token, setToken] = React.useState("");
-  const [result, setResult] = React.useState<ScanResult>(null);
-  const [scanning, setScanning] = React.useState(false);
+  const [sessionId, setSessionId] = useState("");
+  const [token, setToken] = useState("");
+  const [result, setResult] = useState<ScanResult>(null);
+  const [scanning, setScanning] = useState(false);
 
-  const scan = async (e: React.FormEvent): Promise<void> => {
+  const scan = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setResult(null);
     setScanning(true);
@@ -61,7 +104,7 @@ export default function SiswaAbsensiPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Absensi Saya</h1>
+      <h1 className="text-2xl font-bold text-foreground">Absensi Saya</h1>
 
       <Card className="border-primary-600">
         <CardHeader>
@@ -117,7 +160,7 @@ export default function SiswaAbsensiPage(): React.JSX.Element {
                   {result.status === "TERLAMBAT" ? "Terlambat" : "Hadir"} —{" "}
                   {formatTime(result.recordedAt)}
                 </p>
-                <p className="text-sm text-neutral-700">
+                <p className="text-sm text-foreground">
                   Absensi tercatat.{" "}
                   {result.status === "TERLAMBAT"
                     ? "Perhatikan toleransi keterlambatan kelas."
@@ -127,8 +170,8 @@ export default function SiswaAbsensiPage(): React.JSX.Element {
             ) : (
               <div role="alert" className="rounded-lg border border-danger-600 bg-danger-100 p-4">
                 <p className="text-lg font-bold text-danger-700">Gagal</p>
-                <p className="text-sm text-neutral-800">{result.message}</p>
-                <p className="mt-1 text-sm text-neutral-700">
+                <p className="text-sm text-foreground">{result.message}</p>
+                <p className="mt-1 text-sm text-foreground">
                   Minta QR baru ke guru jika token sudah kedaluwarsa.
                 </p>
               </div>
@@ -137,15 +180,15 @@ export default function SiswaAbsensiPage(): React.JSX.Element {
         </CardContent>
       </Card>
 
-      <section aria-label="Riwayat absensi">
-        <h2 className="mb-2 text-lg font-semibold text-neutral-900">Riwayat</h2>
+      <section aria-label="Rekap absensi">
+        <h2 className="mb-2 text-lg font-semibold text-foreground">Rekap Kehadiran</h2>
         <DataView
           status={list.status}
           error={list.error}
           onRetry={list.refetch}
-          fallbackLabel="Riwayat absensi"
+          fallbackLabel="Rekap absensi"
         >
-          {list.data?.length === 0 ? (
+          {!list.data || list.data.summary.total === 0 ? (
             <EmptyState
               title="Belum ada riwayat absensi"
               description="Absensi akan muncul setelah Anda scan QR."
@@ -156,33 +199,31 @@ export default function SiswaAbsensiPage(): React.JSX.Element {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>Mapel</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Hadir</TableHead>
+                      <TableHead>Izin</TableHead>
+                      <TableHead>Sakit</TableHead>
+                      <TableHead>Alpa</TableHead>
+                      <TableHead>Terlambat</TableHead>
+                      <TableHead>% Kehadiran</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(list.data ?? []).map((r, i) => (
-                      <TableRow key={`${r.date}-${i}`}>
-                        <TableCell>{formatDate(r.date)}</TableCell>
-                        <TableCell>{r.subject}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              r.status === "HADIR"
-                                ? "success"
-                                : r.status === "TERLAMBAT"
-                                  ? "warning"
-                                  : r.status === "ALPA"
-                                    ? "danger"
-                                    : "info"
-                            }
-                          >
-                            {r.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    <TableRow>
+                      <TableCell className="font-medium">{list.data.summary.total}</TableCell>
+                      <TableCell>{list.data.summary.hadir}</TableCell>
+                      <TableCell>{list.data.summary.izin}</TableCell>
+                      <TableCell>{list.data.summary.sakit}</TableCell>
+                      <TableCell>
+                        <Badge variant={list.data.summary.alpa > 0 ? "danger" : "success"}>
+                          {list.data.summary.alpa}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{list.data.summary.terlambat}</TableCell>
+                      <TableCell className="font-semibold">
+                        {Math.round(list.data.summary.kehadiranPercent)}%
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
               </CardContent>

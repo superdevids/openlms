@@ -1,10 +1,24 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Dialog, toast, EmptyState } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Button,
+  Input,
+  Label,
+  Dialog,
+  toast,
+  EmptyState
+} from "@opensis/ui";
 
 import { DEMO_CLASSES } from "@/lib/demo";
 
@@ -15,14 +29,14 @@ interface ClassItem {
   teacher?: string;
 }
 
-export default function GuruKelasPage(): React.JSX.Element {
+export default function GuruKelasPage(): JSX.Element {
   const list = useApi<ClassItem[]>(() => api.get("/classes"), [], { fallbackData: DEMO_CLASSES });
-  const [open, setOpen] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [subject, setSubject] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [subject, setSubject] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const create = async (e: React.FormEvent): Promise<void> => {
+  const create = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -42,7 +56,7 @@ export default function GuruKelasPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-neutral-900">Kelas Saya</h1>
+        <h1 className="text-2xl font-bold text-foreground">Kelas Saya</h1>
         <Button onClick={() => setOpen(true)}>Buat Kelas</Button>
       </div>
       <DataView

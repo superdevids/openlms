@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { computeInvoiceTotals } from "../calculator/invoice-status";
 import { computeLateFee } from "../calculator/late-fee";

@@ -1,8 +1,8 @@
 {
-  "name": "@openlms/api",
+  "name": "@opensis/api",
   "version": "0.1.0",
   "private": true,
-  "description": "openlms backend — NestJS (REST /api/v1 + Socket.IO nanti)",
+  "description": "opensis backend — NestJS (REST /api/v1 + Socket.IO nanti)",
   "scripts": {
     "build": "nest build",
     "start": "nest start",
@@ -14,8 +14,8 @@
     "test:integration": "jest --testPathPattern=\"^.*integration.*\" --runInBand"
   },
   "dependencies": {
-    "@openlms/database": "*",
-    "@openlms/types": "*",
+    "@opensis/database": "*",
+    "@opensis/types": "*",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.28",
@@ -63,13 +63,16 @@
     ],
     "rootDir": ".",
     "testEnvironment": "node",
+    "setupFiles": [
+      "reflect-metadata"
+    ],
     "testRegex": ".*\\.(spec|e2e-spec)\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "moduleNameMapper": {
-      "^@openlms/types$": "<rootDir>/../../packages/types/src",
-      "^@openlms/database$": "<rootDir>/../../packages/database/src"
+      "^@opensis/types$": "<rootDir>/../../packages/types/src",
+      "^@opensis/database$": "<rootDir>/../../packages/database/src"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

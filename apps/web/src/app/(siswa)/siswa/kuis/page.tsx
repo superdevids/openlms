@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
@@ -14,7 +15,7 @@ import {
   Badge,
   Button,
   EmptyState
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 interface Quiz {
   id: string;
@@ -36,7 +37,7 @@ interface QuizListResponse {
   items: ApiQuiz[];
 }
 
-export default function SiswaKuisPage(): React.JSX.Element {
+export default function SiswaKuisPage(): JSX.Element {
   const list = useApi<Quiz[]>(
     () =>
       api.get<QuizListResponse>("/quiz").then((r) =>
@@ -53,7 +54,7 @@ export default function SiswaKuisPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Kuis</h1>
+      <h1 className="text-2xl font-bold text-foreground">Kuis</h1>
       <DataView
         status={list.status}
         error={list.error}

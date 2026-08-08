@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useRef, useState, type FormEvent, type JSX } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
@@ -14,20 +15,20 @@ import {
   Button,
   Alert,
   toast
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatDateTime } from "@/lib/format";
 
 import { DEMO_EXAMS } from "@/lib/demo";
-import { cn } from "@openlms/ui";
+import { cn } from "@opensis/ui";
 import { STORAGE_KEYS, safeSet } from "@/lib/storage";
 
-/** Draft attempt di sessionStorage (R-23) — dibaca ulang di halaman kerjakan utk resume. */
+/** Draft attempt di sessionStorage (R-23) — dibaca ulang di halaman kerjakan utk resume.
+ *  HANYA attemptId (bukan token) yang disimpan — token sesi hanya di memori (R-48). */
 export interface ExamAttemptDraft {
   examId: string;
   attemptId: string;
   remainingSeconds: number;
-  token: string;
 }
 
 interface ExamDetail {
@@ -76,7 +77,7 @@ function mapExamDetail(raw: ApiExamDetail): ExamDetail {
   };
 }
 
-export default function SiswaUjianTokenPage(): React.JSX.Element {
+export default function SiswaUjianTokenPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const examId = params.id ?? "";
@@ -89,13 +90,13 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
     }
   );
 
-  const [digits, setDigits] = React.useState<string[]>(Array(6).fill(""));
-  const refs = React.useRef<Array<HTMLInputElement | null>>([]);
-  const [error, setError] = React.useState<string | null>(null);
-  const [failCount, setFailCount] = React.useState(0);
-  const [lockUntil, setLockUntil] = React.useState(0);
-  const [loading, setLoading] = React.useState(false);
-  const [agreed, setAgreed] = React.useState(false);
+  const [digits, setDigits] = useState<string[]>(Array(6).fill(""));
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [failCount, setFailCount] = useState(0);
+  const [lockUntil, setLockUntil] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const token = digits.join("").toUpperCase();
   const locked = Date.now() < lockUntil;
@@ -120,7 +121,7 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
     setError(null);
   };
 
-  const start = async (e: React.FormEvent): Promise<void> => {
+  const start = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     if (locked) return;
     if (token.length !== 6) {
@@ -154,7 +155,7 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
       }
       safeSet<ExamAttemptDraft>(
         STORAGE_KEYS.examAttempt,
-        { examId, attemptId, remainingSeconds, token },
+        { examId, attemptId, remainingSeconds },
         "session"
       );
       router.replace(
@@ -183,7 +184,7 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-2xl font-bold text-neutral-900">Masuk Sesi Ujian</h1>
+      <h1 className="text-2xl font-bold text-foreground">Masuk Sesi Ujian</h1>
       <DataView
         status={exam.status}
         error={exam.error}
@@ -200,7 +201,7 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-base text-neutral-900">Masukkan token dari pengawas</p>
+              <p className="text-base text-foreground">Masukkan token dari pengawas</p>
               <form
                 onSubmit={(e) => void start(e)}
                 className="space-y-4"
@@ -229,19 +230,19 @@ export default function SiswaUjianTokenPage(): React.JSX.Element {
                       aria-label={`Karakter token ke-${i + 1}`}
                       maxLength={6}
                       className={cn(
-                        "h-14 w-11 rounded-md border-2 border-neutral-300 text-center font-mono text-xl font-semibold uppercase text-neutral-900 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100",
+                        "h-14 w-11 rounded-md border-2 border-input text-center font-mono text-xl font-semibold uppercase text-foreground outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100",
                         locked && "opacity-50"
                       )}
                       disabled={locked}
                     />
                   ))}
                 </div>
-                <p className="text-center text-sm text-neutral-600">
+                <p className="text-center text-sm text-muted-foreground">
                   6 karakter alfanumerik huruf besar, tanpa 0/O/1/I. Token sekali pakai per attempt.
                 </p>
 
                 <div className="space-y-1.5">
-                  <label className="flex items-start gap-2 text-sm text-neutral-700">
+                  <label className="flex items-start gap-2 text-sm text-foreground">
                     <input
                       type="checkbox"
                       checked={agreed}

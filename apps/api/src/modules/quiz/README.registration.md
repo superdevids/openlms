@@ -13,8 +13,8 @@ import { QuizModule } from "./modules/quiz/quiz.module";
 // imports: [ ..., HealthModule, AuthModule, QuizModule, ExamModule ]
 ```
 
-- Provider `@openlms/database` (`prisma` singleton) sudah tersedia — modul ini
-  memakai `prisma` langsung dari `@openlms/database` (tanpa PrismaService lokal).
+- Provider `@opensis/database` (`prisma` singleton) sudah tersedia — modul ini
+  memakai `prisma` langsung dari `@opensis/database` (tanpa PrismaService lokal).
 - `ExamModule` (ujian) mengimpor util dari folder `quiz/` (`gradeAnswer`,
   `seededShuffle`, `computeAutoScore`, `latestAnswersByQuestion`, dll.) — jangan
   menghapus `quiz.util.ts` bila hanya ingin memakai ExamModule.

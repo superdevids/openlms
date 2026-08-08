@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { AssetBooking } from "@prisma/client";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { AssetStore } from "../asset.store";
 import { ASSET_STORE } from "../asset.constants";
 import { AssetService } from "./asset.service";

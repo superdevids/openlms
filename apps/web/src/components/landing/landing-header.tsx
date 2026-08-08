@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Button } from "@openlms/ui";
+import type { JSX } from "react";
+import { Button } from "@opensis/ui";
 import type { BrandingView } from "@/lib/api-client";
 
 /** Header landing — dipakai bersama oleh halaman depan dan grup (landing). */
-export function LandingHeader({ branding }: { branding: BrandingView }): React.JSX.Element {
+export function LandingHeader({ branding }: { branding: BrandingView }): JSX.Element {
   return (
-    <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary text-lg font-bold text-white">
@@ -16,31 +17,31 @@ export function LandingHeader({ branding }: { branding: BrandingView }): React.J
         <nav aria-label="Navigasi landing" className="hidden items-center gap-5 md:flex">
           <Link
             href="/#tentang"
-            className="text-sm font-medium text-neutral-700 hover:text-brand-primary"
+            className="text-sm font-medium text-foreground hover:text-brand-primary"
           >
             Tentang
           </Link>
           <Link
             href="/#visi-misi"
-            className="text-sm font-medium text-neutral-700 hover:text-brand-primary"
+            className="text-sm font-medium text-foreground hover:text-brand-primary"
           >
             Visi &amp; Misi
           </Link>
           <Link
             href="/#program-keahlian"
-            className="text-sm font-medium text-neutral-700 hover:text-brand-primary"
+            className="text-sm font-medium text-foreground hover:text-brand-primary"
           >
             Program Keahlian
           </Link>
           <Link
             href="/berita"
-            className="text-sm font-medium text-neutral-700 hover:text-brand-primary"
+            className="text-sm font-medium text-foreground hover:text-brand-primary"
           >
             Berita
           </Link>
           <Link
             href="/#kontak"
-            className="text-sm font-medium text-neutral-700 hover:text-brand-primary"
+            className="text-sm font-medium text-foreground hover:text-brand-primary"
           >
             Kontak
           </Link>

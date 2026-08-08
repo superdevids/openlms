@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
+import type { JSX } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Button, Card, CardContent } from "@openlms/ui";
+import { Badge, Button, Card, CardContent } from "@opensis/ui";
 import { API_BASE_FALLBACK, API_TIMEOUT_MS, APP_NAME } from "@/lib/constants";
 
-/** Detail berita — GET /public/landing/berita/:slug (publik). */
+/**
+ * Detail berita — GET /public/landing/berita/:slug (publik).
+ * ISR 30s — konten berubah hanya via superadmin.
+ */
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 interface NewsDetail {
   id: string;
@@ -39,7 +43,7 @@ async function fetchBerita(slug: string): Promise<NewsDetail | "not-found" | "of
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
     const res = await fetch(landingApiUrl(`/public/landing/berita/${encodeURIComponent(slug)}`), {
-      cache: "no-store",
+      next: { revalidate: 30 },
       signal: controller.signal
     });
     if (res.status === 404) return "not-found";
@@ -68,7 +72,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function BeritaDetailPage({ params }: PageProps): Promise<React.JSX.Element> {
+export default async function BeritaDetailPage({ params }: PageProps): Promise<JSX.Element> {
   const { slug } = await params;
   const berita = await fetchBerita(slug);
 
@@ -86,7 +90,7 @@ export default async function BeritaDetailPage({ params }: PageProps): Promise<R
 
       {berita === "offline" ? (
         <Card className="mt-8">
-          <CardContent className="p-6 text-sm text-neutral-500">
+          <CardContent className="p-6 text-sm text-muted-foreground">
             Tidak dapat memuat berita saat ini. Periksa koneksi Anda dan coba lagi nanti.
           </CardContent>
         </Card>
@@ -95,15 +99,15 @@ export default async function BeritaDetailPage({ params }: PageProps): Promise<R
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="neutral">{formatTanggal(berita.publishedAt)}</Badge>
             {berita.author ? (
-              <span className="text-sm text-neutral-500">oleh {berita.author}</span>
+              <span className="text-sm text-muted-foreground">oleh {berita.author}</span>
             ) : null}
           </div>
-          <h1 className="mt-4 text-3xl font-bold leading-tight text-neutral-900">{berita.title}</h1>
+          <h1 className="mt-4 text-3xl font-bold leading-tight text-foreground">{berita.title}</h1>
           {berita.excerpt ? (
             <p className="mt-4 text-lg font-medium text-brand-secondary">{berita.excerpt}</p>
           ) : null}
-          <div className="mt-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-            <p className="whitespace-pre-line leading-relaxed text-neutral-800">{berita.body}</p>
+          <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+            <p className="whitespace-pre-line leading-relaxed text-foreground">{berita.body}</p>
           </div>
           <div className="mt-10 rounded-2xl bg-brand-primary p-6 text-white sm:p-8">
             <h2 className="text-xl font-bold">Tertarik bergabung?</h2>
@@ -112,7 +116,7 @@ export default async function BeritaDetailPage({ params }: PageProps): Promise<R
             </p>
             <div className="mt-4">
               <Link href="/login">
-                <Button className="bg-white text-brand-primary hover:bg-neutral-100">
+                <Button className="bg-background text-brand-primary hover:bg-muted">
                   Masuk ke Aplikasi
                 </Button>
               </Link>

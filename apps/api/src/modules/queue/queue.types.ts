@@ -41,6 +41,8 @@ export const JOB_NAMES = {
   ROLLOVER_EXECUTE: "rollover.execute",
   REPORT_GENERATE: "report.generate",
   SPP_GENERATE: "spp.generate",
+  /** Commit impor data masal (onboarding) — proses berat dipindah dari HTTP. */
+  IMPORT_COMMIT: "import.commit",
   /** Auto-submit attempt ujian & kuis yang waktunya habis (G-05). */
   AUTO_SUBMIT_EXPIRED: "auto-submit.expired"
 } as const;

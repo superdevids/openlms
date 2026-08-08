@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { writeAudit } from "../lms/lms-audit";

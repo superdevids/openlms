@@ -1,5 +1,5 @@
 import { IsBoolean, IsISO8601, IsObject, IsOptional, IsString, MinLength } from "class-validator";
-import type { RolloverAction } from "@openlms/types";
+import type { RolloverAction } from "@opensis/types";
 
 export class CreateRolloverDraftDto {
   @IsString()

@@ -60,6 +60,13 @@ export interface PayrollStore {
 
   getActiveSalaryStructure(staffId: string, period: string): Promise<SalaryStructureRecord | null>;
 
+  /**
+   * Batch struktur gaji aktif (effectiveFrom <= period) untuk BANYAK pegawai.
+   * Menggantikan getActiveSalaryStructure per pegawai pada perhitungan run
+   * massal (N+1); pemilihan revisi terbaru per pegawai dilakukan pemanggil.
+   */
+  listActiveSalaryStructures(staffIds: string[], period: string): Promise<SalaryStructureRecord[]>;
+
   listSalaryStructures(staffId?: string): Promise<SalaryStructureRecord[]>;
 
   // ---- PayrollRun ----
@@ -391,6 +398,26 @@ export class InMemoryPayrollStore implements PayrollStore {
       .filter((s) => s.staffId === staffId && s.effectiveFrom <= period)
       .sort((a, b) => (a.effectiveFrom < b.effectiveFrom ? 1 : -1));
     return candidates[0] ?? null;
+  }
+
+  /** Batch struktur gaji aktif (effectiveFrom <= periode) untuk banyak pegawai. */
+  async listActiveSalaryStructures(
+    staffIds: string[],
+    period: string
+  ): Promise<SalaryStructureRecord[]> {
+    if (staffIds.length === 0) return [];
+    const idSet = new Set(staffIds);
+    return [...this.salaryStructures.values()]
+      .filter((s) => idSet.has(s.staffId) && s.effectiveFrom <= period)
+      .sort((a, b) =>
+        a.staffId === b.staffId
+          ? a.effectiveFrom < b.effectiveFrom
+            ? 1
+            : -1
+          : a.staffId < b.staffId
+            ? -1
+            : 1
+      );
   }
 
   async listSalaryStructures(staffId?: string): Promise<SalaryStructureRecord[]> {

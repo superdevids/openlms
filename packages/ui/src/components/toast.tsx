@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type JSX } from "react";
 import { IconX } from "./icons";
 
 /**
@@ -61,7 +61,7 @@ export function useToasts(): ToastItem[] {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-export function Toaster(): React.JSX.Element {
+export function Toaster(): JSX.Element {
   const items = useToasts();
   if (items.length === 0) return <div aria-live="polite" />;
   return (

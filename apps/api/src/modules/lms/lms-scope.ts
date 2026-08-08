@@ -1,5 +1,5 @@
 import { ForbiddenException } from "@nestjs/common";
-import type { RbacScope, RequestContext, Role } from "@openlms/types";
+import type { RbacScope, RequestContext, Role } from "@opensis/types";
 
 /**
  * Helper scope RBAC sederhana untuk modul LMS (F2-T11).
@@ -22,7 +22,7 @@ export const SCHOOL_SCOPED_ROLES: readonly Role[] = [
   "WAKEPSEK",
   "KEPSEK",
   "KEUANGAN",
-  "GURU_BK"
+  "BK"
 ] as const;
 
 /** Role yang berhak menulis data master (kelas/mapel/enrollment/jadwal). */
@@ -40,7 +40,7 @@ export const STUDENT_LIST_ROLES: readonly Role[] = [
   "OPERATOR",
   "WAKEPSEK",
   "KEPSEK",
-  "GURU_BK",
+  "BK",
   "WALI_MURID"
 ] as const;
 

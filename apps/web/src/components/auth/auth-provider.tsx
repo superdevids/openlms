@@ -1,11 +1,12 @@
 "use client";
 
-import * as React from "react";
+import { createContext, useCallback, useContext, useEffect, useState, type JSX, type ReactNode } from "react";
+
 import { useRouter } from "next/navigation";
 import { ApiError, DEMO_MODE } from "@/lib/api-client";
 import { fetchSession, fetchDemoSession, type SessionUser } from "@/lib/session";
 import { readDemoRoleOverride } from "@/lib/session";
-import { toast } from "@openlms/ui";
+import { toast } from "@opensis/ui";
 
 /**
  * AuthProvider — muat session dari /auth/me (cookie httpOnly).
@@ -19,15 +20,15 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
-const AuthContext = React.createContext<AuthContextValue | null>(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
+export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const router = useRouter();
-  const [user, setUser] = React.useState<SessionUser | null>(null);
-  const [status, setStatus] = React.useState<AuthContextValue["status"]>("loading");
-  const [error, setError] = React.useState<ApiError | undefined>(undefined);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [status, setStatus] = useState<AuthContextValue["status"]>("loading");
+  const [error, setError] = useState<ApiError | undefined>(undefined);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     const load = async (): Promise<void> => {
       try {
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     };
   }, []);
 
-  const logout = React.useCallback(async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       const { api } = await import("@/lib/api-client");
       await api.post("/auth/logout");
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
 }
 
 export function useAuth(): AuthContextValue {
-  const ctx = React.useContext(AuthContext);
+  const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth harus dipakai di dalam AuthProvider");
   return ctx;
 }
@@ -83,10 +84,10 @@ export function useDemoRoleSwitch(): {
   setRole: (role: string) => void;
   enabled: boolean;
 } {
-  const [role, setRoleState] = React.useState<string | null>(() => readDemoRoleOverride());
-  const setRole = React.useCallback((next: string) => {
+  const [role, setRoleState] = useState<string | null>(() => readDemoRoleOverride());
+  const setRole = useCallback((next: string) => {
     try {
-      localStorage.setItem("openlms_demo_role", next);
+      localStorage.setItem("opensis_demo_role", next);
     } catch {
       // abaikan
     }

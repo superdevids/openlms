@@ -4,7 +4,7 @@
  * Sumber mapping: prd04 §16.1 Lampiran A + 04-api-contract §4 RBAC Matrix.
  */
 
-import type { PermissionScope, Role } from "@openlms/types";
+import type { PermissionScope, Role } from "@opensis/types";
 
 export interface PermissionSeed {
   code: string;
@@ -420,6 +420,33 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "staff:read:school", "staffattendance:record:school")
   ],
 
+  AUDITOR: [
+    ...BASIC_SELF,
+    // READ-ONLY luas: audit log + baca seluruh resource utama sekolah.
+    ...s("SEKOLAH", "audit:read:school", "monitor:read:school", "rbac:read:school"),
+    ...s("SEKOLAH", "user:read:school", "user:list:school"),
+    ...s(
+      "SEKOLAH",
+      "class:read:school",
+      "subject:read:school",
+      "schedule:read:school",
+      "academic:prodi:read"
+    ),
+    ...s("SEKOLAH", "report:read:school", "report:export:school"),
+    ...s("KELAS", "report:read:class"),
+    ...s("KELAS", "material:read:class", "assignment:read:class"),
+    ...s("SEKOLAH", "exam:read:school", "exam:log:read:school"),
+    ...s("SEKOLAH", "attendance:rekap:school"),
+    ...s("SEKOLAH", "counseling:read:class", "discipline:read:school"),
+    ...s("SEKOLAH", "invoice:read:school", "cashflow:read:school"),
+    ...s("SEKOLAH", "payroll:read:school"),
+    ...s("SEKOLAH", "asset:read:school", "asset:audit:school"),
+    ...s("SEKOLAH", "staff:read:school"),
+    ...s("SEKOLAH", "library:read:school", "announcement:read"),
+    ...s("SEKOLAH", "letter:read:school"),
+    ...s("SEKOLAH", "export:read:school", "rollover:history:read:school")
+  ],
+
   WAKEPSEK: [
     ...BASIC_SELF,
     ...s("SEKOLAH", "app:read:school", "app:write:school"),
@@ -480,6 +507,25 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "export:run:school", "export:read:school"),
     ...s("SEKOLAH", "staff:read:school", "staffattendance:record:school"),
     ...s("SEKOLAH", "user:read:school")
+  ],
+
+  KAPRODI: [
+    ...BASIC_SELF,
+    ...s("SEKOLAH", "class:read:school", "subject:read:school", "schedule:read:school"),
+    ...s("SEKOLAH", "academic:prodi:read"),
+    ...s("SEKOLAH", "report:read:school", "report:export:class"),
+    ...s("KELAS", "report:read:class"),
+    ...s("KELAS", "material:read:class", "assignment:read:class"),
+    ...s("SEKOLAH", "exam:read:school", "exam:analysis:read:school"),
+    ...s("KELAS", "attendance:rekap:class"),
+    ...s("SEKOLAH", "attendance:rekap:school"),
+    ...s("SEKOLAH", "discipline:read:school"),
+    ...s("SEKOLAH", "extracurricular:read:school"),
+    ...s("SEKOLAH", "internship:write:school", "competency:grade:school"),
+    ...s("SEKOLAH", "staff:read:school"),
+    ...s("SEKOLAH", "library:read:school"),
+    ...s("SENDIRI", "library:borrow:self", "asset:book:self"),
+    ...s("SEKOLAH", "announcement:read")
   ],
 
   OPERATOR: [
@@ -605,7 +651,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "competency:grade:school")
   ],
 
-  GURU_BK: [
+  BK: [
     ...BASIC_SELF,
     ...s("SEKOLAH", "class:read:school"),
     ...s("SEKOLAH", "academic:prodi:read"),
@@ -676,15 +722,17 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
   ]
 };
 
-/** Semua role yang di-seed (12 role sesuai ERD §5). */
+/** Semua role yang di-seed (14 role sesuai ERD §5). */
 export const ROLES_TO_SEED: Role[] = [
   "SUPERADMIN",
   "KEPSEK",
+  "AUDITOR",
   "WAKEPSEK",
+  "KAPRODI",
   "OPERATOR",
   "KEUANGAN",
   "GURU",
-  "GURU_BK",
+  "BK",
   "SISWA",
   "WALI_MURID",
   "CALON_SISWA",

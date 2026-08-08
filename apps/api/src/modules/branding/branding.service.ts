@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { BRANDING_CHANGED_EVENT } from "../notifications/notification-events";
 import { LocalStorageProvider, UploadedFile } from "../storage/local-storage.provider";
@@ -14,7 +14,7 @@ const CACHE_TTL_MS = readCacheTtlMs(60_000);
 
 /** Branding fallback bila tidak ada row di DB. */
 const DEFAULT_BRANDING: BrandingView = {
-  appName: "openlms",
+  appName: "opensis",
   tagline: "LMS & SIS Sekolah",
   logoUrl: null,
   faviconUrl: null,

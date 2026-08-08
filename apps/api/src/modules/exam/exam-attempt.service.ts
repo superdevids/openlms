@@ -6,7 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException
 } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { ALLOWED_ACTIVITY_EVENTS } from "./exam.constants";

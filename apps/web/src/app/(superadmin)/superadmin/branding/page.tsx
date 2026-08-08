@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
+
 import {
   errorMessage,
   fetchAppSettingsClient,
@@ -24,7 +25,7 @@ import {
   toast,
   IconUpload,
   IconCheck
-} from "@openlms/ui";
+} from "@opensis/ui";
 import { DEFAULT_APP_NAME } from "@/lib/constants";
 import {
   DEFAULT_FONT_FAMILY,
@@ -50,34 +51,34 @@ const DEFAULT_BRANDING: BrandingView = {
   configVersion: 1
 };
 
-export default function SuperadminBrandingPage(): React.JSX.Element {
-  const { status, data, refetch } = useApi<BrandingView>(
+export default function SuperadminBrandingPage(): JSX.Element {
+  const { status, data, error, refetch } = useApi<BrandingView>(
     (signal) => fetchBrandingClient(signal),
     []
   );
   const branding = data ?? DEFAULT_BRANDING;
 
-  const [appName, setAppName] = React.useState("");
-  const [tagline, setTagline] = React.useState("");
-  const [primary, setPrimary] = React.useState("#2563eb");
-  const [secondary, setSecondary] = React.useState("#1d4ed8");
-  const [accent, setAccent] = React.useState("#0ea5e9");
-  const [radius, setRadius] = React.useState(8);
-  const [saving, setSaving] = React.useState(false);
-  const [uploading, setUploading] = React.useState<"logo" | "favicon" | null>(null);
+  const [appName, setAppName] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [primary, setPrimary] = useState("#2563eb");
+  const [secondary, setSecondary] = useState("#1d4ed8");
+  const [accent, setAccent] = useState("#0ea5e9");
+  const [radius, setRadius] = useState(8);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<"logo" | "favicon" | null>(null);
 
   // Tipografi global (SchoolProfile.settings.font).
   const { data: settingsData } = useApi<AppSettingsView>(
     (signal) => fetchAppSettingsClient(signal),
     []
   );
-  const [fontFamily, setFontFamily] = React.useState<FontFamily>(DEFAULT_FONT_FAMILY);
-  const [baseFontScale, setBaseFontScale] = React.useState<FontScale>(DEFAULT_FONT_SCALE);
-  const [fontSaving, setFontSaving] = React.useState(false);
+  const [fontFamily, setFontFamily] = useState<FontFamily>(DEFAULT_FONT_FAMILY);
+  const [baseFontScale, setBaseFontScale] = useState<FontScale>(DEFAULT_FONT_SCALE);
+  const [fontSaving, setFontSaving] = useState(false);
 
   // Sinkronkan form saat data branding pertama kali dimuat.
-  const synced = React.useRef(false);
-  React.useEffect(() => {
+  const synced = useRef(false);
+  useEffect(() => {
     if (!synced.current && data) {
       setAppName(data.appName ?? "");
       setTagline(data.tagline ?? "");
@@ -90,8 +91,8 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
   }, [data]);
 
   // Sinkronkan form tipografi saat settings dimuat.
-  const fontSynced = React.useRef(false);
-  React.useEffect(() => {
+  const fontSynced = useRef(false);
+  useEffect(() => {
     if (!fontSynced.current && settingsData?.settings?.font) {
       const font = settingsData.settings.font;
       if (isFontFamily(font.font_family)) setFontFamily(font.font_family);
@@ -169,16 +170,16 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
     label: string,
     value: string,
     onChange: (v: string) => void
-  ): React.JSX.Element => (
+  ): JSX.Element => (
     <div className="flex items-center gap-3">
       <input
         type="color"
         aria-label={`Warna ${label}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-14 cursor-pointer rounded-md border border-neutral-300 bg-white"
+        className="h-11 w-14 cursor-pointer rounded-md border border-input bg-card"
       />
-      <Label className="w-28 text-sm text-neutral-700">{label}</Label>
+      <Label className="w-28 text-sm text-foreground">{label}</Label>
       <Input
         aria-label={`Nilai hex ${label}`}
         value={value}
@@ -191,8 +192,8 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Branding Aplikasi</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-foreground">Branding Aplikasi</h1>
+        <p className="text-sm text-muted-foreground">
           Identitas visual aplikasi — diterapkan via CSS variable <code>--brand-*</code> dan
           Socket.IO <code>branding:changed</code>.
         </p>
@@ -201,8 +202,7 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
       {status === "error" ? (
         <Card>
           <CardContent className="p-4 text-sm text-danger-700">
-            Tidak dapat memuat branding dari API ({errorMessage(undefined)}). Periksa koneksi
-            backend.
+            Tidak dapat memuat branding dari API ({errorMessage(error)}). Periksa koneksi backend.
           </CardContent>
         </Card>
       ) : null}
@@ -340,7 +340,7 @@ export default function SuperadminBrandingPage(): React.JSX.Element {
                   Aksen
                 </span>
               </div>
-              <pre className="overflow-x-auto rounded-md bg-neutral-100 p-3 text-xs text-neutral-800">
+              <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs text-foreground">
                 {`--brand-primary: ${primary}; --brand-secondary: ${secondary}; --brand-accent: ${accent}; --brand-radius: ${radius}px;`}
               </pre>
             </CardContent>
@@ -384,24 +384,24 @@ function AssetRow({
   currentUrl: string | null;
   busy: boolean;
   onPick: (file: File | undefined) => void;
-}): React.JSX.Element {
-  const inputRef = React.useRef<HTMLInputElement>(null);
+}): JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="flex items-center gap-3">
       {currentUrl ? (
         <img
           src={currentUrl}
           alt={`${label} saat ini`}
-          className="h-12 w-12 rounded-md border border-neutral-200 bg-white object-contain"
+          className="h-12 w-12 rounded-md border border-border bg-card object-contain"
         />
       ) : (
-        <span className="flex h-12 w-12 items-center justify-center rounded-md border border-dashed border-neutral-300 text-xs text-neutral-400">
+        <span className="flex h-12 w-12 items-center justify-center rounded-md border border-dashed border-input text-xs text-muted-foreground">
           -
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-neutral-900">{label}</p>
-        <p className="truncate text-xs text-neutral-500">{currentUrl ?? "Belum ada"}</p>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="truncate text-xs text-muted-foreground">{currentUrl ?? "Belum ada"}</p>
       </div>
       <input
         ref={inputRef}

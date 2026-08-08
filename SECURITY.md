@@ -1,4 +1,6 @@
-# Kebijakan Keamanan (Security Policy) — openlms
+# Kebijakan Keamanan (Security Policy) — opensis
+
+Kebijakan keamanan untuk **opensis** (repository: `openlms`), super-app LMS + SIS single-school untuk SMA/SMK Indonesia. Proyek menangani data pribadi siswa, guru, dan wali (PII) sehingga keamanan adalah prioritas utama.
 
 ## Laporan Kerentanan (Reporting a Vulnerability)
 
@@ -7,7 +9,7 @@ Kami menanggapi laporan kerentanan dengan serius. **Jangan membuka issue publik 
 **Cara melaporkan:**
 
 1. **Kanal utama (direkomendasikan):** gunakan [Private Vulnerability Reporting](https://github.com/superdevids/openlms/security/advisories) di GitHub (Security → Advisories → New draft security advisory). Laporan masuk ke maintainer secara privat.
-2. **Email (cadangan):** `security@openlms.local` — _placeholder, ganti dengan alamat email keamanan resmi tim sebelum rilis publik._ Sertakan informasi berikut:
+2. **Email (cadangan):** `security@opensis.local` — _placeholder, ganti dengan alamat email keamanan resmi tim sebelum rilis publik._ Sertakan informasi berikut:
    - Ringkasan kerentanan.
    - Produk/versi yang terdampak (`apps/api`, `apps/web`, `packages/*`).
    - Langkah reproduksi (payload, endpoint, screenshot).
@@ -43,33 +45,41 @@ Laporan kerentanan yang **kami terima** mencakup (namun tidak terbatas pada):
 
 **Di luar cakupan** (tidak akan menerima bounty, tetap kami hargai laporannya):
 
-- Kerentanan pada layanan pihak ketiga yang di-deploy bersebelahan (Nginx, PostgreSQL, Redis) tanpa konfigurasi openlms.
+- Kerentanan pada layanan pihak ketiga yang di-deploy bersebelahan (Nginx, PostgreSQL, Redis) tanpa konfigurasi opensis.
 - Serangan yang membutuhkan akses fisik atau akses akun production tanpa izin.
 - Spam, social engineering terhadap pengguna akhir.
 
-## Praktik Keamanan di Proyek
+## Praktik Keamanan yang Diterapkan
 
 Kontrol keamanan yang sudah diterapkan di codebase (detail: [docs/02-technical-architecture.md §13](docs/02-technical-architecture.md), [docs/prd/prd04.md §6](docs/prd/prd04.md)):
 
-| Area                   | Implementasi                                                                                                                                                                             |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hash password**      | Argon2id (bukan bcrypt/MD5) — `packages/database/prisma/seed.ts`, auth service                                                                                                           |
-| **Sesi**               | JWT access di **httpOnly cookie** (Secure + SameSite), refresh rotation; role di-resolve dari tabel `UserRole` agar perubahan role instan dan tidak bergantung klaim JWT                 |
-| **RBAC**               | Fail-closed: `AuthGuard` global → `PermissionsGuard` (`@RequirePermission`, scope SENDIRI/KELAS/SEKOLAH) → `FeatureFlagGuard`. Fitur OFF ditolak di API, bukan hanya disembunyikan di UI |
-| **Rate limiting**      | Nginx (`deploy/nginx.conf`): `login_limit` 1 r/s, `api_limit` 30 r/s; aplikasi: `RATE_LIMIT_*` per-IP/identitas + brute-force lockout 5 gagal/15 menit                                   |
-| **Header keamanan**    | Helmet di NestJS; `X-Content-Type-Options`, `X-Frame-Options DENY`, `Referrer-Policy`, `Permissions-Policy` di Nginx                                                                     |
-| **Storage**            | **Lokal saja** (`STORAGE_LOCAL_DIR`) — tanpa S3/MinIO; bucket per jenis dokumen dengan akses berbasis RBAC scope; PII (PPDB, BK) tidak disimpan di folder publik                         |
-| **Anti-impersonation** | Aktor dibaca dari `request.requestContext`, bukan header klien                                                                                                                           |
-| **Audit**              | `AuditLog` untuk perubahan data sensitif: actor, timestamp, before/after                                                                                                                 |
-| **Secrets**            | `.env.example` tanpa nilai secret; `.gitleaks.toml` untuk secret scanning; CI menjalankan `npm audit --audit-level=high`                                                                 |
-| **Sanitasi konten**    | Konten landing CMS harus melewati sanitasi allowlist (roadmap — [prd05 G-28](docs/prd/prd05-development.md))                                                                             |
+| Area                   | Implementasi                                                                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Hash password**      | **Argon2id** (bukan bcrypt/MD5) — `packages/database/prisma/seed.ts`, auth service                                                                                                                                 |
+| **Sesi**               | JWT access di **httpOnly cookie** (Secure + SameSite=Lax), **refresh rotation**; role di-resolve dari tabel `UserRole` agar perubahan role instan dan tidak bergantung klaim JWT                                   |
+| **RBAC fail-closed**   | `AuthGuard` global → `PermissionsGuard` (`@RequirePermission`, scope SENDIRI/KELAS/SEKOLAH) → `FeatureFlagGuard`. Fitur OFF ditolak di API, bukan hanya disembunyikan di UI                                        |
+| **Anti-impersonation** | Aktor dibaca dari `request.requestContext`, bukan header klien                                                                                                                                                     |
+| **Rate limiting**      | Nginx (`deploy/nginx.conf`): `login_limit` 1 r/s, `api_limit` 30 r/s; aplikasi: `RATE_LIMIT_*` per-IP/identitas + brute-force lockout 5 gagal/15 menit                                                             |
+| **Header keamanan**    | Helmet di NestJS; `X-Content-Type-Options`, `X-Frame-Options DENY`, `Referrer-Policy`, `Permissions-Policy` di Nginx                                                                                               |
+| **Storage sanitasi**   | **Lokal saja** (`STORAGE_LOCAL_DIR`) — tanpa S3/MinIO; bucket per jenis dokumen dengan akses berbasis RBAC scope; **validasi magic bytes/MIME** + batas per-bucket; PII (PPDB, BK) tidak disimpan di folder publik |
+| **Audit log**          | `AuditLog` untuk perubahan data sensitif (nilai, absensi, pembayaran, data siswa): actor, timestamp, before/after; endpoint baca `GET /admin/change-logs` (SUPERADMIN/KEPSEK)                                      |
+| **Secrets**            | `.env.example` tanpa nilai secret; `.gitleaks.toml` untuk secret scanning; CI menjalankan `npm audit --audit-level=high` + job gitleaks                                                                            |
 
-**Batasan yang diketahui (roadmap keamanan, [prd05](docs/prd/prd05-development.md)):**
+## Batasan yang Diketahui & Roadmap Keamanan
 
-- Proteksi CSRF penuh untuk mutasi berbasis cookie (G-21) — dalam rencana Sprint 2.
-- Validasi magic bytes/MIME upload (G-23) — dalam rencana Sprint 2.
-- Fail-fast JWT secret untuk semua env non-production (G-22) — dalam rencana Sprint 2.
-- Sanitasi konten landing (G-28) — dalam rencana Sprint 2.
+Batasan yang masih diketahui dan terjadwal ([prd05](docs/prd/prd05-development.md), [prd06](docs/prd/prd06-development-v2.md), [riview02 §8](docs/riview/riview02.md)):
+
+| Item                                                                            | Status / Rencana                                                    |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Proteksi CSRF penuh untuk mutasi berbasis cookie (G-21)                         | Roadmap (Sprint 2 prd05)                                            |
+| Sanitasi konten landing CMS (allowlist) (G-28)                                  | Roadmap (Sprint 2 prd05)                                            |
+| Gate `DEMO_MODE` global agar data demo tidak merembes ke production (R-07/R-41) | Risiko terbuka MEDIUM — prasyarat rilis production                  |
+| Rate limit khusus upload per-user (R-22)                                        | Risiko terbuka MEDIUM                                               |
+| Konsistensi `actor_role` pada AuditLog + audit login gagal (R-13/R-14)          | Risiko terbuka MEDIUM                                               |
+| Ekspor besar memakai `memoryStorage` (R-3)                                      | Risiko terbuka MEDIUM — prasyarat rilis production                  |
+| Audit akses change-log untuk WAKEPSEK (R-1)                                     | Risiko terbuka MEDIUM — keputusan eksplisit matriks RBAC dibutuhkan |
+
+Target sebelum go-live production: **gate `DEMO_MODE`, coverage ≥ 80%, perbaikan exports memoryStorage, dan keputusan akses change-log WAKEPSEK** [riview02 §9](docs/riview/riview02.md).
 
 ## Pengungkapan yang Bertanggung Jawab (Responsible Disclosure)
 

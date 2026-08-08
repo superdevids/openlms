@@ -12,18 +12,21 @@ tahun ajaran (membuat akun siswa).
 - Tracking status via nomor pendaftaran.
 - Seleksi: list, verify, select, waitlist.
 - Enroll: buat akun siswa + enrollment ke kelas + AcademicYear.
+- Perubahan status (verify/select/waitlist/enroll) mengirim notifikasi ke user
+  CALON_SISWA terkait + emit WS `ppdb:status` (best-effort; hanya bila akun tertaut).
 
 ## Endpoint (prefix global `/api/v1`)
 
-| Method | Path                                                 | Permission                                | Deskripsi                 |
-| ------ | ---------------------------------------------------- | ----------------------------------------- | ------------------------- |
-| POST   | `/ppdb/register`                                     | Publik                                    | Daftar PPDB baru          |
-| GET    | `/ppdb/track?registrationNo=`                        | `ppdb:read:self`                          | Tracking status pendaftar |
-| GET    | `/ppdb/selection`                                    | `ppdb:verify:school`/`ppdb:select:school` | Daftar seleksi            |
-| PATCH  | `/ppdb/:applicantId/verify`                          | `ppdb:verify:school`                      | Verifikasi berkas         |
-| PATCH  | `/ppdb/:applicantId/select`                          | `ppdb:select:school`                      | Pilih diterima            |
-| PATCH  | `/ppdb/:applicantId/waitlist`                        | `ppdb:select:school`                      | Masukkan waitlist         |
-| POST   | `/ppdb/:applicantId/enroll?academicYearId=&classId=` | `ppdb:enroll:school`                      | Enroll ke kelas           |
+| Method | Path                                                 | Permission                                | Deskripsi                                                                                |
+| ------ | ---------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| POST   | `/ppdb/register`                                     | Publik                                    | Daftar PPDB baru                                                                         |
+| GET    | `/ppdb/track?registrationNo=`                        | `ppdb:read:self`                          | Tracking status pendaftar (CALON_SISWA)                                                  |
+| GET    | `/ppdb/track/public?registrationNo=`                 | Publik                                    | Tracking status publik — hanya `registration_no`, `full_name`, `status` (tanpa PII lain) |
+| GET    | `/ppdb/selection`                                    | `ppdb:verify:school`/`ppdb:select:school` | Daftar seleksi                                                                           |
+| PATCH  | `/ppdb/:applicantId/verify`                          | `ppdb:verify:school`                      | Verifikasi berkas                                                                        |
+| PATCH  | `/ppdb/:applicantId/select`                          | `ppdb:select:school`                      | Pilih diterima                                                                           |
+| PATCH  | `/ppdb/:applicantId/waitlist`                        | `ppdb:select:school`                      | Masukkan waitlist                                                                        |
+| POST   | `/ppdb/:applicantId/enroll?academicYearId=&classId=` | `ppdb:enroll:school`                      | Enroll ke kelas                                                                          |
 
 ## Struktur File
 

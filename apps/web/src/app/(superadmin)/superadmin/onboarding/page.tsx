@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import {
   Card,
@@ -20,7 +21,7 @@ import {
   IconCheck,
   IconDownload,
   IconUpload
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 /**
  * Onboarding aplikasi sekolah — wizard setup 5 langkah (07-ux §4.1, prd04 §9.1).
@@ -34,33 +35,41 @@ const STEPS = [
   { title: "Ulasan & Aktifkan" }
 ];
 
-export default function SuperadminOnboardingPage(): React.JSX.Element {
-  const [step, setStep] = React.useState(0);
-  const [saving, setSaving] = React.useState(false);
-  const [done, setDone] = React.useState(false);
+export default function SuperadminOnboardingPage(): JSX.Element {
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const [schoolName, setSchoolName] = React.useState("SMA Negeri Contoh");
-  const [npsn, setNpsn] = React.useState("");
-  const [jenjang, setJenjang] = React.useState("SMA");
-  const [year, setYear] = React.useState("2026/2027");
-  const [alpa, setAlpa] = React.useState("3");
-  const [dataSaver, setDataSaver] = React.useState(true);
-  const [gamifikasi, setGamifikasi] = React.useState(false);
-  const [skipInvite, setSkipInvite] = React.useState(false);
-  const [importDone, setImportDone] = React.useState(false);
+  const [schoolName, setSchoolName] = useState("SMA Negeri Contoh");
+  const [npsn, setNpsn] = useState("");
+  const [jenjang, setJenjang] = useState("SMA");
+  const [year, setYear] = useState("2026/2027");
+  const [alpa, setAlpa] = useState("3");
+  const [dataSaver, setDataSaver] = useState(true);
+  const [gamifikasi, setGamifikasi] = useState(false);
+  const [skipInvite, setSkipInvite] = useState(false);
+  const [importDone, setImportDone] = useState(false);
 
-  const submitStep = async (e: React.FormEvent): Promise<void> => {
+  const submitStep = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
       if (!DEMO_MODE) {
+        // UpdateAppSettingsDto: name/npsn/school_type di profil; ambang & toggle di settings.
         if (step === 0)
-          await api.post("/app/settings", { schoolName, npsn, jenjang, currentAcademicYear: year });
+          await api.patch("/app/settings", {
+            name: schoolName,
+            npsn,
+            school_type: jenjang,
+            settings: { onboarding: { academicYearCode: year } }
+          });
         if (step === 1)
           await api.patch("/app/settings", {
-            alpaThreshold: Number(alpa),
-            dataSaver,
-            gamification: gamifikasi
+            settings: {
+              attendance: { absence_threshold_per_month: Number(alpa) },
+              dataSaver,
+              gamification: gamifikasi
+            }
           });
       }
       await new Promise((r) => setTimeout(r, 250));
@@ -76,7 +85,7 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
   const finish = async (): Promise<void> => {
     setSaving(true);
     try {
-      if (!DEMO_MODE) await api.post("/app/onboarding/complete", {});
+      if (!DEMO_MODE) await api.post("/app/onboarding/step-5", {});
       await new Promise((r) => setTimeout(r, 300));
       setDone(true);
       toast({ variant: "success", title: "Aplikasi aktif!" });
@@ -92,8 +101,8 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
       <Card className="mx-auto max-w-lg">
         <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
           <IconCheck className="h-12 w-12 text-success-600" />
-          <h1 className="text-2xl font-bold text-neutral-900">Setup Selesai — Aplikasi Aktif</h1>
-          <p className="text-sm text-neutral-600">
+          <h1 className="text-2xl font-bold text-foreground">Setup Selesai — Aplikasi Aktif</h1>
+          <p className="text-sm text-muted-foreground">
             Dashboard aplikasi terbuka. Anda dapat mengubah pengaturan kapan saja di Admin Sistem.
           </p>
           <Button onClick={() => (window.location.href = "/superadmin/dashboard")}>
@@ -106,7 +115,7 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Setup Sekolah</h1>
+      <h1 className="text-2xl font-bold text-foreground">Setup Sekolah</h1>
       <Steps steps={STEPS} current={step} />
       <Progress value={(step / STEPS.length) * 100} className="my-2" />
 
@@ -174,12 +183,12 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
                     onChange={(e) => setAlpa(e.target.value)}
                   />
                 </div>
-                <div className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <div>
-                    <p className="text-sm font-medium text-neutral-900">
+                    <p className="text-sm font-medium text-foreground">
                       Mode Hemat Data (default ON)
                     </p>
-                    <p className="text-xs text-neutral-600">
+                    <p className="text-xs text-muted-foreground">
                       Kompresi gambar, lazy-load, format ringan untuk kuota terbatas.
                     </p>
                   </div>
@@ -189,10 +198,10 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
                     aria-label="Mode hemat data"
                   />
                 </div>
-                <div className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2">
+                <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <div>
-                    <p className="text-sm font-medium text-neutral-900">Gamifikasi (default OFF)</p>
-                    <p className="text-xs text-neutral-600">
+                    <p className="text-sm font-medium text-foreground">Gamifikasi (default OFF)</p>
+                    <p className="text-xs text-muted-foreground">
                       Badge & progress non-blokir; dapat diaktifkan admin.
                     </p>
                   </div>
@@ -271,7 +280,7 @@ export default function SuperadminOnboardingPage(): React.JSX.Element {
               </>
             ) : (
               <>
-                <div className="space-y-2 rounded-md border border-neutral-200 bg-neutral-50 p-4 text-sm">
+                <div className="space-y-2 rounded-md border border-border bg-background p-4 text-sm">
                   <p>
                     <strong>Sekolah:</strong> {schoolName || "-"} · NPSN {npsn || "-"} · {jenjang}
                   </p>

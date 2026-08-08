@@ -1,10 +1,11 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE } from "@/lib/api-client";
 import { roleHome } from "@/lib/roles";
-import { Button, Input, Label, Alert, Spinner, toast } from "@openlms/ui";
+import { Button, Input, Label, Alert, Spinner, toast } from "@opensis/ui";
 
 /**
  * Login — SATU metode: "Email atau Username" + Password (prd04 §5.P).
@@ -12,14 +13,14 @@ import { Button, Input, Label, Alert, Spinner, toast } from "@openlms/ui";
  * Throttle 5 gagal → lockout 15 mnt di backend; UI menampilkan pesan 429.
  */
 
-export function LoginForm(): React.JSX.Element {
+export function LoginForm(): JSX.Element {
   const router = useRouter();
-  const [identifier, setIdentifier] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const submit = async (e: React.FormEvent): Promise<void> => {
+  const submit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setError(null);
     if (!identifier.trim() || !password) {
@@ -94,9 +95,9 @@ export function LoginForm(): React.JSX.Element {
         Masuk
       </Button>
 
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-muted-foreground">
         Lupa kata sandi? Hubungi{" "}
-        <span className="font-medium text-neutral-900">OPERATOR/SUPERADMIN</span> untuk reset kata
+        <span className="font-medium text-foreground">OPERATOR/SUPERADMIN</span> untuk reset kata
         sandi (in-app, tanpa email/SMS).
       </p>
     </form>

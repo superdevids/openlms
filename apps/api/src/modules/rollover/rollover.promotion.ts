@@ -10,7 +10,7 @@
  * - Kelas di bawahnya: lulus -> PROMOTED (naik kelas), gagal -> REPEATED.
  * - overrides (dari draft "override promosi") menang atas aturan default.
  */
-import type { EnrollmentStatus, RolloverAction } from "@openlms/types";
+import type { EnrollmentStatus, RolloverAction } from "@opensis/types";
 
 export interface PromotionConfig {
   passingScore: number;
@@ -109,6 +109,18 @@ export function evaluateStudent(
     avg !== null &&
     avg >= config.passingScore &&
     student.attendanceRate >= config.minAttendanceRate;
+
+  // Data korup: gradeLevel di bawah 1 tidak punya kelas tujuan valid untuk
+  // naik (SMA/SMK hanya 10-12). Jangan promosikan; ulang di kelas yang sama.
+  if (student.gradeLevel <= 0) {
+    return {
+      ...base,
+      averageScore: avg,
+      action: "REPEATED",
+      targetClassKey: targetClassKey(student.sourceClassId, student.gradeLevel, true),
+      reason: `data gradeLevel tidak valid (${student.gradeLevel}) — tinggal kelas`
+    };
+  }
 
   if (student.gradeLevel >= config.maxGradeLevel) {
     return {

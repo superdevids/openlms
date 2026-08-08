@@ -11,24 +11,24 @@ tidak terjadi drift antara backend dan frontend.
 | Path           | Isi                                                           |
 | -------------- | ------------------------------------------------------------- |
 | `src/index.ts` | Enum + tipe (Role, status, kontrak RequestContext, error API) |
-| `package.json` | Workspace `@openlms/types` (build tsc)                        |
+| `package.json` | Workspace `@opensis/types` (build tsc)                        |
 
 ## Ekspor Utama
 
-| Tipe               | Nilai                                                                                                                                   |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `Role`             | SISWA, GURU, GURU_BK, KEUANGAN, OPERATOR, WAKEPSEK, KEPSEK, SUPERADMIN, CALON_SISWA, WALI_MURID, PEMBIMBING_INDUSTRI, PENGUJI_EKSTERNAL |
-| `MembershipStatus` | INVITED, ACTIVE, DISABLED                                                                                                               |
-| `SchoolType`       | SMA, SMK                                                                                                                                |
-| `EnrollmentStatus` | ACTIVE, TRANSFERRED, GRADUATED, DROPPED, PROMOTED, REPEATED                                                                             |
-| `AssessmentStatus` | DRAFT, PUBLISHED, ONGOING, CLOSED, ARCHIVED                                                                                             |
-| `AttendanceStatus` | HADIR, IZIN, SAKIT, ALPA, TERLAMBAT                                                                                                     |
-| `AttendanceMethod` | MANUAL, QR_CODE, GEOFENCING, RFID                                                                                                       |
-| `PaymentStatus`    | PENDING, PAID, PARTIAL, OVERDUE, CANCELLED, REFUNDED, CARRIED_OVER                                                                      |
-| `InvoiceType`      | SPP, UANG_KEGIATAN, UANG_DAFTAR, UANG_SERAGAM, UANG_OSIS, DENDA, LAINNYA                                                                |
-| `GradeType`        | TUGAS, KUIS, UJIAN, PRAKTIK, SIKAP, SUMATIF                                                                                             |
-| `RequestContext`   | userId, roles, classIds, homeroomClassId, requestId                                                                                     |
-| `ApiErrorBody`     | Format error API (`code`, `message`, `details`, `requestId`)                                                                            |
+| Tipe               | Nilai                                                                                                                                                                                                          |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Role`             | SISWA, GURU, BK, KAPRODI, KEUANGAN, OPERATOR, WAKEPSEK, KEPSEK, AUDITOR, SUPERADMIN, CALON_SISWA, WALI_MURID, PEMBIMBING_INDUSTRI, PENGUJI_EKSTERNAL (perubahan 2026-08-08: role BK, tambah KAPRODI & AUDITOR) |
+| `MembershipStatus` | INVITED, ACTIVE, DISABLED                                                                                                                                                                                      |
+| `SchoolType`       | SMA, SMK                                                                                                                                                                                                       |
+| `EnrollmentStatus` | ACTIVE, TRANSFERRED, GRADUATED, DROPPED, PROMOTED, REPEATED                                                                                                                                                    |
+| `AssessmentStatus` | DRAFT, PUBLISHED, ONGOING, CLOSED, ARCHIVED                                                                                                                                                                    |
+| `AttendanceStatus` | HADIR, IZIN, SAKIT, ALPA, TERLAMBAT                                                                                                                                                                            |
+| `AttendanceMethod` | MANUAL, QR_CODE, GEOFENCING, RFID                                                                                                                                                                              |
+| `PaymentStatus`    | PENDING, PAID, PARTIAL, OVERDUE, CANCELLED, REFUNDED, CARRIED_OVER                                                                                                                                             |
+| `InvoiceType`      | SPP, UANG_KEGIATAN, UANG_DAFTAR, UANG_SERAGAM, UANG_OSIS, DENDA, LAINNYA                                                                                                                                       |
+| `GradeType`        | TUGAS, KUIS, UJIAN, PRAKTIK, SIKAP, SUMATIF                                                                                                                                                                    |
+| `RequestContext`   | userId, roles, classIds, homeroomClassId, requestId                                                                                                                                                            |
+| `ApiErrorBody`     | Format error API (`code`, `message`, `details`, `requestId`)                                                                                                                                                   |
 
 ## Catatan
 

@@ -11,7 +11,7 @@ lengkap ada di `apps/web/src/components/ui/`.
 | Path           | Isi                                  |
 | -------------- | ------------------------------------ |
 | `src/index.ts` | Export publik paket (saat ini: `cn`) |
-| `package.json` | Workspace `@openlms/ui` (build tsc)  |
+| `package.json` | Workspace `@opensis/ui` (build tsc)  |
 
 ## Ekspor
 
@@ -22,7 +22,7 @@ lengkap ada di `apps/web/src/components/ui/`.
 ## Penggunaan
 
 ```tsx
-import { cn } from "@openlms/ui";
+import { cn } from "@opensis/ui";
 
 <div className={cn("p-4", active && "bg-primary")} />;
 ```

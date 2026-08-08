@@ -1,8 +1,8 @@
 import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prisma/client";
 import { QuizAttemptService } from "../quiz-attempt.service";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     $transaction: jest.fn(),
     quiz: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },

@@ -1,17 +1,20 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { PayrollStore } from "../payroll.store";
 import {
   PayrollRunItemRecord,
   PayrollRunRecord,
   PayrollRunState,
-  PayslipRecord
+  PayslipRecord,
+  SalaryStructureRecord
 } from "../payroll.types";
 import { computePayroll, ComponentInput } from "../calculator/payroll-calc";
 import { monthPeriod, PAYROLL_STORE } from "../payroll.constants";
 import { money } from "../calculator/money";
 import { PayrollComponentService } from "./payroll-master.service";
+import { RealtimeGateway } from "../../realtime/realtime.gateway";
+import { PAYROLL_STATUS_EVENT } from "../../notifications/notification-events";
 
 /**
  * PayrollRunService — payroll run bulanan (prd04 §5.E.2).
@@ -56,7 +59,8 @@ export class PayrollRunService {
 
   constructor(
     @Inject(PAYROLL_STORE) private readonly store: PayrollStore,
-    private readonly components: PayrollComponentService
+    private readonly components: PayrollComponentService,
+    private readonly realtime: RealtimeGateway
   ) {}
 
   /** Buat run baru (DRAFT) — idempoten per periode. */
@@ -117,9 +121,24 @@ export class PayrollRunService {
       where: { staff_id: { in: staffList.map((s) => s.id) }, date: { gte: from, lte: to } }
     });
 
+    // Batch lookup struktur gaji aktif SEMUA pegawai dalam SATU query
+    // (sebelumnya getActiveSalaryStructure per pegawai = N+1), lalu pilih
+    // revisi terbaru per pegawai di memori.
+    const structures = await this.store.listActiveSalaryStructures(
+      staffList.map((s) => s.id),
+      run.period
+    );
+    const structureByStaff = new Map<string, SalaryStructureRecord>();
+    for (const s of structures) {
+      const current = structureByStaff.get(s.staffId);
+      if (!current || s.effectiveFrom > current.effectiveFrom) {
+        structureByStaff.set(s.staffId, s);
+      }
+    }
+
     const items: PayrollRunItemRecord[] = [];
     for (const staff of staffList) {
-      const structure = await this.store.getActiveSalaryStructure(staff.id, run.period);
+      const structure = structureByStaff.get(staff.id) ?? null;
       const fixed: ComponentInput[] = [];
       if (structure) {
         for (const [code, amount] of Object.entries(structure.components)) {
@@ -247,7 +266,9 @@ export class PayrollRunService {
       throw new BadRequestException(`Run harus VALIDATED dulu (sekarang ${run.status})`);
     }
     const updated = await this.store.updateRun(run.id, { approvedByKeuangan: actorId });
-    return this.transition(updated, "APPROVED_KEUANGAN", actorId);
+    const result = await this.transition(updated, "APPROVED_KEUANGAN", actorId);
+    await this.emitPayrollStatus(result, ["KEPSEK", "KEUANGAN"]);
+    return result;
   }
 
   /** Approval 2 KEPSEK (rekap ringkasan) -> REKAP_KEPSEK -> PAID. */
@@ -280,6 +301,7 @@ export class PayrollRunService {
       });
     }
     this.logger.log(`Payroll ${paid.period} PAID (${paid.staffCount} pegawai)`);
+    await this.emitPayrollStatus(paid, ["KEUANGAN", "KEPSEK"]);
     return paid;
   }
 
@@ -325,6 +347,33 @@ export class PayrollRunService {
     return attendances.filter(
       (a) => a.staff_id === staffId && (a.status === "HADIR" || a.status === "TERLAMBAT")
     ).length;
+  }
+
+  /**
+   * Emit `payroll:status` ke user KEUANGAN/KEPSEK aktif (best-effort).
+   * Tanpa type Notification baru (schema terkunci) → WS event ringan langsung;
+   * REST tetap sumber kebenaran.
+   */
+  private async emitPayrollStatus(
+    run: { id: string; period: string; status: PayrollRunState },
+    roles: Array<"KEUANGAN" | "KEPSEK">
+  ): Promise<void> {
+    try {
+      const rows = await prisma.userRole.findMany({
+        where: { role: { in: roles }, status: "ACTIVE" },
+        select: { user_id: true }
+      });
+      const payload = {
+        runId: run.id,
+        period: run.period,
+        status: run.status
+      };
+      for (const userId of [...new Set(rows.map((r) => r.user_id))]) {
+        this.realtime.emitToUser(userId, PAYROLL_STATUS_EVENT, payload);
+      }
+    } catch {
+      // best-effort
+    }
   }
 
   private async transition(

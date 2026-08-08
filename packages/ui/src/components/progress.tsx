@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { type HTMLAttributes, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
-export interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
   value: number; // 0..100
   max?: number;
   showLabel?: boolean;
@@ -15,7 +16,7 @@ export function Progress({
   showLabel = false,
   className,
   ...props
-}: ProgressProps): React.JSX.Element {
+}: ProgressProps): JSX.Element {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return (
     <div className={cn("flex items-center gap-2", className)} {...props}>

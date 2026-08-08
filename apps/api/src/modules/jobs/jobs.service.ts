@@ -6,6 +6,7 @@ import { RolloverProcessor } from "./processors/rollover.processor";
 import { ReportProcessor } from "./processors/report.processor";
 import { SppProcessor } from "./processors/spp.processor";
 import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor";
+import { ImportProcessor } from "./processors/import.processor";
 
 /**
  * JobsService — registrasi handler job + helper enqueue bertipe.
@@ -24,7 +25,8 @@ export class JobsService implements OnModuleInit {
     private readonly rollover: RolloverProcessor,
     private readonly report: ReportProcessor,
     private readonly spp: SppProcessor,
-    private readonly examAutoSubmit: ExamAutoSubmitProcessor
+    private readonly examAutoSubmit: ExamAutoSubmitProcessor,
+    private readonly importProcessor: ImportProcessor
   ) {}
 
   onModuleInit(): void {
@@ -34,6 +36,7 @@ export class JobsService implements OnModuleInit {
     this.queue.registerHandler(JOB_NAMES.REPORT_GENERATE, (p) => this.report.handle(p));
     this.queue.registerHandler(JOB_NAMES.SPP_GENERATE, (p) => this.spp.handle(p));
     this.queue.registerHandler(JOB_NAMES.AUTO_SUBMIT_EXPIRED, (p) => this.examAutoSubmit.handle(p));
+    this.queue.registerHandler(JOB_NAMES.IMPORT_COMMIT, (p) => this.importProcessor.handle(p));
     this.logger.log(
       `JobsService siap — queue ${this.queue.isReady() ? "READY" : "NOT_READY"} (${
         this.queue.constructor.name

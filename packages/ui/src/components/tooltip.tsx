@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX, type ReactNode } from "react";
+
 import { cn } from "../lib/utils";
 
 /**
@@ -22,11 +23,11 @@ export function Tooltip({
   side = "top",
   className
 }: {
-  label: React.ReactNode;
-  children: React.ReactNode;
+  label: ReactNode;
+  children: ReactNode;
   side?: "top" | "bottom" | "left" | "right";
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <span className={cn("group relative inline-flex", className)}>
       {children}

@@ -12,7 +12,7 @@ bukan header klien.
 - Absensi manual bulk (idempotent per student+class_subject+date; batch transaksi).
 - Sesi absensi + generate token QR sekali pakai (TTL).
 - Scan QR: `Idempotency-Key` (header/body) → replay 200 idempotent, reuse 409.
-- Izin/sakit online + verifikasi oleh homeroom/GURU_BK.
+- Izin/sakit online + verifikasi oleh homeroom/BK.
 - Rekap per siswa/mapel/periode + kedisiplinan (ALPA + risiko).
 
 ## Endpoint (prefix global `/api/v1`)

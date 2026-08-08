@@ -23,7 +23,7 @@ import type {
   EnrollmentStatus,
   RolloverAction,
   RolloverRunStatus
-} from "@openlms/types";
+} from "@opensis/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { resolveActorRole } from "../lms/lms-audit";
 import { ArchivedYearException } from "../academic/academic-year.guard";
@@ -207,23 +207,38 @@ export class RolloverService {
       include: { class: { include: { class_subjects: true } } }
     });
 
+    // Batch grade + attendance dalam 2 query (hindari N+1 per enrollment).
+    const studentIds = enrollments.map((e) => e.student_id);
+    const grades = await this.db.grade.findMany({
+      where: { student_id: { in: studentIds }, academic_year: source.code }
+    });
+    const attendanceRows = await this.db.attendance.groupBy({
+      by: ["student_id"],
+      where: {
+        student_id: { in: studentIds },
+        date: { gte: source.start_date, lte: source.end_date }
+      },
+      _count: true
+    });
+
+    const gradedSubjectIdsByStudent = new Map<string, Set<string>>();
+    for (const g of grades) {
+      const ids = gradedSubjectIdsByStudent.get(g.student_id) ?? new Set<string>();
+      ids.add(g.class_subject_id);
+      gradedSubjectIdsByStudent.set(g.student_id, ids);
+    }
+    const attendanceCountByStudent = new Map(attendanceRows.map((r) => [r.student_id, r._count]));
+
     let missingGrades = 0;
     let missingAttendance = 0;
     for (const enrollment of enrollments) {
-      const grades = await this.db.grade.findMany({
-        where: { student_id: enrollment.student_id, academic_year: source.code }
-      });
-      const gradedSubjectIds = new Set(grades.map((g) => g.class_subject_id));
+      const gradedSubjectIds =
+        gradedSubjectIdsByStudent.get(enrollment.student_id) ?? new Set<string>();
       const expectedSubjectIds = (enrollment.class?.class_subjects ?? []).map((cs) => cs.id);
       const missing = expectedSubjectIds.filter((id) => !gradedSubjectIds.has(id)).length;
       if (missing > 0) missingGrades += 1;
 
-      const attendanceCount = await this.db.attendance.count({
-        where: {
-          student_id: enrollment.student_id,
-          date: { gte: source.start_date, lte: source.end_date }
-        }
-      });
+      const attendanceCount = attendanceCountByStudent.get(enrollment.student_id) ?? 0;
       if (attendanceCount === 0) missingAttendance += 1;
     }
     if (missingGrades > 0) {

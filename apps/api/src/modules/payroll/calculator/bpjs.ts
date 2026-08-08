@@ -30,7 +30,9 @@ export function computeBpjsContribution(input: BpjsInput): Decimal {
     return ZERO;
   }
   const ceiling = input.config.ceiling == null ? null : money(input.config.ceiling);
-  const cappedBase = ceiling !== null && base.gt(ceiling) ? ceiling : base;
+  // Ceiling non-positif (0/negatif) tidak masuk akal sebagai batas upah —
+  // perlakukan sebagai "tanpa cap" agar base tidak terpotong jadi nol.
+  const cappedBase = ceiling !== null && ceiling.gt(ZERO) && base.gt(ceiling) ? ceiling : base;
   return cappedBase
     .times(money(input.config.employeeSharePercent))
     .dividedBy(100)

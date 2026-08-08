@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { DEFAULT_REFUND_KEPSEK_THRESHOLD } from "../finance.constants";
 import { money } from "../calculator/money";
 

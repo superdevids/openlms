@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useId, useRef, type JSX, type ReactNode } from "react";
+
 import { IconX } from "./icons";
 
 /**
@@ -13,8 +14,8 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
 }
 
 export function Dialog({
@@ -24,11 +25,11 @@ export function Dialog({
   description,
   children,
   footer
-}: DialogProps): React.JSX.Element | null {
-  const titleId = React.useId();
-  const panelRef = React.useRef<HTMLDivElement>(null);
+}: DialogProps): JSX.Element | null {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === "Escape") onOpenChange(false);
@@ -99,7 +100,7 @@ export function ConfirmDialog({
   cancelLabel?: string;
   destructive?: boolean;
   onConfirm: () => void;
-}): React.JSX.Element | null {
+}): JSX.Element | null {
   return (
     <Dialog
       open={open}

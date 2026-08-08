@@ -19,9 +19,9 @@
     "isolatedModules": true,
     "incremental": true,
     "paths": {
-      "@openlms/types": ["./packages/types/src"],
-      "@openlms/database": ["./packages/database/src"],
-      "@openlms/ui": ["./packages/ui/src"]
+      "@opensis/types": ["./packages/types/src"],
+      "@opensis/database": ["./packages/database/src"],
+      "@opensis/ui": ["./packages/ui/src"]
     }
   },
   "exclude": ["node_modules", "dist", ".next", "coverage"]

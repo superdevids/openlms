@@ -1,9 +1,24 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardHeader, CardTitle, CardDescription, Button, Label, Select, Textarea, Badge, Dialog, EmptyState, toast } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Label,
+  Select,
+  Textarea,
+  Badge,
+  Dialog,
+  EmptyState,
+  toast
+} from "@opensis/ui";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
 
@@ -14,17 +29,22 @@ interface Question {
   difficulty?: string;
 }
 
-export default function GuruBankSoalPage(): React.JSX.Element {
-  const list = useApi<Question[]>(() => api.get("/questions"), [], {
-    fallbackData: DEMO_QUESTIONS
-  });
-  const [open, setOpen] = React.useState(false);
-  const [text, setText] = React.useState("");
-  const [type, setType] = React.useState<Question["type"]>("PILIHAN_GANDA");
-  const [difficulty, setDifficulty] = React.useState("SEDANG");
-  const [saving, setSaving] = React.useState(false);
+export default function GuruBankSoalPage(): JSX.Element {
+  const list = useApi<Question[]>(
+    async () => {
+      const res = await api.get<{ items: Question[]; total: number }>("/quiz/questions");
+      return res.items ?? [];
+    },
+    [],
+    { fallbackData: DEMO_QUESTIONS as unknown as Question[] }
+  );
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [type, setType] = useState<Question["type"]>("PILIHAN_GANDA");
+  const [difficulty, setDifficulty] = useState("SEDANG");
+  const [saving, setSaving] = useState(false);
 
-  const create = async (e: React.FormEvent): Promise<void> => {
+  const create = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -32,7 +52,7 @@ export default function GuruBankSoalPage(): React.JSX.Element {
         await new Promise((r) => setTimeout(r, 200));
         toast({ variant: "success", title: "Soal disimpan (demo)" });
       } else {
-        await api.post("/questions", { type, text, difficulty });
+        await api.post("/quiz/questions", { type, text, difficulty });
         toast({ variant: "success", title: "Soal disimpan" });
       }
       setOpen(false);
@@ -48,7 +68,7 @@ export default function GuruBankSoalPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-neutral-900">Bank Soal</h1>
+        <h1 className="text-2xl font-bold text-foreground">Bank Soal</h1>
         <Button onClick={() => setOpen(true)}>Buat Soal</Button>
       </div>
       <DataView

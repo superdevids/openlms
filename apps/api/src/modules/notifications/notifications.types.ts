@@ -1,9 +1,9 @@
-import type { NotificationType, Role } from "@openlms/types";
+import type { NotificationType, Role } from "@opensis/types";
 
 /**
  * Tipe lokal modul notifikasi.
  * JsonObject/JsonValue dipakai untuk kolom `data Json?` tanpa import langsung
- * dari @prisma/client (batas dependensi: apps/api → @openlms/database saja).
+ * dari @prisma/client (batas dependensi: apps/api → @opensis/database saja).
  */
 
 export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[];

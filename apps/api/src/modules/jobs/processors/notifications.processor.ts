@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import type { NotificationType } from "@openlms/types";
+import type { NotificationType } from "@opensis/types";
 import { NotificationService } from "../../notifications/notifications.service";
 import type { CreateNotificationInput } from "../../notifications/notifications.types";
 

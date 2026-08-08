@@ -1,5 +1,5 @@
 import { IsEmail, IsIn, IsObject, IsOptional, IsString, Matches } from "class-validator";
-import { SCHOOL_TYPE_VALUES } from "@openlms/types";
+import { SCHOOL_TYPE_VALUES } from "@opensis/types";
 
 /** Pengaturan aplikasi (profil sekolah + ambang + settings Json) — endpoint /app/settings. */
 export class UpdateAppSettingsDto {

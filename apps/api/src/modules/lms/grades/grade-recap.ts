@@ -30,6 +30,11 @@ export function computeRecap(items: RecapGradeItem[]): RecapResult {
   let overallCount = 0;
 
   for (const item of items) {
+    // Nilai korup (NaN/Infinity) di-skip agar SATU item rusak tidak merusak
+    // agregasi keseluruhan (F2-T9) — rekap tetap usable, bukan NaN.
+    if (!Number.isFinite(item.score) || !Number.isFinite(item.weight)) {
+      continue;
+    }
     const bucket = buckets.get(item.type) ?? { count: 0, totalWeight: 0, weightedSum: 0 };
     bucket.count += 1;
     bucket.totalWeight += item.weight;

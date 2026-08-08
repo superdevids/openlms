@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import { AuditAction, MembershipStatus, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { InvitationDto } from "./dto/invitation.dto";
 import { generateTemporaryPassword, hashPassword } from "./password.util";
 import { signInvitationToken, verifyInvitationToken } from "./jwt.util";

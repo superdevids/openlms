@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { useId, type ComponentProps, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
-export interface SwitchProps extends Omit<React.ComponentProps<"button">, "onChange"> {
+export interface SwitchProps extends Omit<ComponentProps<"button">, "onChange"> {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   label?: string;
@@ -17,8 +18,8 @@ export function Switch({
   className,
   id,
   ...props
-}: SwitchProps): React.JSX.Element {
-  const switchId = id ?? React.useId();
+}: SwitchProps): JSX.Element {
+  const switchId = id ?? useId();
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <button

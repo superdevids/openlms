@@ -1,11 +1,14 @@
 import { ConflictException, GoneException, NotFoundException } from "@nestjs/common";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import type { AttendanceQrToken, AttendanceRecord, AttendanceSession } from "@prisma/client";
 import { AttendanceRekapService } from "./attendance-rekap.service";
 import { AttendanceService } from "./attendance.service";
 import { hashToken } from "./attendance.utils";
 import type { ActorContext } from "./current-actor";
 import type { RealtimeGateway } from "../realtime/realtime.gateway";
+
+// Flaky saat run-in-band penuh: default jest timeout 5s terlalu ketat -> naikkan ke 10s.
+jest.setTimeout(10_000);
 
 /** Mock RealtimeGateway (3rd ctor arg AttendanceService — dipakai scan QR check-in). */
 const realtimeMock = {

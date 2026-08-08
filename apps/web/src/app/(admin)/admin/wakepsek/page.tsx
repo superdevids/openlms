@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@openlms/ui";
+import { useState, type JSX } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState } from "@opensis/ui";
 
 import { formatNumber, formatPercent } from "@/lib/format";
 
@@ -16,12 +17,12 @@ const DEMO_DISCIPLINE = [
   { id: "d2", student: "Sari", className: "XI IPA 1", alpa: 3, threshold: 3 }
 ];
 
-export default function AdminWakepsekPage(): React.JSX.Element {
-  const [tab, setTab] = React.useState("akademik");
+export default function AdminWakepsekPage(): JSX.Element {
+  const [tab, setTab] = useState("akademik");
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Wakil Kepala Sekolah</h1>
+      <h1 className="text-2xl font-bold text-foreground">Wakil Kepala Sekolah</h1>
       <Tabs
         tabs={[
           { value: "akademik", label: "Akademik" },
@@ -100,9 +101,9 @@ export default function AdminWakepsekPage(): React.JSX.Element {
                 {DEMO_DISCIPLINE.map((d) => (
                   <li
                     key={d.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-neutral-200 px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
                   >
-                    <span className="font-medium text-neutral-900">
+                    <span className="font-medium text-foreground">
                       {d.student} — {d.className}
                     </span>
                     <Badge variant="danger">
@@ -112,7 +113,7 @@ export default function AdminWakepsekPage(): React.JSX.Element {
                 ))}
               </ul>
             )}
-            <p className="mt-3 text-sm text-neutral-600">
+            <p className="mt-3 text-sm text-muted-foreground">
               Kehadiran bulan ini: {formatPercent(96.2)}
             </p>
           </CardContent>

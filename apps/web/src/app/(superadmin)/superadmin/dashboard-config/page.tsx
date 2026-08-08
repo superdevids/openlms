@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useMemo, useState, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import {
@@ -19,8 +20,8 @@ import {
   EmptyState,
   toast,
   IconChevronRight
-} from "@openlms/ui";
-import type { Role } from "@openlms/types";
+} from "@opensis/ui";
+import type { Role } from "@opensis/types";
 import { roleLabel } from "@/lib/roles";
 import type { DashboardCard } from "@/lib/dashboard";
 import { DEFAULT_DASHBOARD_CARDS, dashboardGroupForRole } from "@/lib/dashboard";
@@ -33,7 +34,9 @@ interface DashboardConfigRow extends DashboardCard {
 const EDITABLE_ROLES: Role[] = [
   "SISWA",
   "GURU",
-  "GURU_BK",
+  "BK",
+  "KAPRODI",
+  "AUDITOR",
   "OPERATOR",
   "KEUANGAN",
   "WAKEPSEK",
@@ -42,12 +45,12 @@ const EDITABLE_ROLES: Role[] = [
   "WALI_MURID"
 ];
 
-export default function SuperadminDashboardConfigPage(): React.JSX.Element {
+export default function SuperadminDashboardConfigPage(): JSX.Element {
   const list = useApi<DashboardConfigRow[]>(() => api.get("/admin/dashboard-config"), []);
-  const [activeRole, setActiveRole] = React.useState<Role>("SISWA");
-  const [draft, setDraft] = React.useState<Record<Role, DashboardConfigRow[]>>({} as never);
-  const [saving, setSaving] = React.useState(false);
-  const [catalogKey, setCatalogKey] = React.useState("");
+  const [activeRole, setActiveRole] = useState<Role>("SISWA");
+  const [draft, setDraft] = useState<Record<Role, DashboardConfigRow[]>>({} as never);
+  const [saving, setSaving] = useState(false);
+  const [catalogKey, setCatalogKey] = useState("");
 
   const rows = list.data ?? [];
   const roleRows = (draft[activeRole] ?? rows.filter((r) => r.role === activeRole)).map((r) => ({
@@ -56,7 +59,7 @@ export default function SuperadminDashboardConfigPage(): React.JSX.Element {
   }));
 
   /** Kartu dari katalog DEFAULT_DASHBOARD_CARDS yang belum terpasang di role aktif. */
-  const catalog = React.useMemo(() => {
+  const catalog = useMemo(() => {
     const group = dashboardGroupForRole(activeRole);
     if (!group) return [];
     const existing = new Set((draft[activeRole] ?? roleRows).map((r) => r.featureKey));
@@ -169,8 +172,8 @@ export default function SuperadminDashboardConfigPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Konfigurasi Dashboard</h1>
-        <p className="text-sm text-neutral-600">
+        <h1 className="text-2xl font-bold text-foreground">Konfigurasi Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
           Atur kartu menu yang tampil di dashboard tiap peran. Perubahan berlaku untuk semua
           pengguna dengan peran tersebut.
         </p>
@@ -218,7 +221,7 @@ export default function SuperadminDashboardConfigPage(): React.JSX.Element {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-end gap-2 rounded-md border border-neutral-200 bg-neutral-50 p-3">
+            <div className="flex flex-wrap items-end gap-2 rounded-md border border-border bg-background p-3">
               <div className="min-w-0 flex-1">
                 <Label htmlFor="catalog-picker">Tambah dari katalog kartu</Label>
                 <Select
@@ -247,7 +250,7 @@ export default function SuperadminDashboardConfigPage(): React.JSX.Element {
               roleRows.map((row, index) => (
                 <div
                   key={row.featureKey}
-                  className="flex flex-wrap items-center gap-3 rounded-md border border-neutral-200 bg-white p-3"
+                  className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-3"
                 >
                   <div className="flex flex-col gap-1">
                     <Button

@@ -1,7 +1,7 @@
 import { SetMetadata } from "@nestjs/common";
 
 /** Kunci metadata untuk route publik (tanpa JWT) — F1-T4 */
-export const IS_PUBLIC_KEY = "openlms:public";
+export const IS_PUBLIC_KEY = "opensis:public";
 
 /**
  * Menandai endpoint sebagai publik — AuthGuard/PermissionsGuard dilewati.

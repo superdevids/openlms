@@ -1,4 +1,4 @@
-import type { NotificationType } from "@openlms/types";
+import type { NotificationType } from "@opensis/types";
 
 /**
  * Registry nama event Socket.IO (docs/02 §7.2, prd04 §5.M).
@@ -27,6 +27,8 @@ export const CHANGE_LOG_NEW_EVENT = "changelog:new";
 export const BRANDING_CHANGED_EVENT = "branding:changed";
 export const INVOICE_DUE_EVENT = "invoice:due";
 export const PAYMENT_CONFIRMED_EVENT = "payment:confirmed";
+/** Pembayaran terverifikasi → tagihan lunas (payload ringkas; room user:{studentId}). */
+export const INVOICE_PAID_EVENT = "invoice:paid";
 export const ANNOUNCEMENT_NEW_EVENT = "announcement:new";
 export const LETTER_STATUS_EVENT = "letter:status";
 export const LIBRARY_DUE_EVENT = "library:due";
@@ -35,6 +37,12 @@ export const PPDB_STATUS_EVENT = "ppdb:status";
 export const ASSET_APPROVED_EVENT = "asset:approved";
 export const BK_REMINDER_EVENT = "bk:reminder";
 export const EXPORT_READY_EVENT = "export:ready";
+/** Submission tugas dinilai oleh guru (room user:{studentId}). */
+export const SUBMISSION_GRADED_EVENT = "submission:graded";
+/** Nilai manual tercatat (room user:{studentId}). */
+export const GRADE_RECORDED_EVENT = "grade:recorded";
+/** Status payroll run berubah (KEUANGAN/KEPSEK). */
+export const PAYROLL_STATUS_EVENT = "payroll:status";
 
 /** Event client → server (contoh: autosave ujian; REST tetap fallback utama). */
 export const EXAM_ANSWER_SAVE_EVENT = "exam:answer:save";
@@ -83,6 +91,7 @@ export const SERVER_EVENTS: readonly string[] = [
   BRANDING_CHANGED_EVENT,
   INVOICE_DUE_EVENT,
   PAYMENT_CONFIRMED_EVENT,
+  INVOICE_PAID_EVENT,
   ANNOUNCEMENT_NEW_EVENT,
   LETTER_STATUS_EVENT,
   LIBRARY_DUE_EVENT,
@@ -90,7 +99,10 @@ export const SERVER_EVENTS: readonly string[] = [
   PPDB_STATUS_EVENT,
   ASSET_APPROVED_EVENT,
   BK_REMINDER_EVENT,
-  EXPORT_READY_EVENT
+  EXPORT_READY_EVENT,
+  SUBMISSION_GRADED_EVENT,
+  GRADE_RECORDED_EVENT,
+  PAYROLL_STATUS_EVENT
 ] as const;
 
 /** Semua event client → server yang didukung gateway /ws. */

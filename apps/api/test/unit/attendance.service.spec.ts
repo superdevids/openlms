@@ -3,7 +3,7 @@
  * GURU dibatasi kelas; rekap SISWA hanya data sendiri, GURU hanya kelasnya).
  */
 import { ForbiddenException } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { AttendanceService } from "../../src/modules/attendance/attendance.service";
 import { AttendanceRekapService } from "../../src/modules/attendance/attendance-rekap.service";
 import type { RealtimeGateway } from "../../src/modules/realtime/realtime.gateway";

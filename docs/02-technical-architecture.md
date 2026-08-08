@@ -71,13 +71,13 @@ openlms/
 
 **Tanggung jawab paket:**
 
-| Paket               | Tanggung jawab                                                                                                                                            | Batas                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `apps/api`          | Semua logika bisnis, otorisasi, real-time gateway, integrasi storage file lokal (`STORAGE_LOCAL_DIR`) — **tanpa dependensi API fitur pihak ketiga**       | Tidak boleh import komponen UI                   |
-| `apps/web`          | Presentasi, routing per role, state UI, PWA/offline, upload file via API (multipart)                                                                      | Tidak boleh query Prisma langsung; hanya via API |
-| `packages/database` | Skema Prisma (61 entitas: 56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni), client singleton, migrasi, seed, file RLS **opsional** | Tidak boleh berisi logika bisnis                 |
-| `packages/ui`       | Komponen shadcn/ui yang di-styling, primitives                                                                                                            | Stateless; data lewat props                      |
-| `packages/types`    | Enum, DTO, kontrak API (satu sumber kebenaran tipe)                                                                                                       | Tanpa runtime berat                              |
+| Paket               | Tanggung jawab                                                                                                                                                             | Batas                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `apps/api`          | Semua logika bisnis, otorisasi, real-time gateway, integrasi storage file lokal (`STORAGE_LOCAL_DIR`) — **tanpa dependensi API fitur pihak ketiga**                        | Tidak boleh import komponen UI                   |
+| `apps/web`          | Presentasi, routing per role, state UI, PWA/offline, upload file via API (multipart)                                                                                       | Tidak boleh query Prisma langsung; hanya via API |
+| `packages/database` | Skema Prisma (**90 model + 62 enum** — angka aktual `schema.prisma`, 2026-08-08; supersedes klaim awal 61 entitas), client singleton, migrasi, seed, file RLS **opsional** | Tidak boleh berisi logika bisnis                 |
+| `packages/ui`       | Komponen shadcn/ui yang di-styling, primitives                                                                                                                             | Stateless; data lewat props                      |
+| `packages/types`    | Enum, DTO, kontrak API (satu sumber kebenaran tipe)                                                                                                                        | Tanpa runtime berat                              |
 
 Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): `web → api (HTTP)`, `web → packages/{ui,types}`, `api → packages/{database,types}`, `packages/database → packages/types` (enum).
 
@@ -109,6 +109,18 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
 | `AuditModule`         | Audit trail generik                                                                                            | AuditLog                                                                                                                |
 | `RealtimeModule`      | Socket.IO gateway, namespace tunggal `/ws` (siap multi-instance)                                               | Notification                                                                                                            |
 | `IntegrationModule`   | Storage file lokal (uploads + serve berkas via `/api/v1/storage/files/*`); tanpa integrasi fitur pihak ketiga  | —                                                                                                                       |
+
+> **Catatan Pembaruan 2026-08-08:** tabel modul di atas mencerminkan desain awal.
+> Implementasi aktual kini memiliki **32 modul** (`apps/api/src/modules/*/*.module.ts`,
+> diverifikasi 2026-08-08): `auth`, `academic`, `lms`, `quiz`, `exam`, `attendance`,
+> `finance`, `payroll`, `asset`, `ppdb`, `communication`, `parent-portal`, `smk`,
+> `rollover`, `alumni`, `branding`, `landing`, `onboarding`, `maintenance`,
+> `notifications`, `rbac-admin`, `realtime`, `storage`, `feature-flags`,
+> `app-settings`, `audit`, `users-admin`, `admin-stats`, `dashboard-config`, `health`,
+> `queue`, `jobs`. Perubahan lain per 2026-08-08: **enum `Role` = 14 nilai**
+> (`GURU_BK` → `BK`, tambah `KAPRODI` & `AUDITOR` — `schema.prisma:29-44`), klaim
+> skema diperbarui ke **90 model + 62 enum**. Rincian terkini per modul ada di
+> `apps/api/src/modules/<modul>/README.<modul>.md`.
 
 ### 4.2 Lapisan (Layers)
 
@@ -298,8 +310,8 @@ Semua event ujian bersifat **best-effort**; sumber kebenaran tetap REST API (aut
 | `submissions`            | File tugas siswa            | Guru mapel + pemilik                      |
 | `ppdb-documents`         | KK, akta, rapor (PII)       | OPERATOR + pendaftar pemilik (pre-enroll) |
 | `payment-proofs`         | Bukti transfer              | KEUANGAN + pemilik                        |
-| `permits`                | Surat izin/sakit            | homeroom + GURU_BK + pemilik              |
-| `counseling-attachments` | Lampiran BK                 | GURU_BK/WAKEPSEK/KEPSEK                   |
+| `permits`                | Surat izin/sakit            | homeroom + BK + pemilik                   |
+| `counseling-attachments` | Lampiran BK                 | BK/WAKEPSEK/KEPSEK                        |
 | `official-letters`       | Surat resmi                 | OPERATOR + approver                       |
 | `exports`                | Rekap nilai, ekspor Dapodik | homeroom/OPERATOR/SUPERADMIN              |
 | `avatars`                | Foto profil                 | Public-read (bukan PII sensitif)          |
@@ -421,7 +433,7 @@ Web (Next.js + next-pwa/Workbox)
 | Dependency          | `npm audit` di CI (fail on high/critical), Dependabot/Renovate, lockfile terverifikasi                                                  |
 | Secret              | `.env.example` tanpa nilai; secret di env CI/Vault; rotasi rutin; scan secret di repo (gitleaks)                                        |
 | RLS                 | **Opsional** (defense-in-depth RBAC, tanpa session var tenant); test **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)** di integration test |
-| Privacy (G14)       | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **GURU_BK/WAKEPSEK/KEPSEK**)              |
+| Privacy (G14)       | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **BK/WAKEPSEK/KEPSEK**)                   |
 
 ---
 
@@ -465,7 +477,7 @@ Web (Next.js + next-pwa/Workbox)
         │ skema      │ │ cache/rate │ │ lokal       │ │ DITUNDA        │
         │ tunggal,   │ │ lock/socket│ │ (STORAGE_   │ │ (WebRTC self-  │
         │ RLS ops.   │ │ adapter    │ │ LOCAL_DIR)  │ │  hosted bila   │
-        │ 61 tables  │ │            │ │             │ │  dibangun)     │
+        │ 90 tables │ │            │ │             │ │  dibangun)     │
         └────────────┘ └────────────┘ └─────────────┘ └────────────────┘
 ```
 
@@ -545,7 +557,7 @@ Waktu habis (server-side, tidak bergantung client)
 
 ## 17. Keterkaitan dengan Dokumen Lain
 
-- Skema lengkap **61 entitas single-school (56 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni)** + enum + RLS opsional: `03-database-erd.md`.
+- Skema lengkap **90 model + 62 enum single-school** (`packages/database/prisma/schema.prisma`, verifikasi 2026-08-08) + RLS opsional: `03-database-erd.md`.
 - Kontrak endpoint, RBAC matrix, contoh payload: `04-api-contract.md`.
 - Urutan implementasi, task breakdown, risk register: `05-implementation-plan.md`.
 - Keputusan single-school & no-third-party: prd04 v4.2 §16.3(g) [owner-v4.2].

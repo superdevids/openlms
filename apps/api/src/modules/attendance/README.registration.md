@@ -21,7 +21,7 @@ import { AttendanceModule } from "./modules/attendance/attendance.module";
 ```
 
 `AttendanceModule` menyediakan `PrismaClient` via singleton `prisma`
-(`@openlms/database`), jadi tidak butuh provider tambahan.
+(`@opensis/database`), jadi tidak butuh provider tambahan.
 
 ## 2. Kontrak endpoint (prefix global `/api/v1`)
 
@@ -33,7 +33,7 @@ import { AttendanceModule } from "./modules/attendance/attendance.module";
 | POST   | `/attendance/sessions/:id/tokens` | Generate token QR sekali pakai (TTL 5-10 mnt, default 7) |
 | POST   | `/attendance/records/scan`        | Scan QR (idempotent via `Idempotency-Key`; reuse -> 409) |
 | POST   | `/attendance/permits`             | Pengajuan izin/sakit + path surat                        |
-| POST   | `/attendance/permits/:id/verify`  | Verifikasi homeroom/GURU_BK (approve/reject)             |
+| POST   | `/attendance/permits/:id/verify`  | Verifikasi homeroom/BK (approve/reject)                  |
 | GET    | `/attendance/rekap`               | Rekap kehadiran per siswa/mapel/periode                  |
 | GET    | `/attendance/discipline`          | Dashboard kedisiplinan (ambang alpa default 3/bulan)     |
 
@@ -101,7 +101,7 @@ tabel `attendance` dengan `status` = IZIN/SAKIT, `method` = MANUAL, dan kolom
 }
 ```
 
-Verifikasi (homeroom/GURU_BK) mengubah status record: approve -> IZIN/SAKIT,
+Verifikasi (homeroom/BK) mengubah status record: approve -> IZIN/SAKIT,
 reject -> ALPA. Upload file surat (bucket `permits`) adalah endpoint terpisah
 yang belum dibuat — endpoint ini hanya menerima `attachment_path` (path).
 Migrasi schema (`Permit` proper + kolom `attachment_url`/`verified_*`) disarankan
@@ -118,7 +118,7 @@ sebagai follow-up (lihat ISSUES pada RESULT CONTRACT).
 ## 8. Unit test
 
 ```
-npm run test:unit --workspace=@openlms/api  (atau jest dengan testPathPattern non-integration)
+npm run test:unit --workspace=@opensis/api  (atau jest dengan testPathPattern non-integration)
 ```
 
 File:

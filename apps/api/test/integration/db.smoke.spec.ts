@@ -4,7 +4,7 @@
  * Di-skip otomatis bila DATABASE_URL tidak tersedia (dev tanpa DB).
  */
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 
 const hasDb = typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL.length > 0;
 

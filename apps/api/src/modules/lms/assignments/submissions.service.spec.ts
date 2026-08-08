@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException } from "@nestjs/common";
-import type { RequestContext } from "@openlms/types";
+import type { RequestContext } from "@opensis/types";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     assignment: { findUnique: jest.fn() },
     classSubject: { findUnique: jest.fn() },
@@ -15,7 +15,7 @@ jest.mock("@openlms/database", () => ({
   }
 }));
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { SubmissionsService } from "./submissions.service";
 import { StorageService } from "../storage/storage.service";
 
@@ -70,10 +70,21 @@ function makeAssignment(overrides: Record<string, unknown> = {}) {
 
 describe("SubmissionsService", () => {
   let service: SubmissionsService;
+  const notifications = { createForUser: jest.fn(), createForRoles: jest.fn() };
+  const realtime = {
+    emitToUser: jest.fn(),
+    emitToClass: jest.fn(),
+    emitToExam: jest.fn(),
+    emitToAll: jest.fn()
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new SubmissionsService(new StorageService());
+    service = new SubmissionsService(
+      new StorageService(),
+      notifications as never,
+      realtime as never
+    );
     mockEnrolled();
   });
 

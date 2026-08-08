@@ -1,4 +1,4 @@
-import { NOTIFICATION_TYPE_VALUES } from "@openlms/types";
+import { NOTIFICATION_TYPE_VALUES } from "@opensis/types";
 import {
   ANNOUNCEMENT_NEW_EVENT,
   ASSIGNMENT_GRADED_EVENT,

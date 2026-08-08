@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 
 export interface StatsUsersByRole {
   role: string;
@@ -85,7 +85,7 @@ export class AdminStatsService {
     return {
       usersByRole,
       totalStudents: byRole.get("SISWA") ?? 0,
-      totalTeachers: (byRole.get("GURU") ?? 0) + (byRole.get("GURU_BK") ?? 0),
+      totalTeachers: (byRole.get("GURU") ?? 0) + (byRole.get("BK") ?? 0),
       totalClasses: classes,
       academicYear,
       adoptionPercent,

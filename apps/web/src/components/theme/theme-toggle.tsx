@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { IconMoon, IconSun, Tooltip } from "@openlms/ui";
+import { type JSX } from "react";
+
+import { IconMoon, IconSun, Tooltip } from "@opensis/ui";
 import { useTheme, type Theme } from "./theme-provider";
 
 /**
@@ -11,7 +12,7 @@ import { useTheme, type Theme } from "./theme-provider";
  */
 const NEXT_THEME: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
 
-export function ThemeToggle(): React.JSX.Element {
+export function ThemeToggle(): JSX.Element {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const next = NEXT_THEME[theme];
   const isDark = resolvedTheme === "dark";

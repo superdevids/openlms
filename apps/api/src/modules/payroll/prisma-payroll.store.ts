@@ -1,6 +1,6 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import type { Prisma } from "@prisma/client";
 import type { AuditAction, Role } from "@prisma/client";
 import {
@@ -212,6 +212,19 @@ export class PrismaPayrollStore implements PayrollStore, OnModuleInit {
       orderBy: { effective_from: "desc" }
     });
     return row ? this.toSalaryStructure(row) : null;
+  }
+
+  /** Batch struktur gaji aktif (effective_from <= periode) untuk banyak pegawai. */
+  async listActiveSalaryStructures(
+    staffIds: string[],
+    period: string
+  ): Promise<SalaryStructureRecord[]> {
+    if (staffIds.length === 0) return [];
+    const rows = await this.prisma.salaryStructure.findMany({
+      where: { staff_id: { in: staffIds }, effective_from: { lte: period } },
+      orderBy: [{ staff_id: "asc" }, { effective_from: "desc" }]
+    });
+    return rows.map((r) => this.toSalaryStructure(r));
   }
 
   async listSalaryStructures(staffId?: string): Promise<SalaryStructureRecord[]> {

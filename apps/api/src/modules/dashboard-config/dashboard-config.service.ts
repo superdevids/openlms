@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { AuditAction, Role } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { readCacheTtlMs } from "../../common/cache.util";
 import { TtlCache } from "../../common/cache/ttl-cache";
 import { canAccess, PermissionsResolver } from "../auth/permissions-resolver";

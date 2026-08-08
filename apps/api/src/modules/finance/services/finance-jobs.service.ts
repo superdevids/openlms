@@ -6,7 +6,7 @@ import { LateFeeService, LateFeeJobResult } from "./late-fee.service";
  * FinanceJobsService — penjadwal internal job keuangan (prd04 §5.F.1/§5.F.3).
  *
  * Catatan: @nestjs/schedule belum terpasang (tanpa dependensi baru). Scheduler
- * memakai setInterval sederhana yang AKTIF hanya bila env OPENLMS_ENABLE_JOBS =
+ * memakai setInterval sederhana yang AKTIF hanya bila env OPENSIS_ENABLE_JOBS =
  * "true" (default off — job tetap bisa dipicu manual via controller).
  * Job dijamin IDEMPOTEN oleh masing-masing service:
  * - SPP: kunci student_id + period (tidak menduplikasi).
@@ -26,11 +26,11 @@ export class FinanceJobsService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    if (process.env.OPENLMS_ENABLE_JOBS !== "true") {
-      this.logger.log("Job keuangan nonaktif (set OPENLMS_ENABLE_JOBS=true untuk aktif)");
+    if (process.env.OPENSIS_ENABLE_JOBS !== "true") {
+      this.logger.log("Job keuangan nonaktif (set OPENSIS_ENABLE_JOBS=true untuk aktif)");
       return;
     }
-    const interval = Number(process.env.OPENLMS_JOB_INTERVAL_MS ?? DEFAULT_JOB_INTERVAL_MS);
+    const interval = Number(process.env.OPENSIS_JOB_INTERVAL_MS ?? DEFAULT_JOB_INTERVAL_MS);
     this.timer = setInterval(() => {
       void this.runAll().catch((err) =>
         this.logger.error(`Job keuangan gagal: ${(err as Error).message}`)

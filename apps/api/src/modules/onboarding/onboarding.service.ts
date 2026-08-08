@@ -1,15 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import {
   OnboardingStep1Dto,
   OnboardingStep2Dto,
   OnboardingStep4Dto
 } from "./dto/onboarding-step.dto";
 import { ImportRowsDto } from "./dto/import.dto";
-import { ImportService, ImportRunResult } from "./import.service";
-import { InvitationsService, InvitationResult } from "../auth/invitations.service";
+import { ImportService } from "./import.service";
+import type { ImportRunResult } from "./import.service";
+import { InvitationsService } from "../auth/invitations.service";
+import type { InvitationResult } from "../auth/invitations.service";
 
 export const ONBOARDING_STEPS = [
   "school-profile",

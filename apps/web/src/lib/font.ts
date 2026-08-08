@@ -3,14 +3,14 @@ import {
   FONT_SCALE_VALUES,
   type FontFamily,
   type FontScale
-} from "@openlms/types";
+} from "@opensis/types";
 
 /**
  * Tipografi global (audit R-…, prd04 §6 UI aksesibilitas).
  * - FontScale: skala ukuran teks per user (normal/large/big) — class di <html>
  *   mengubah root font-size sehingga seluruh UI (token rem shadcn) ikut membesar.
  * - FontFamily: daftar font Google Fonts yang boleh dipilih SUPERADMIN
- *   (SchoolProfile.settings.font.font_family) — nilai tunggal dengan @openlms/types.
+ *   (SchoolProfile.settings.font.font_family) — nilai tunggal dengan @opensis/types.
  */
 
 export type { FontFamily, FontScale };

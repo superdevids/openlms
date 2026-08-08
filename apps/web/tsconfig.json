@@ -26,10 +26,10 @@
       "@/*": [
         "./src/*"
       ],
-      "@openlms/types": [
+      "@opensis/types": [
         "../../packages/types/src"
       ],
-      "@openlms/ui": [
+      "@opensis/ui": [
         "../../packages/ui/src"
       ]
     }

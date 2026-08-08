@@ -1,11 +1,12 @@
 "use client";
 
-import * as React from "react";
+import { useState, type JSX } from "react";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Tabs, TabPanel, Badge, Button, EmptyState } from "@openlms/ui";
+import { DataView, Card, CardContent, Tabs, TabPanel, Badge, Button, EmptyState } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_TASKS } from "@/lib/demo";
@@ -17,10 +18,10 @@ interface Material {
   updatedAt: string;
 }
 
-export default function SiswaKelasDetailPage(): React.JSX.Element {
+export default function SiswaKelasDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
-  const [tab, setTab] = React.useState("materi");
+  const [tab, setTab] = useState("materi");
 
   const detail = useApi<{ id: string; name: string; subject: string; teacher: string }>(
     () => api.get(`/classes/${id}`),
@@ -42,10 +43,10 @@ export default function SiswaKelasDetailPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/siswa/kelas" className="text-sm font-medium text-primary-600">
+        <Link href="/siswa/kelas" className="text-sm font-medium text-primary">
           &larr; Kembali ke kelas
         </Link>
-        <h1 className="mt-1 text-2xl font-bold text-neutral-900">
+        <h1 className="mt-1 text-2xl font-bold text-foreground">
           {cls?.name ?? "Detail Kelas"} {cls ? `— ${cls.subject}` : ""}
         </h1>
       </div>
@@ -86,10 +87,10 @@ export default function SiswaKelasDetailPage(): React.JSX.Element {
                     <Card>
                       <CardContent className="flex min-h-14 items-center justify-between gap-3">
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-neutral-900">
+                          <span className="block truncate font-medium text-foreground">
                             {m.title}
                           </span>
-                          <span className="block text-sm text-neutral-600">
+                          <span className="block text-sm text-muted-foreground">
                             {m.kind === "FILE"
                               ? "Dokumen"
                               : m.kind === "VIDEO"
@@ -132,10 +133,10 @@ export default function SiswaKelasDetailPage(): React.JSX.Element {
                       <Card className="transition-colors hover:border-primary-600">
                         <CardContent className="flex min-h-14 items-center justify-between gap-3">
                           <span className="min-w-0">
-                            <span className="block truncate font-medium text-neutral-900">
+                            <span className="block truncate font-medium text-foreground">
                               {t.title}
                             </span>
-                            <span className="block text-sm text-neutral-600">
+                            <span className="block text-sm text-muted-foreground">
                               Tenggat {formatRelative(t.dueAt)}
                             </span>
                           </span>

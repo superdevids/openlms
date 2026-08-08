@@ -7,8 +7,8 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
-import type { AttendanceMethod, AttendanceStatus } from "@openlms/types";
+import { PrismaClient } from "@opensis/database";
+import type { AttendanceMethod, AttendanceStatus } from "@opensis/types";
 import { AttendanceRekapService } from "./attendance-rekap.service";
 import {
   GEOFENCE_RADIUS_M_DEFAULT,
@@ -38,7 +38,7 @@ import { writeAudit } from "../lms/lms-audit";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { ATTENDANCE_CHECKED_IN_EVENT } from "../notifications/notification-events";
 
-const PERMIT_VERIFIER_ROLES = new Set(["GURU", "GURU_BK", "WAKEPSEK", "KEPSEK", "SUPERADMIN"]);
+const PERMIT_VERIFIER_ROLES = new Set(["GURU", "BK", "WAKEPSEK", "KEPSEK", "SUPERADMIN"]);
 
 /**
  * AttendanceService — absensi manual + sesi QR + izin/sakit online + rekap & kedisiplinan.
@@ -61,9 +61,9 @@ export class AttendanceService {
   /**
    * Catat absensi manual bulk. Idempotent per (student_id, class_subject_id, date):
    * baris yang sudah ada di-update (re-upload hari yang sama aman).
-   * RBAC: attendance:record:class (GURU/GURU_BK/WAKEPSEK/KEPSEK/SUPERADMIN — prd04 §4.3).
+   * RBAC: attendance:record:class (GURU/BK/WAKEPSEK/KEPSEK/SUPERADMIN — prd04 §4.3).
    * Scope KELAS: GURU hanya boleh mencatat class_subject yang dia ampu
-   * (actor.classIds); role sekolah (KEPSEK/WAKEPSEK/OPERATOR/GURU_BK/SUPERADMIN) bebas.
+   * (actor.classIds); role sekolah (KEPSEK/WAKEPSEK/OPERATOR/BK/SUPERADMIN) bebas.
    */
   async recordManual(
     dto: CreateAttendanceDto,
@@ -480,12 +480,16 @@ export class AttendanceService {
     recordedAt: Date
   ): Promise<void> {
     try {
+      const total = await this.prisma.attendanceRecord.count({
+        where: { attendance_session_id: sessionId }
+      });
       const payload = {
         recordId,
         sessionId,
         studentId,
         status: "HADIR",
-        recordedAt: recordedAt.toISOString()
+        recordedAt: recordedAt.toISOString(),
+        total
       };
       this.realtime.emitToUser(studentId, ATTENDANCE_CHECKED_IN_EVENT, payload);
       if (classSubjectId) {
@@ -582,7 +586,7 @@ export class AttendanceService {
   }
 
   /**
-   * Verifikasi pengajuan izin oleh homeroom/GURU_BK.
+   * Verifikasi pengajuan izin oleh homeroom/BK.
    * Approve -> status IZIN/SAKIT sesuai pengajuan; Reject -> ALPA.
    * RBAC (permit:verify:class): guard membatasi role; scope KELAS belum
    * diverifikasi terhadap homeroom di sini (cek homeroom mengikuti F1-T4 scope
@@ -590,7 +594,7 @@ export class AttendanceService {
    */
   async verifyPermit(attendanceId: string, dto: VerifyPermitDto, actor: ActorContext) {
     if (!actor.roles.some((role) => PERMIT_VERIFIER_ROLES.has(role))) {
-      throw new ForbiddenException("Hanya homeroom/GURU_BK yang dapat memverifikasi izin");
+      throw new ForbiddenException("Hanya homeroom/BK yang dapat memverifikasi izin");
     }
 
     const record = await this.prisma.attendance.findUnique({ where: { id: attendanceId } });
@@ -645,7 +649,7 @@ export class AttendanceService {
     // Scope RBAC (attendance:rekap:self/class/school):
     // - SISWA: rekap SELALU dirinya sendiri (dto.student_id diabaikan).
     // - GURU (KELAS): hanya siswa di kelas yang dia ampu (actor.classIds).
-    // - Role sekolah (KEPSEK/WAKEPSEK/OPERATOR/GURU_BK/SUPERADMIN): bebas.
+    // - Role sekolah (KEPSEK/WAKEPSEK/OPERATOR/BK/SUPERADMIN): bebas.
     if (this.isSelfScope(actor)) {
       where.student_id = actor.userId;
     } else if (actor.roles.includes("GURU") && actor.classIds.length > 0) {
@@ -731,7 +735,7 @@ export class AttendanceService {
     "KEPSEK",
     "WAKEPSEK",
     "OPERATOR",
-    "GURU_BK"
+    "BK"
   ]);
 
   /** Scope SENDIRI: SISWA (attendance:scan:self / rekap:self / permit:request:self). */

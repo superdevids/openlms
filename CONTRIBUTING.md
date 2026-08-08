@@ -1,6 +1,6 @@
-# Kontribusi ke openlms
+# Panduan Kontribusi — opensis
 
-Terima kasih atas minat Anda untuk berkontribusi ke **openlms**. Dokumen ini menjelaskan cara berkontribusi secara konsisten: setup pengembangan, alur kerja git, konvensi commit, standar kode, dan proses pull request.
+Terima kasih atas minat Anda untuk berkontribusi ke **opensis** (repository: `openlms`). Dokumen ini menjelaskan cara berkontribusi secara konsisten: setup pengembangan, alur kerja git, konvensi commit, standar kode, persyaratan pengujian, proses pull request, checklist review, dan konvensi dokumentasi.
 
 ## Daftar Isi
 
@@ -12,7 +12,8 @@ Terima kasih atas minat Anda untuk berkontribusi ke **openlms**. Dokumen ini men
 - [Standar Kode](#standar-kode)
 - [Persyaratan Pengujian](#persyaratan-pengujian)
 - [Proses Pull Request](#proses-pull-request)
-- [Proses Review](#proses-review)
+- [Checklist Code Review](#checklist-code-review)
+- [Konvensi Dokumentasi](#konvensi-dokumentasi)
 - [Definisi Selesai (Definition of Done)](#definisi-selesai-definition-of-done)
 
 ## Kode Etik
@@ -27,6 +28,7 @@ Dengan berpartisipasi dalam proyek ini, Anda setuju untuk mematuhi [CODE_OF_COND
    - Issue berlabel `bug` — laporan bug yang sudah dikonfirmasi.
    - Diskusikan ide besar (fitur baru, perubahan arsitektur) di issue terlebih dahulu sebelum menulis kode.
 3. **Jangan pernah mengerjakan issue tanpa koordinasi** di komentar issue terlebih dahulu, agar tidak terjadi pekerjaan ganda.
+4. **Baca dulu dokumen acuan** sebelum menyentuh area baru: [docs/02-technical-architecture.md](docs/02-technical-architecture.md) (arsitektur & ADR), [docs/03-database-erd.md](docs/03-database-erd.md) (data), [docs/04-api-contract.md](docs/04-api-contract.md) (kontrak API), dan [docs/knowledge-base.md](docs/knowledge-base.md) (peta proyek).
 
 ## Setup Pengembangan
 
@@ -60,6 +62,8 @@ Kami memakai **trunk-based development dengan feature branch**:
 | `refactor/` | Refactor tanpa perubahan perilaku (`refactor/rbac-guard`) |
 | `test/`     | Penambahan/perbaikan test (`test/exam-e2e`)               |
 | `chore/`    | Tugas pemeliharaan (`chore/deps-update`)                  |
+| `perf/`     | Peningkatan performa (`perf/autosave-batching`)           |
+| `ci/`       | Perubahan pipeline CI (`ci/add-coverage-gate`)            |
 
 **Aturan:**
 
@@ -67,6 +71,7 @@ Kami memakai **trunk-based development dengan feature branch**:
 - Push branch ke fork/remote Anda, lalu buka pull request ke `main`.
 - Jaga commit kecil, fokus, dan mudah direview.
 - `main` hanya diubah melalui pull request — jangan push langsung (kecuali maintainer).
+- Satu PR untuk satu tujuan; pisahkan perubahan dokumentasi, refactor, dan fitur ke PR yang berbeda bila memungkinkan.
 
 ## Konvensi Commit (Conventional Commits)
 
@@ -105,7 +110,7 @@ test(finance): tambah matrix IDOR invoice
 
 ## Standar Kode
 
-Proyek memakai **ESLint** + **Prettier** + **TypeScript strict**, dengan aturan dependensi monorepo yang ditegakkan ESLint `import/no-restricted-paths` dan Turborepo [docs/02-technical-architecture.md §3]:
+Proyek memakai **ESLint** + **Prettier** + **TypeScript strict**, dengan aturan dependensi monorepo yang ditegakkan ESLint `import/no-restricted-paths` dan Turborepo [docs/02-technical-architecture.md §3](docs/02-technical-architecture.md):
 
 - `web → api` hanya via HTTP; `web → packages/{ui,types}`.
 - `api → packages/{database,types}`.
@@ -119,11 +124,17 @@ npm run typecheck     # TypeScript --noEmit semua workspace
 npx prettier --check .
 ```
 
-- Ikuti pola arsitektur yang ada: Controller → Service → Repository di `apps/api`; Server Components untuk data-fetching di `apps/web`; Client Components hanya untuk interaktivitas.
-- Setiap query Prisma di repository wajib memfilter scope RBAC (SENDIRI/KELAS/SEKOLAH) — jangan query tanpa scope kecuali modul global.
+**Aturan implementasi:**
+
+- Ikuti pola arsitektur yang ada: **Controller → Service → Repository** di `apps/api`; Server Components untuk data-fetching di `apps/web`; Client Components hanya untuk interaktivitas.
+- Setiap query Prisma di repository **wajib memfilter scope RBAC** (SENDIRI/KELAS/SEKOLAH) — jangan query tanpa scope kecuali modul global (User, SchoolProfile).
+- Alur kritis (autosave ujian, scan QR, pembayaran) **wajib idempotent** — pakai `Idempotency-Key`; perubahan data sensitif tulis `AuditLog`.
+- Gunakan satu sumber `PrismaClient` (singleton dari `DatabaseModule`) — **jangan** membuat `new PrismaClient()` baru.
+- Semua jumlah uang memakai kalkulator sen (`calculator/money.ts`) — hindari floating point.
 - Jangan menambahkan dependensi API pihak ketiga untuk fitur (keputusan no-third-party, [docs/prd/prd04.md §5.O](docs/prd/prd04.md)).
 - Jangan menambahkan object storage S3/MinIO — storage aplikasi adalah lokal (`STORAGE_LOCAL_DIR`).
-- Dokumentasikan modul baru: buat `README.<modul>.md` di `apps/api/src/modules/<modul>/`.
+- Path alias resmi: `@opensis/*` → `./packages/*/src` (lihat `tsconfig.base.json`).
+- Konten user-facing (UI, README, pesan error) ditulis dalam **Bahasa Indonesia baku**.
 
 ## Persyaratan Pengujian
 
@@ -133,13 +144,14 @@ Setiap perubahan **wajib disertai test** yang relevan:
 | ----------- | ---------------- | ----------------------------------------------------------------------------------------------- |
 | Unit        | Jest             | Logika murni: auto-grade, guard RBAC (matrix role×aksi), perhitungan tagihan, validasi token QR |
 | Integration | Jest + Supertest | Alur lintas layer dengan PostgreSQL: ujian E2E alur, scan QR absensi, isolasi scope RBAC        |
+| Web         | Vitest           | Utilitas frontend, komponen & halaman (berjalan tanpa server)                                   |
 | E2E         | Playwright       | Alur pengguna lintas UI (roadmap, lihat [prd05 G-60](docs/prd/prd05-development.md))            |
 
 **Aturan:**
 
 - `npm run test:unit` — tanpa database, harus selalu hijau.
 - `npm run test:integration` — butuh PostgreSQL (CI menyediakan service postgres; lokal dapat memakai `docker compose up -d`).
-- Jangan menurunkan coverage modul kritis (auth, RBAC, exam, finance) — temuan audit [prd05 G-60/G-61](docs/prd/prd05-development.md) menetapkan target coverage ≥ 80% bertahap.
+- Jangan menurunkan coverage modul kritis (auth, RBAC, exam, finance) — target coverage **≥ 80%** bertahap ([prd05 G-60/G-61](docs/prd/prd05-development.md), [prd06 §4](docs/prd/prd06-development-v2.md)).
 - Perubahan yang menyentuh kontrak API wajib menyinkronkan: DTO/service di API, klien di web, dan `README.<modul>.md`.
 - Perubahan skema Prisma wajib disertai file migrasi baru (jangan mengedit migrasi yang sudah diterapkan).
 
@@ -147,22 +159,43 @@ Setiap perubahan **wajib disertai test** yang relevan:
 
 1. Isi [template pull request](.github/PULL_REQUEST_TEMPLATE.md) dengan lengkap: deskripsi, tipe perubahan, cara test, dan checklist.
 2. Pastikan branch Anda up-to-date dengan `main`.
-3. CI (`.github/workflows/ci.yml`) akan menjalankan: lint → typecheck → unit → integration → build → npm audit. **PR hanya bisa digabung bila semua job hijau.**
+3. CI (`.github/workflows/ci.yml`) akan menjalankan **7 gate**: lint → typecheck → unit → integration → build → npm audit → secret scan. **PR hanya bisa digabung bila semua job hijau.**
 4. Tag reviewer yang relevan; maintainer akan me-review dalam 1–2 hari kerja.
 
 **Tipe PR yang tidak akan diterima:**
 
 - Perubahan tanpa test yang relevan.
 - Perubahan yang menurunkan kualitas (lint/typecheck gagal).
-- Referensi `eclass` yang tersisa (proyek telah di-rebrand ke `openlms`; target nol referensi lama).
+- Referensi `eclass` yang tersisa (proyek telah di-rebrand; target nol referensi lama).
 - Commit yang menggabungkan banyak tujuan berbeda dalam satu PR.
+- Perubahan yang menambah dependensi API fitur pihak ketiga atau object storage.
 
-## Proses Review
+## Checklist Code Review
 
-- Review dilakukan oleh minimal satu maintainer; perubahan sensitif (auth, keamanan, keuangan, payroll) memerlukan review maintainer inti.
-- Reviewer memeriksa: kebenaran fungsional, keamanan (IDOR, XSS, CSRF, secrets), kualitas kode, cakupan test, dan dokumentasi.
-- Semua komentar review wajib dijawab; diskusi diselesaikan di dalam PR (bukan via chat pribadi) agar jejak keputusan terekam.
-- Setelah disetujui, maintainer menggabungkan (squash merge) dengan pesan commit sesuai Conventional Commits.
+Review dilakukan oleh minimal satu maintainer; perubahan sensitif (auth, keamanan, keuangan, payroll) memerlukan review maintainer inti. Reviewer memeriksa:
+
+- [ ] **Kebenaran fungsional** — perilaku sesuai deskripsi dan terverifikasi terhadap implementasi nyata.
+- [ ] **Keamanan** — IDOR (uji scope SENDIRI/KELAS/SEKOLAH), XSS (sanitasi konten), CSRF (mutasi cookie), secrets tidak bocor, rate limit tidak dilewati.
+- [ ] **Otorisasi** — endpoint memakai `@RequirePermission` yang benar; endpoint publik ditandai `@Public()` secara eksplisit.
+- [ ] **Idempotensi & audit** — alur kritis idempotent; perubahan data sensitif menulis `AuditLog`.
+- [ ] **Kualitas kode** — mengikuti pola Controller → Service → Repository; tanpa `any` yang tidak perlu; tidak ada duplikasi.
+- [ ] **Cakupan test** — test relevan ada, hijau, dan menguji kasus negatif (403/404/409) selain kasus sukses.
+- [ ] **Dokumentasi** — `README.<modul>.md` diperbarui bila kontrak API berubah; dokumentasi user-facing dalam Bahasa Indonesia.
+- [ ] **Skema & migrasi** — perubahan Prisma disertai migrasi baru; tidak mengedit migrasi terterapkan.
+
+Semua komentar review wajib dijawab; diskusi diselesaikan di dalam PR (bukan via chat pribadi) agar jejak keputusan terekam. Setelah disetujui, maintainer menggabungkan (squash merge) dengan pesan commit sesuai Conventional Commits.
+
+## Konvensi Dokumentasi
+
+Dokumentasi adalah bagian dari produk, bukan pelengkap. Aturan wajib:
+
+- **Bahasa**: Bahasa Indonesia baku untuk semua konten user-facing; Inggris untuk file konvensi OSS (LICENSE, CODE_OF_CONDUCT).
+- **Akurasi**: setiap klaim teknis wajib sesuai implementasi nyata; bagian yang belum terverifikasi ditandai eksplisit — jangan menulis dokumentasi fitur yang belum ada.
+- **Modul baru wajib README**: setiap modul di `apps/api/src/modules/` wajib memiliki `README.<modul>.md` yang memuat daftar endpoint, permission, dan deskripsi, plus `README.registration.md` untuk kontrak registrasi modul (contoh: [README.auth.md](apps/api/src/modules/auth/README.auth.md)).
+- **Sinkronisasi kontrak**: saat endpoint/permission berubah, perbarui `README.<modul>.md` dan [docs/04-api-contract.md](docs/04-api-contract.md) pada PR yang sama.
+- **Keputusan arsitektur**: keputusan yang mengubah desain dicatat sebagai ADR di [docs/02-technical-architecture.md §16](docs/02-technical-architecture.md).
+- **Indeks**: daftarkan dokumen baru di [docs/README.docs.md](docs/README.docs.md).
+- **Gaya**: BLUF (kesimpulan di awal), tabel untuk data terstruktur, blok kode diberi bahasa, tidak ada tautan rusak.
 
 ## Definisi Selesai (Definition of Done)
 

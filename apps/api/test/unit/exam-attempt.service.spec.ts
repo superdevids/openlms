@@ -6,7 +6,7 @@ import { ForbiddenException } from "@nestjs/common";
 import { AssessmentStatus, AttemptStatus } from "@prisma/client";
 import { hashToken } from "../../src/modules/exam/exam.util";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     examSession: { findUnique: jest.fn() },
     examAttempt: { findUnique: jest.fn(), findFirst: jest.fn() },
@@ -19,7 +19,7 @@ jest.mock("@openlms/database", () => ({
   }
 }));
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { ExamAttemptService } from "../../src/modules/exam/exam-attempt.service";
 import type { RealtimeGateway } from "../../src/modules/realtime/realtime.gateway";
 

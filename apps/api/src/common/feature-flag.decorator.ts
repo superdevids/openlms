@@ -1,7 +1,7 @@
 import { SetMetadata } from "@nestjs/common";
 
 /** Kunci metadata feature flag sebuah handler (F1-T13, prd04 §5.N). */
-export const FEATURE_KEY = "openlms:feature";
+export const FEATURE_KEY = "opensis:feature";
 
 /**
  * @Feature("LMS_BASE") — endpoint hanya bisa diakses bila flag aktif.

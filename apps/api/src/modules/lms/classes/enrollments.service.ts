@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { prisma } from "@openlms/database";
-import type { RequestContext } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { RequestContext } from "@opensis/types";
 import {
   assertCanManageClass,
   assertHasRole,

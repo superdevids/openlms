@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]): string {
 }
 
 // ============================================================
-// Design system openlms — semua komponen shadcn/ui di satu paket.
+// Design system opensis — semua komponen shadcn/ui di satu paket.
 // Stateless: data lewat props; state server-side dipegang app.
 // ============================================================
 
@@ -20,7 +20,7 @@ export {
   CardContent,
   CardFooter
 } from "./components/card";
-export { Badge, type BadgeProps } from "./components/badge";
+export { Badge, type BadgeProps, type BadgeVariant } from "./components/badge";
 export { Input } from "./components/input";
 export { Label } from "./components/label";
 export { Textarea } from "./components/textarea";

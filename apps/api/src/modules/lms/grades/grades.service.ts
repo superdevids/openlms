@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@openlms/database";
-import type { RequestContext } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { RequestContext } from "@opensis/types";
 import {
   assertCanAccessStudent,
   assertCanManageClass,
@@ -9,6 +9,9 @@ import {
   scopeOf
 } from "../lms-scope";
 import { writeAudit } from "../lms-audit";
+import { NotificationService } from "../../notifications/notifications.service";
+import { RealtimeGateway } from "../../realtime/realtime.gateway";
+import { GRADE_RECORDED_EVENT } from "../../notifications/notification-events";
 import { computeRecap, RecapGradeItem } from "./grade-recap";
 import {
   ExportGradesDto,
@@ -21,6 +24,11 @@ import {
 
 @Injectable()
 export class GradesService {
+  constructor(
+    private readonly notifications: NotificationService,
+    private readonly realtime: RealtimeGateway
+  ) {}
+
   /** Catat Grade manual (type TUGAS/KUIS/UJIAN/PRAKTIK/SIKAP/SUMATIF). */
   async record(dto: RecordGradeDto, ctx: RequestContext) {
     const cs = await prisma.classSubject.findUnique({
@@ -65,6 +73,7 @@ export class GradesService {
         entityId: grade.id,
         after: grade
       });
+      await this.notifyRecorded(grade);
       return grade;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -264,5 +273,34 @@ export class GradesService {
     if (filter.classSubjectId) where.class_subject_id = filter.classSubjectId;
     if (filter.semester) where.semester = filter.semester;
     return where;
+  }
+
+  /**
+   * Notifikasi + event realtime ke siswa saat nilai tercatat (best-effort):
+   * NotificationService → inbox (notification:new + assignment:graded) dan
+   * event eksplisit grade:recorded ke room user:{studentId}.
+   */
+  private async notifyRecorded(grade: {
+    id: string;
+    student_id: string;
+    score: number;
+    type: string;
+  }): Promise<void> {
+    try {
+      await this.notifications.createForUser({
+        userId: grade.student_id,
+        type: "TASK_GRADED",
+        title: "Nilai baru tercatat",
+        body: `${grade.type} — skor ${grade.score}`,
+        data: { gradeId: grade.id, score: grade.score, type: grade.type }
+      });
+      this.realtime.emitToUser(grade.student_id, GRADE_RECORDED_EVENT, {
+        gradeId: grade.id,
+        score: grade.score,
+        type: grade.type
+      });
+    } catch {
+      // best-effort
+    }
   }
 }

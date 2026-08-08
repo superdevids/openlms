@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import {
@@ -13,7 +14,7 @@ import {
   Badge,
   Button,
   EmptyState
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatDateTime } from "@/lib/format";
 import Link from "next/link";
@@ -30,14 +31,14 @@ interface Exam {
   status: string;
 }
 
-export default function SiswaUjianPage(): React.JSX.Element {
+export default function SiswaUjianPage(): JSX.Element {
   const list = useApi<Exam[]>(() => api.get("/exam/list-for-student"), [], {
     fallbackData: DEMO_EXAMS
   });
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Ujian</h1>
+      <h1 className="text-2xl font-bold text-foreground">Ujian</h1>
       <DataView
         status={list.status}
         error={list.error}

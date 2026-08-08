@@ -13,7 +13,7 @@ dibypass oleh `AuthGuard` (selalu publik) meskipun tidak memakai `@Public()`.
 
 | Method | Path      | Permission            | Deskripsi                                  |
 | ------ | --------- | --------------------- | ------------------------------------------ |
-| GET    | `/health` | Publik (bypass guard) | `{ status: "ok", service: "openlms-api" }` |
+| GET    | `/health` | Publik (bypass guard) | `{ status: "ok", service: "opensis-api" }` |
 
 ## Struktur File
 

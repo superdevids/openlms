@@ -1,5 +1,5 @@
 import { UnauthorizedException } from "@nestjs/common";
-import type { RequestContext } from "@openlms/types";
+import type { RequestContext } from "@opensis/types";
 import type { AuthenticatedRequest } from "../../common/auth.guard";
 
 /**

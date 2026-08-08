@@ -144,6 +144,27 @@ export class CompetencyTestService {
     return updated;
   }
 
+  /** Jadwal UKK yang ditugaskan ke satu penguji (PENGUJI_EKSTERNAL). */
+  async listByExaminer(
+    examinerUserId: string
+  ): Promise<
+    Array<
+      CompetencyTest & {
+        rubric_items: CompetencyRubricItem[];
+        student: { id: string; full_name: string } | null;
+      }
+    >
+  > {
+    return this.db.competencyTest.findMany({
+      where: { examiner_id: examinerUserId },
+      include: {
+        rubric_items: true,
+        student: { select: { id: true, full_name: true } }
+      },
+      orderBy: { scheduled_at: "desc" }
+    });
+  }
+
   private async requireTest(testId: string): Promise<CompetencyTest> {
     const test = await this.db.competencyTest.findUnique({ where: { id: testId } });
     if (!test) throw new NotFoundException("UKK tidak ditemukan");

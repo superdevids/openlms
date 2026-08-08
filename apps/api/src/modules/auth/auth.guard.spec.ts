@@ -1,6 +1,6 @@
 import { ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import { AuthGuard, AuthenticatedRequest } from "../../common/auth.guard";
 import { Public } from "../../common/public.decorator";
 import { ScopeResolver } from "../../common/scope-resolver";
@@ -41,7 +41,7 @@ describe("AuthGuard (F1-T3)", () => {
 
   const activeUser = {
     id: "u1",
-    email: "admin@openlms.local",
+    email: "admin@opensis.local",
     username: "admin",
     full_name: "Admin",
     is_active: true,

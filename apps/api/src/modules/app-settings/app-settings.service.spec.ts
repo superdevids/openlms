@@ -1,5 +1,5 @@
 import { BadRequestException } from "@nestjs/common";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import { AppSettingsService } from "./app-settings.service";
 
 function makePrismaMock(): Record<string, unknown> {

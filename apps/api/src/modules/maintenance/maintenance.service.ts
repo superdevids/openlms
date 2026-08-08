@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { UpdateMaintenanceDto } from "./dto/update-maintenance.dto";
 import { MAINTENANCE_CACHE_TTL_MS, SYSTEM_STATUS_ID } from "./maintenance.constants";
 
@@ -127,7 +127,8 @@ export class MaintenanceService {
       return await this.prisma.systemStatus.findUnique({
         where: { id: SYSTEM_STATUS_ID }
       });
-    } catch {
+    } catch (err) {
+      this.logger.warn(`systemStatus tidak dapat dibaca (fail-open): ${(err as Error).message}`);
       return null;
     }
   }

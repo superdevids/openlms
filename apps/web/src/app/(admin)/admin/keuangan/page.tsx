@@ -1,9 +1,34 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Button, Input, Label, Select, Badge, Alert, Dialog, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, toast } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Tabs,
+  TabPanel,
+  Button,
+  Input,
+  Label,
+  Select,
+  Badge,
+  Alert,
+  Dialog,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  EmptyState,
+  toast
+} from "@opensis/ui";
 
 import { formatRupiah, formatDate, formatNumber } from "@/lib/format";
 import { DEMO_INVOICES } from "@/lib/demo";
@@ -29,19 +54,43 @@ const DEMO_RECON = [
   { id: "rc_2", bank: "BRI", period: "2026-08", matched: 96, unmatched: 1 }
 ];
 
-export default function AdminKeuanganPage(): React.JSX.Element {
-  const [tab, setTab] = React.useState("tagihan");
-  const invoices = useApi<Invoice[]>(() => api.get("/invoices"), [], {
-    fallbackData: DEMO_INVOICES
-  });
+export default function AdminKeuanganPage(): JSX.Element {
+  const [tab, setTab] = useState("tagihan");
+  // GET /finance/invoices — respons memakai snake_case (amount/paidAmount Decimal).
+  const invoices = useApi<Invoice[]>(
+    async () => {
+      const rows = await api.get<
+        Array<{
+          id: string;
+          type: string;
+          period: string | null;
+          amount: number | string;
+          paidAmount: number | string;
+          due_date: string;
+          status: string;
+        }>
+      >("/finance/invoices");
+      return rows.map((r) => ({
+        id: r.id,
+        type: r.type,
+        period: r.period ?? "",
+        amount: Number(r.amount),
+        paid: Number(r.paidAmount),
+        dueDate: r.due_date,
+        status: r.status as Invoice["status"]
+      }));
+    },
+    [],
+    { fallbackData: DEMO_INVOICES }
+  );
 
-  const [billOpen, setBillOpen] = React.useState(false);
-  const [billType, setBillType] = React.useState("SPP");
-  const [billAmount, setBillAmount] = React.useState("250000");
-  const [billPeriod, setBillPeriod] = React.useState("2026-09");
-  const [saving, setSaving] = React.useState(false);
+  const [billOpen, setBillOpen] = useState(false);
+  const [billType, setBillType] = useState("SPP");
+  const [billAmount, setBillAmount] = useState("250000");
+  const [billPeriod, setBillPeriod] = useState("2026-09");
+  const [saving, setSaving] = useState(false);
 
-  const createBulk = async (e: React.FormEvent): Promise<void> => {
+  const createBulk = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -53,16 +102,34 @@ export default function AdminKeuanganPage(): React.JSX.Element {
           description: "72 tagihan"
         });
       } else {
-        const res = await api.post<{ created: number }>("/invoices/bulk", {
+        // DTO CreateBulkInvoiceDto: students[] wajib + amount string + dueDate + academicYear.
+        const users = await api.get<{ items: Array<{ id: string; roles: string[] }> }>(
+          "/admin/users"
+        );
+        const students = (users.items ?? [])
+          .filter((u) => u.roles.includes("SISWA"))
+          .map((u) => ({ studentId: u.id }));
+        if (students.length === 0) {
+          toast({
+            variant: "warning",
+            title: "Tidak ada siswa untuk tagihan massal",
+            description: "Pastikan data siswa sudah ada (Data Induk)."
+          });
+          setBillOpen(false);
+          return;
+        }
+        const res = await api.post<unknown[]>("/finance/invoices/bulk", {
+          students,
           type: billType,
           period: billPeriod,
-          amount: Number(billAmount),
-          classIds: ["cls_1", "cls_2"]
+          amount: String(billAmount),
+          dueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+          academicYear: "2026/2027"
         });
         toast({
           variant: "success",
           title: "Tagihan dibuat",
-          description: `${res.created} tagihan`
+          description: `${res.length} tagihan`
         });
       }
       setBillOpen(false);
@@ -78,8 +145,8 @@ export default function AdminKeuanganPage(): React.JSX.Element {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Keuangan</h1>
-          <p className="text-sm text-neutral-600">
+          <h1 className="text-2xl font-bold text-foreground">Keuangan</h1>
+          <p className="text-sm text-muted-foreground">
             Tagihan, pembayaran, denda, refund, rekonsiliasi, arus kas
           </p>
         </div>
@@ -290,9 +357,9 @@ export default function AdminKeuanganPage(): React.JSX.Element {
               {DEMO_CASHFLOW.map((c) => (
                 <li
                   key={c.id}
-                  className="flex items-center justify-between rounded-md border border-neutral-200 px-3 py-2"
+                  className="flex items-center justify-between rounded-md border border-border px-3 py-2"
                 >
-                  <span className="text-sm text-neutral-700">{c.label}</span>
+                  <span className="text-sm text-foreground">{c.label}</span>
                   <span
                     className={
                       c.amount >= 0

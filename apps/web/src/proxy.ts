@@ -5,9 +5,18 @@ import { NextResponse, type NextRequest } from "next/server";
  * Otorisasi FINAL tetap di API (backend). Cookie session httpOnly di-set oleh backend.
  * Saat NEXT_PUBLIC_DEMO=1, semua route bebas diakses untuk preview tanpa backend.
  */
-const SESSION_COOKIE = "openlms_session";
+const SESSION_COOKIE = "opensis_session";
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO === "1";
-const PROTECTED_PREFIXES = ["/siswa", "/guru", "/admin", "/superadmin", "/ortu"];
+const PROTECTED_PREFIXES = [
+  "/siswa",
+  "/guru",
+  "/admin",
+  "/superadmin",
+  "/ortu",
+  "/calonsiswa",
+  "/pembimbing",
+  "/penguji"
+];
 
 export function proxy(req: NextRequest): NextResponse {
   if (DEMO_MODE) return NextResponse.next();
@@ -41,6 +50,9 @@ export const config = {
     "/guru/:path*",
     "/admin/:path*",
     "/superadmin/:path*",
-    "/ortu/:path*"
+    "/ortu/:path*",
+    "/calonsiswa/:path*",
+    "/pembimbing/:path*",
+    "/penguji/:path*"
   ]
 };

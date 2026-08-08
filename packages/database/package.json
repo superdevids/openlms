@@ -1,8 +1,8 @@
 {
-  "name": "@openlms/database",
+  "name": "@opensis/database",
   "version": "0.1.0",
   "private": true,
-  "description": "openlms database package — Prisma schema (61 entitas + RBAC), migrasi, seed, RLS opsional",
+  "description": "opensis database package — Prisma schema (61 entitas + RBAC), migrasi, seed, RLS opsional",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
@@ -15,11 +15,11 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "test": "echo \"@openlms/database: no unit tests in F0\"",
-    "test:unit": "echo \"@openlms/database: no unit tests in F0\""
+    "test": "echo \"@opensis/database: no unit tests in F0\"",
+    "test:unit": "echo \"@opensis/database: no unit tests in F0\""
   },
   "dependencies": {
-    "@openlms/types": "*",
+    "@opensis/types": "*",
     "@prisma/client": "^6.5.0",
     "argon2": "^0.41.1"
   },

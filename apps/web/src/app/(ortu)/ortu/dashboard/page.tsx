@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
@@ -15,7 +16,7 @@ import {
   Badge,
   Button,
   EmptyState
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatPercent } from "@/lib/format";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
@@ -46,7 +47,7 @@ interface OrtuOverviewState {
   overview: ParentOverview | null;
 }
 
-export default function OrtuDashboardPage(): React.JSX.Element {
+export default function OrtuDashboardPage(): JSX.Element {
   const { user } = useAuth();
 
   // R-08: portal orang tua memakai kontrak parent-portal NYATA:
@@ -82,13 +83,13 @@ export default function OrtuDashboardPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
+        <h1 className="text-2xl font-bold text-foreground">
           Selamat datang, {user?.fullName ?? "Bapak/Ibu"}
         </h1>
         {childName ? (
-          <p className="text-sm text-neutral-600">Anak: {childName}</p>
+          <p className="text-sm text-muted-foreground">Anak: {childName}</p>
         ) : (
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             Hubungkan anak melalui menu Nilai / Absensi untuk melihat data.
           </p>
         )}
@@ -181,13 +182,13 @@ function Kpi({
   label: string;
   value: string;
   hint?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <Card>
       <CardContent>
-        <p className="text-xs text-neutral-600 sm:text-sm">{label}</p>
-        <p className="mt-1 text-xl font-bold text-neutral-900 sm:text-2xl">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-neutral-500">{hint}</p> : null}
+        <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
+        <p className="mt-1 text-xl font-bold text-foreground sm:text-2xl">{value}</p>
+        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );

@@ -1,11 +1,25 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Button, Input, Label, Textarea, Badge, Dialog, EmptyState, toast } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  Button,
+  Input,
+  Label,
+  Textarea,
+  Badge,
+  Dialog,
+  EmptyState,
+  toast
+} from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
+import { TASK_STATUS_BADGE } from "@/lib/constants";
 
 import { DEMO_TASKS } from "@/lib/demo";
 
@@ -17,15 +31,15 @@ interface Task {
   status: string;
 }
 
-export default function GuruTugasPage(): React.JSX.Element {
+export default function GuruTugasPage(): JSX.Element {
   const list = useApi<Task[]>(() => api.get("/assignments"), [], { fallbackData: DEMO_TASKS });
-  const [open, setOpen] = React.useState(false);
-  const [title, setTitle] = React.useState("");
-  const [instructions, setInstructions] = React.useState("");
-  const [dueAt, setDueAt] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [dueAt, setDueAt] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const create = async (e: React.FormEvent): Promise<void> => {
+  const create = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -57,7 +71,7 @@ export default function GuruTugasPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-neutral-900">Tugas</h1>
+        <h1 className="text-2xl font-bold text-foreground">Tugas</h1>
         <Button onClick={() => setOpen(true)}>Buat Tugas</Button>
       </div>
       <DataView
@@ -79,14 +93,12 @@ export default function GuruTugasPage(): React.JSX.Element {
                 <Card>
                   <CardContent className="flex min-h-14 items-center justify-between gap-3">
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-neutral-900">{t.title}</span>
-                      <span className="block text-sm text-neutral-600">
+                      <span className="block truncate font-medium text-foreground">{t.title}</span>
+                      <span className="block text-sm text-muted-foreground">
                         {t.subject} · Tenggat {formatRelative(t.dueAt)}
                       </span>
                     </span>
-                    <Badge variant={t.status === "TERLAMBAT" ? "danger" : "primary"}>
-                      {t.status}
-                    </Badge>
+                    <Badge variant={TASK_STATUS_BADGE[t.status] ?? "primary"}>{t.status}</Badge>
                   </CardContent>
                 </Card>
               </li>

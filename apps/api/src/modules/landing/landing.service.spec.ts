@@ -1,5 +1,5 @@
 import { NotFoundException } from "@nestjs/common";
-import type { PrismaClient } from "@openlms/database";
+import type { PrismaClient } from "@opensis/database";
 import { LandingService, slugify } from "./landing.service";
 
 const ACTOR = "usr_admin1";

@@ -59,7 +59,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: openlms
+          POSTGRES_DB: opensis
         ports:
           - 5432:5432
         options: >-
@@ -68,7 +68,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/openlms?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opensis?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,7 +79,7 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
       - name: Deploy migrations
-        run: npm run db:migrate:deploy --workspace=@openlms/database
+        run: npm run db:migrate:deploy --workspace=@opensis/database
       - name: Integration + e2e tests
         working-directory: apps/api
         # Menjalankan test/integration/* DAN test/app.e2e-spec.ts (butuh

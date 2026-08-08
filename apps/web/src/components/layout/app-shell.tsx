@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useState, type ComponentType, type JSX, type ReactNode } from "react";
+
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@openlms/ui";
+import { cn } from "@opensis/ui";
 import { useAuth, useDemoRoleSwitch } from "@/components/auth/auth-provider";
 import {
   visibleNav,
@@ -45,9 +46,9 @@ import {
   IconLogout,
   IconMenu,
   Select
-} from "@openlms/ui";
+} from "@opensis/ui";
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   home: IconHome,
   book: IconBook,
   clipboard: IconClipboard,
@@ -77,15 +78,15 @@ export function AppShell({
   children
 }: {
   roleGroup: RoleGroup;
-  children: React.ReactNode;
-}): React.JSX.Element {
+  children: ReactNode;
+}): JSX.Element {
   const { user, status, logout } = useAuth();
   const { flags } = useFeatureFlags();
   const pathname = usePathname();
   const router = useRouter();
   const demo = useDemoRoleSwitch();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [notifOpen, setNotifOpen] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   // Badge unread live via Socket.IO (R-27): nilai awal REST + event notification:new.
   const { unread, refresh: refreshUnread } = useUnreadNotifications();
@@ -94,7 +95,7 @@ export function AppShell({
   // Deep link ?notif=1 (dari badge) → buka panel notifikasi, lalu bersihkan URL.
   // Dipakai window.location (bukan useSearchParams) agar tidak wajib Suspense
   // boundary saat prerender statis (R-46).
-  React.useEffect(() => {
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("notif") === "1") {
       setNotifOpen(true);
@@ -104,7 +105,7 @@ export function AppShell({
     }
   }, [pathname, router]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (status === "error" && !DEMO_MODE) {
       router.replace("/login");
     }
@@ -114,7 +115,7 @@ export function AppShell({
   // (mis. SISWA membuka /superadmin/*). API tetap fail-closed; ini mencegah
   // menampilkan shell/navigasi grup yang tidak berhak. Sumber role = UserRole
   // server via /auth/me (sama dengan daftar role API).
-  React.useEffect(() => {
+  useEffect(() => {
     if (status !== "ready" || !user) return;
     const hasGroupAccess = user.roles.some((r) => roleGroupFor(r) === roleGroup);
     if (!hasGroupAccess) {
@@ -137,7 +138,7 @@ export function AppShell({
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
         <p className="text-base text-foreground">Sesi tidak ditemukan.</p>
-        <Link href="/login" className="text-base font-medium text-primary-600 underline">
+        <Link href="/login" className="text-base font-medium text-primary underline">
           Masuk kembali
         </Link>
       </div>
@@ -159,10 +160,11 @@ export function AppShell({
 
   const primaryRole = user.primaryRole ?? user.roles[0];
   const items = visibleNav(roleGroup, flags, user.roles);
-  // Bottom nav dinamis (R-46): jumlah kolom mengikuti item, maks 6 agar tetap
-  // ergonomis di layar sempit — bukan grid-cols-5 tetap.
-  const bottomItems = items.slice(0, 6);
-  const bottomCols = Math.max(1, bottomItems.length);
+  // Bottom nav dinamis (R-46): jumlah kolom mengikuti item; bila item > 6
+  // tampilkan 5 item + tombol "Lainnya" yang membuka drawer penuh (semua item).
+  const overflow = items.length > 6;
+  const bottomItems = overflow ? items.slice(0, 5) : items;
+  const bottomCols = Math.max(1, bottomItems.length + (overflow ? 1 : 0));
   const isActive = (href: string): boolean => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
@@ -178,7 +180,7 @@ export function AppShell({
             >
               <IconMenu className="h-5 w-5" />
             </button>
-            <Link href={`/${roleGroup}/dashboard`} className="text-lg font-bold text-primary-700">
+            <Link href={`/${roleGroup}/dashboard`} className="text-lg font-bold text-primary">
               {APP_NAME}
             </Link>
             <span className="hidden text-sm text-muted-foreground sm:inline">
@@ -347,6 +349,19 @@ export function AppShell({
               </li>
             );
           })}
+          {overflow ? (
+            <li>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Buka semua menu"
+                className="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium text-muted-foreground"
+              >
+                <IconMenu className="h-5 w-5" />
+                Lainnya
+              </button>
+            </li>
+          ) : null}
         </ul>
       </nav>
 

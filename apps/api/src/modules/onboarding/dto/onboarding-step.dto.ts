@@ -9,7 +9,7 @@ import {
   IsString,
   Matches
 } from "class-validator";
-import { SCHOOL_TYPE_VALUES, ROLE_VALUES } from "@openlms/types";
+import { SCHOOL_TYPE_VALUES, ROLE_VALUES } from "@opensis/types";
 
 /** Langkah 1 — profil sekolah (prd04 §9.1). */
 export class OnboardingStep1Dto {

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type HTMLAttributes, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
 type AlertVariant = "info" | "success" | "warning" | "danger";
@@ -12,7 +13,7 @@ const variantClasses: Record<AlertVariant, string> = {
   danger: "border-destructive/50 bg-destructive/10 text-destructive"
 };
 
-export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface AlertProps extends HTMLAttributes<HTMLDivElement> {
   variant?: AlertVariant;
 }
 
@@ -22,7 +23,7 @@ export function Alert({
   variant = "info",
   role = "alert",
   ...props
-}: AlertProps): React.JSX.Element {
+}: AlertProps): JSX.Element {
   return (
     <div
       role={role}
@@ -35,13 +36,13 @@ export function Alert({
 export function AlertTitle({
   className,
   ...props
-}: React.HTMLAttributes<HTMLHeadingElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLHeadingElement>): JSX.Element {
   return <h3 className={cn("mb-1 text-sm font-semibold", className)} {...props} />;
 }
 
 export function AlertDescription({
   className,
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>): React.JSX.Element {
+}: HTMLAttributes<HTMLParagraphElement>): JSX.Element {
   return <p className={cn("text-sm", className)} {...props} />;
 }

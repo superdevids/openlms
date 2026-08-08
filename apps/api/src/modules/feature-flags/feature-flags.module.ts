@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
-import { PrismaClient } from "@openlms/database";
+import { PrismaClient } from "@opensis/database";
 import { FeatureFlagsController } from "./feature-flags.controller";
 import { FeatureFlagsService } from "./feature-flags.service";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 
 @Module({
   controllers: [FeatureFlagsController],

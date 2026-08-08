@@ -1,4 +1,4 @@
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     notification: {
       create: jest.fn(),
@@ -15,7 +15,7 @@ jest.mock("@openlms/database", () => ({
   }
 }));
 
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import type { RealtimeGateway } from "../../src/modules/realtime/realtime.gateway";
 import {
   ASSIGNMENT_NEW_EVENT,
@@ -248,7 +248,7 @@ describe("NotificationService (pusat notifikasi, docs/04 §2.9)", () => {
       notificationModel.createMany.mockResolvedValue({ count: 2 });
 
       const count = await service.createForRoles({
-        roles: ["GURU", "GURU_BK"],
+        roles: ["GURU", "BK"],
         type: "ANNOUNCEMENT",
         title: "Rapat Guru",
         body: "Senin 07:30"
@@ -256,7 +256,7 @@ describe("NotificationService (pusat notifikasi, docs/04 §2.9)", () => {
 
       expect(count).toBe(2);
       expect(userRoleModel.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { role: { in: ["GURU", "GURU_BK"] }, status: "ACTIVE" } })
+        expect.objectContaining({ where: { role: { in: ["GURU", "BK"] }, status: "ACTIVE" } })
       );
       expect(notificationModel.createMany).toHaveBeenCalledTimes(1);
 

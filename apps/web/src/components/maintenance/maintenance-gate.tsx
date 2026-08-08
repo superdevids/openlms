@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useState, type JSX, type ReactNode } from "react";
+
 import { usePathname } from "next/navigation";
 import { api } from "@/lib/api-client";
-import { Button, Spinner } from "@openlms/ui";
+import { Button, Spinner } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
 
 /**
@@ -46,15 +47,15 @@ function isExemptPath(pathname: string): boolean {
   return false;
 }
 
-export function MaintenanceGate({ children }: { children: React.ReactNode }): React.JSX.Element {
+export function MaintenanceGate({ children }: { children: ReactNode }): JSX.Element {
   const pathname = usePathname();
-  const [state, setState] = React.useState<GateState>("checking");
-  const [status, setStatus] = React.useState<PublicSystemStatus | null>(null);
-  const [retrying, setRetrying] = React.useState(false);
+  const [state, setState] = useState<GateState>("checking");
+  const [status, setStatus] = useState<PublicSystemStatus | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   const exempt = isExemptPath(pathname);
 
-  const check = React.useCallback(async (signal?: AbortSignal): Promise<void> => {
+  const check = useCallback(async (signal?: AbortSignal): Promise<void> => {
     setState("checking");
     try {
       const res = await api.get<PublicSystemStatus>("/public/system-status", { signal });
@@ -67,7 +68,7 @@ export function MaintenanceGate({ children }: { children: React.ReactNode }): Re
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (exempt) return;
     const controller = new AbortController();
     void check(controller.signal);

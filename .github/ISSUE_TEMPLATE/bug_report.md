@@ -37,7 +37,7 @@ Apa yang benar-benar terjadi? Sertakan pesan error lengkap bila ada.
 - Browser & versi: (contoh: Chrome 126)
 - Versi Node.js: (contoh: 22.12.0 — lihat `engines` di `package.json`)
 - Mode: Development / Production / Staging
-- Versi openlms / branch: (contoh: `0.5.0` / `main`)
+- Versi opensis / branch: (contoh: `0.5.0` / `main`)
 - Database: PostgreSQL versi `...` (Redis: ya/tidak)
 
 ## Severity

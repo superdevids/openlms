@@ -1,17 +1,18 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, EmptyState } from "@openlms/ui";
+import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, EmptyState } from "@opensis/ui";
 
 import { formatDateLong } from "@/lib/format";
-import { cn } from "@openlms/ui";
+import { cn } from "@opensis/ui";
 import { SCHEDULE_DAY_NAMES, mapScheduleEntry, type ScheduleEntryView } from "@/lib/schedule";
 
 const DAYS = SCHEDULE_DAY_NAMES;
 
-export default function SiswaKalenderPage(): React.JSX.Element {
+export default function SiswaKalenderPage(): JSX.Element {
   // GET /schedules dikembalikan service sebagai ScheduleEntry Prisma
   // (day_of_week 1..7, start_period/end_period) — di-map ke tampilan ringan.
   const schedule = useApi<ScheduleEntryView[]>(async () => {
@@ -21,8 +22,8 @@ export default function SiswaKalenderPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Kalender & Jadwal</h1>
-      <p className="text-sm text-neutral-600">{formatDateLong(new Date())}</p>
+      <h1 className="text-2xl font-bold text-foreground">Kalender & Jadwal</h1>
+      <p className="text-sm text-muted-foreground">{formatDateLong(new Date())}</p>
       <DataView
         status={schedule.status}
         error={schedule.error}
@@ -46,16 +47,16 @@ export default function SiswaKalenderPage(): React.JSX.Element {
                   </CardHeader>
                   <CardContent>
                     {entries.length === 0 ? (
-                      <p className="text-sm text-neutral-500">Tidak ada jadwal</p>
+                      <p className="text-sm text-muted-foreground">Tidak ada jadwal</p>
                     ) : (
                       <ul className="space-y-2">
                         {entries.map((e) => (
                           <li key={e.id} className="flex items-center justify-between gap-2">
                             <span className="min-w-0">
-                              <span className="block truncate text-sm font-medium text-neutral-900">
+                              <span className="block truncate text-sm font-medium text-foreground">
                                 {e.subject}
                               </span>
-                              <span className="block text-xs text-neutral-600">
+                              <span className="block text-xs text-muted-foreground">
                                 Jam ke-{e.periods}
                                 {e.className ? ` · ${e.className}` : ""}
                                 {e.room ? ` · ${e.room}` : ""}

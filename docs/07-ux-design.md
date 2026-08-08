@@ -10,7 +10,7 @@
 
 ## 1. Ringkasan Eksekutif (BLUF)
 
-**openlms dirancang sebagai platform "kerja selesai dalam satu klik": setiap layar menuntaskan satu pekerjaan nyata guru/siswa/staf sekolah (membuat tugas, menilai, scan absen, ikut ujian), bukan sekadar tempat menyimpan data.** Prinsip inti: *satu layar, satu tugas utama*, hierarki visual jelas, dan tidak ada fitur yang menuntut pengguna berpindah aplikasi lagi (WhatsApp/Excel) untuk pekerjaan yang sudah ditangani platform.
+**openlms dirancang sebagai platform "kerja selesai dalam satu klik": setiap layar menuntaskan satu pekerjaan nyata guru/siswa/staf sekolah (membuat tugas, menilai, scan absen, ikut ujian), bukan sekadar tempat menyimpan data.** Prinsip inti: _satu layar, satu tugas utama_, hierarki visual jelas, dan tidak ada fitur yang menuntut pengguna berpindah aplikasi lagi (WhatsApp/Excel) untuk pekerjaan yang sudah ditangani platform.
 
 Tiga keputusan desain yang menjiwai seluruh dokumen:
 
@@ -24,17 +24,17 @@ Prioritas desain mengikuti MVP Master PRD: **Fase 0–2 (auth, onboarding, kelas
 
 ## 2. Prinsip Desain (Design Principles)
 
-| # | Prinsip | Penjabaran operasional |
-|---|---------|------------------------|
-| P1 | Satu layar, satu tugas utama | Setiap halaman punya 1 CTA primer di posisi konsisten (pojok kanan atas konten). Semua elemen lain adalah pendukung. |
-| P2 | Peran menentukan ruang | Navigasi dirender dari RBAC. Tidak ada menu tersembunyi yang "bisa diakses via URL" tanpa izin (guard + UI konsisten). |
-| P3 | Kejelasan status di mana pun | Setiap objek (tugas, submission, pembayaran, pendaftar) selalu menampilkan status eksplisit: badge teks + ikon + warna (bukan warna saja). |
-| P4 | Mobile-first, web responsive | Layout dimulai dari 320px; navigasi utama mobile = bottom nav ≤5 item; desktop = sidebar. Target sentuh ≥44×44px. |
-| P5 | Kesalahan dicegah, bukan hanya dikoreksi | Konfirmasi sebelum aksi destruktif, preview sebelum submit, autosave untuk input panjang (ujian, form PPDB). |
-| P6 | Ramah kuota & koneksi lemah | Lazy-load, kompresi gambar server-side, mode teks-only, offline cache PWA (G16 + G10). |
-| P7 | Aksesibel by default | WCAG AA seluruh platform; fokus keyboard terlihat; error dibacakan via aria-live; label form eksplisit (G15). |
-| P8 | Konsisten & berulang | Token desain tunggal (warna, tipografi, spacing); komponen dari design system (shadcn/ui), tidak ada style ad-hoc per halaman. |
-| P9 | Gamifikasi tidak menghukum | Badge/progress bersifat penguat positif opsional, tidak pernah memblokir akses (G17). |
+| #   | Prinsip                                  | Penjabaran operasional                                                                                                                     |
+| --- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1  | Satu layar, satu tugas utama             | Setiap halaman punya 1 CTA primer di posisi konsisten (pojok kanan atas konten). Semua elemen lain adalah pendukung.                       |
+| P2  | Peran menentukan ruang                   | Navigasi dirender dari RBAC. Tidak ada menu tersembunyi yang "bisa diakses via URL" tanpa izin (guard + UI konsisten).                     |
+| P3  | Kejelasan status di mana pun             | Setiap objek (tugas, submission, pembayaran, pendaftar) selalu menampilkan status eksplisit: badge teks + ikon + warna (bukan warna saja). |
+| P4  | Mobile-first, web responsive             | Layout dimulai dari 320px; navigasi utama mobile = bottom nav ≤5 item; desktop = sidebar. Target sentuh ≥44×44px.                          |
+| P5  | Kesalahan dicegah, bukan hanya dikoreksi | Konfirmasi sebelum aksi destruktif, preview sebelum submit, autosave untuk input panjang (ujian, form PPDB).                               |
+| P6  | Ramah kuota & koneksi lemah              | Lazy-load, kompresi gambar server-side, mode teks-only, offline cache PWA (G16 + G10).                                                     |
+| P7  | Aksesibel by default                     | WCAG AA seluruh platform; fokus keyboard terlihat; error dibacakan via aria-live; label form eksplisit (G15).                              |
+| P8  | Konsisten & berulang                     | Token desain tunggal (warna, tipografi, spacing); komponen dari design system (shadcn/ui), tidak ada style ad-hoc per halaman.             |
+| P9  | Gamifikasi tidak menghukum               | Badge/progress bersifat penguat positif opsional, tidak pernah memblokir akses (G17).                                                      |
 
 ---
 
@@ -286,9 +286,9 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 
 ```
 +----------------------------------------------+
-| openlms                          (logo)       |
+| opensis                          (logo)       |
 | +------------------------------------------+ |
-| | Masuk ke openlms                         | |
+| | Masuk ke opensis                         | |
 | | Masuk dengan akun sekolah Anda          | |
 | |                                          | |
 | | Email atau Username      [............] | |
@@ -302,6 +302,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | +------------------------------------------+ |
 +----------------------------------------------+
 ```
+
 - State: error inline `role="alert"`; loading = spinner di tombol + disabled.
 - Aksesibel: label eksplisit, `aria-required`, fokus ring pada kedua input, tombol ≥44px.
 - Satu metode login: 'Email atau Username' + Password (Argon2id) [prd04 §5.P]; reset password oleh OPERATOR/SUPERADMIN (in-app, tanpa email/SMS) [prd04 §13 Q25]; tanpa tombol Google/SSO (no third-party) [prd04 §5.O].
@@ -329,6 +330,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | (bottom nav: Beranda | Kelas | Ujian | Absensi | Profil) |
 +--------------------------+
 ```
+
 - Prioritas visual: ujian aktif (banner) > tenggat > kelas. Bottom nav ≤5 item (P4, kategori navigasi).
 - State: tidak ada tugas → kartu empty "Tidak ada tugas mendatang".
 
@@ -346,6 +348,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Muat lebih banyak ]        |
 +------------------------------+
 ```
+
 - Tugas (tab kedua): kartu tugas = judul + deadline + badge status (Buka/Tersubmit/Terlambat/Terlewat) → klik = detail + form submit.
 - State: materi kosong → empty state "Guru belum menambah materi" + ikon.
 
@@ -366,6 +369,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | Navigator: 1 2 3 4 5 ... 10  |
 +------------------------------+
 ```
+
 - Navigator menandai: dijawab (terisi), belum (kosong), ditandai (flag). Konfirmasi dialog sebelum "Kumpulkan" jika ada yang belum dijawab.
 - Kuis non-formal: autosave; mode hemat data menonaktifkan gambar soal (opsional).
 
@@ -386,6 +390,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | dalam 60 detik.</role=alert> |
 +------------------------------+
 ```
+
 - 6 field input terpisah (autofocus beruntun), paste satu string didukung; input hanya menerima 6 karakter alfanumerik uppercase tanpa 0/O/1/I (dikapitalkan otomatis).
 - Error: salah → 60s lockout setelah 3× (G11). Di luar jendela → tombol disabled + teks penjelas.
 - Sebelum mulai: layar info durasi & aturan (1 halaman, tombol "Saya mengerti, Mulai").
@@ -409,6 +414,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | Menyambung ulang... </status>     |
 +----------------------------------+
 ```
+
 - Timer mundur besar; 10 menit terakhir = warna kuning, 60 detik = modal peringatan.
 - Indikator "Tersimpan HH:MM" setelah tiap autosave (interval ±15 dtk, idempotent).
 - Koneksi putus → banner non-blokir + queue lokal (G10); tab switch → log + toast peringatan (v2 §2.2c).
@@ -434,6 +440,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Lihat semua - ]                    |
 +--------------------------------------+
 ```
+
 - CTA primer di pojok kanan atas konten: "Buat Tugas/Kuis" (kontekstual).
 - Queue grading selalu terlihat — metrik keberhasilan v1 §11 (guru rutin menilai).
 
@@ -454,6 +461,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | +-------------------------------------------+ |
 +---------------------------------------------+
 ```
+
 - Tampilan berdampingan: soal+kunci di kiri, jawaban siswa di kanan [v2 §2.2e]; keyboard-only: tab memindah fokus antara kedua panel.
 - Skor cepat (numeric input) + feedback teks; shortcut simpan.
 - State: "Tandai periksa nanti" → submission tetap di queue; selesai semua → toast sukses + notifikasi siswa.
@@ -473,6 +481,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Perpanjang 5 mnt ] [ Tutup Sesi ] |
 +--------------------------------------+
 ```
+
 - Token sekali pakai, expired default 7 menit [v2 §3.3]; countdown besar; daftar scan real-time (Socket.IO).
 - (Perpanjang) = token baru; (Tutup Sesi) = hentikan penerimaan, konfirmasi dialog.
 - State error: token expired → layar QR berganti pesan "Sesi berakhir".
@@ -490,6 +499,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 |   [ OK ]                 |
 +--------------------------+
 ```
+
 - 3 hasil: **Hadir** (hijau), **Terlambat** (kuning, teks gelap), **Gagal** (merah + alasan + CTA "Minta QR baru").
 - Status tidak pernah hanya warna: ikon + teks (P3, aksesibilitas).
 
@@ -509,6 +519,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Kelola Kelas - ]                  |
 +--------------------------------------+
 ```
+
 - 3 kartu KPI → klik = halaman detail (rekap nilai, rekap absensi, verifikasi izin).
 - Daftar alpa otomatis di-highlight berdasarkan ambang konfigurasi sekolah [v2 §3.2]; CTA kirim notifikasi orang tua (1 klik).
 
@@ -529,6 +540,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | +----------------------------------+ |
 +--------------------------------------+
 ```
+
 - Kartu per pengajuan; Tolak → dialog wajib isi alasan (role=alert di area form).
 - Setelah aksi → kartu hilang dengan toast sukses; siswa dapat notifikasi (Socket.IO).
 
@@ -548,6 +560,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Laporan - ]                            |
 +------------------------------------------+
 ```
+
 - 4 KPI besar + tren; semua angka klik → drill-down (read-only detail).
 - "Perlu perhatian" = daftar yang digenerate dari aturan (nilai turun, alpa naik) — data, bukan opini.
 
@@ -570,6 +583,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Pengaturan Aplikasi ] [ Audit Log ] [ Manajemen User ] |
 +----------------------------------------------+
 ```
+
 - KPI dalam sekolah: siswa/guru/kelas aktif, adopsi fitur dalam sekolah — **G21 (analitik lintas-sekolah) TIDAK RELEVAN** [owner-v4.2].
 - CTA: [Pengaturan Aplikasi] (identitas sekolah/tahun ajaran + Feature Flags), [Audit Log], [Manajemen User] (reset password oleh SUPERADMIN/OPERATOR).
 
@@ -589,6 +603,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Simpan ]                                       |
 +--------------------------------------------------+
 ```
+
 - OFF = UI disembunyikan, route diblokir, API tolak `FEATURE_DISABLED` (403); flag `locked` tidak bisa diubah; semua toggle diaudit (AuditLog).
 - Implementasi: FeatureFlag + AppFeatureSetting + guard FEATURE_DISABLED (F1-T13 di 05-implementation-plan).
 
@@ -609,6 +624,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | Draft tersimpan otomatis (autosave)   |
 +--------------------------------------+
 ```
+
 - Wizard progress di atas; autosave draft lokal (mencegah hilang saat koneksi putus).
 - Validasi ukuran/tipe file real-time; error inline + `role=alert`.
 - Langkah 4 berisi consent data anak (checkbox wajib, timestamp) [v3 G13] + ringkasan.
@@ -627,6 +643,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | - pengumuman 20 Agustus)             |
 +--------------------------------------+
 ```
+
 - Status pipeline: Terdaftar → Dokumen Diverifikasi → Diterima/Tidak Diterima.
 - Setiap status = teks + ikon + penjelasan langkah berikutnya (bukan hanya badge).
 
@@ -644,6 +661,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 |   [ Kirim Undangan ] ]                      |
 +----------------------------------------------+
 ```
+
 - (Undang) membuka Dialog form; status undangan: terkirim/terpakai/kedaluwarsa.
 - Tabel responsif: mobile = kartu per user, bukan tabel horizontal scroll.
 
@@ -666,6 +684,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | Hasil: 244 berhasil * 4 dilewati (lihat log) |
 +----------------------------------------------+
 ```
+
 - Template → upload → validasi → **preview dengan error per baris** → impor parsial yang aman.
 - Import idempoten: menjalankan ulang tidak menduplikasi (validasi NISN/NIP).
 
@@ -687,6 +706,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | [ Lihat detail nilai - ]                    |
 +---------------------------------------------+
 ```
+
 - Satu layar ringkas **read-only**: nilai, absensi, dan tagihan anak; tidak ada aksi tulis (P2: RBAC membatasi role orang tua) [01-master §5.2 Grup C].
 - Kartu Tagihan menampilkan status read-only; sebelum modul keuangan aktif, tampilkan empty state "Belum ada data tagihan".
 - Semua angka dapat diklik → halaman detail read-only; notifikasi nilai keluar/alpa/tagihan via Socket.IO.
@@ -700,40 +720,41 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 
 Semua kontras dihitung terhadap putih `#FFFFFF` (atau permukaan di mana teks berada). Nilai kontras: rasio minimum **4.5:1 teks normal**, **3:1 elemen UI & teks besar (≥18pt/24px)**.
 
-| Token | Hex | Penggunaan | Kontras vs putih | Kelas WCAG |
-|-------|-----|------------|------------------|------------|
-| `--primary-600` | `#2563EB` | Tombol primer, link aktif, fokus | 5.2:1 | AA teks normal |
-| `--primary-700` | `#1D4ED8` | Hover primer | 7.0:1 | AA/AAA |
-| `--primary-100` | `#DBEAFE` | Latar chip aktif (teks pakai primary-800 `#1E40AF`, 7.8:1) | - | AA |
-| `--success-600` | `#059669` | Status sukses, hadir | 4.6:1 | AA |
-| `--warning-700` | `#B45309` | Status terlambat/peringatan (bukan 600 yang 3.9:1) | 5.9:1 | AA |
-| `--danger-600` | `#DC2626` | Error, hapus, alpa | 4.5:1 | AA |
-| `--info-700` | `#0369A1` | Info, tautan sekunder | 6.2:1 | AA |
-| `--text-primary` | `#111827` | Judul & body utama | 15.6:1 | AAA |
-| `--text-secondary` | `#4B5563` | Body sekunder, caption penting | 7.1:1 | AA/AAA |
-| `--text-muted` | `#6B7280` | Caption non-esensial (≥14px saja) | 4.7:1 | AA |
-| `--border-strong` | `#6B7280` | Border input (indikator interaktif ≥3:1) | 4.7:1 | AA |
-| `--border-subtle` | `#E5E7EB` | Pemisah kartu (non-interaktif) | - | tidak wajib |
-| `--surface` | `#FFFFFF` | Kartu, halaman | - | - |
-| `--surface-alt` | `#F9FAFB` | Latar halaman/section bergantian | - | - |
+| Token              | Hex       | Penggunaan                                                 | Kontras vs putih | Kelas WCAG     |
+| ------------------ | --------- | ---------------------------------------------------------- | ---------------- | -------------- |
+| `--primary-600`    | `#2563EB` | Tombol primer, link aktif, fokus                           | 5.2:1            | AA teks normal |
+| `--primary-700`    | `#1D4ED8` | Hover primer                                               | 7.0:1            | AA/AAA         |
+| `--primary-100`    | `#DBEAFE` | Latar chip aktif (teks pakai primary-800 `#1E40AF`, 7.8:1) | -                | AA             |
+| `--success-600`    | `#059669` | Status sukses, hadir                                       | 4.6:1            | AA             |
+| `--warning-700`    | `#B45309` | Status terlambat/peringatan (bukan 600 yang 3.9:1)         | 5.9:1            | AA             |
+| `--danger-600`     | `#DC2626` | Error, hapus, alpa                                         | 4.5:1            | AA             |
+| `--info-700`       | `#0369A1` | Info, tautan sekunder                                      | 6.2:1            | AA             |
+| `--text-primary`   | `#111827` | Judul & body utama                                         | 15.6:1           | AAA            |
+| `--text-secondary` | `#4B5563` | Body sekunder, caption penting                             | 7.1:1            | AA/AAA         |
+| `--text-muted`     | `#6B7280` | Caption non-esensial (≥14px saja)                          | 4.7:1            | AA             |
+| `--border-strong`  | `#6B7280` | Border input (indikator interaktif ≥3:1)                   | 4.7:1            | AA             |
+| `--border-subtle`  | `#E5E7EB` | Pemisah kartu (non-interaktif)                             | -                | tidak wajib    |
+| `--surface`        | `#FFFFFF` | Kartu, halaman                                             | -                | -              |
+| `--surface-alt`    | `#F9FAFB` | Latar halaman/section bergantian                           | -                | -              |
 
 Aturan:
+
 - **Teks di atas warna**: teks putih hanya di atas primary-600/success-600/danger-600/info-700 (semua ≥4.5:1). Di atas warning pakai teks gelap `#111827` (kontras 8.0:1 terhadap `#B45309`).
 - **Jangan pernah menyampaikan status dengan warna saja** — selalu + ikon + teks (P3).
 - Dark mode = fase lanjutan; wajib token ulang dengan kontras setara, bukan inverter otomatis.
 
 ### 6.2 Tipografi
 
-| Level | Font | Ukuran / Line-height | Berat | Penggunaan |
-|-------|------|----------------------|-------|------------|
-| Display | Plus Jakarta Sans | 30px / 1.2 | 700 | Judul halaman (halaman utama) |
-| H1 | Plus Jakarta Sans | 24px / 1.25 | 700 | Judul halaman/detail |
-| H2 | Plus Jakarta Sans | 20px / 1.3 | 600 | Judul section |
-| H3 | Inter | 16px / 1.4 | 600 | Judul kartu |
-| Body | Inter | 16px / 1.5 | 400 | Teks utama (base) |
-| Body-sm | Inter | 14px / 1.5 | 400 | Teks sekunder, tabel |
-| Caption | Inter | 12px / 1.4 | 500 | Label kecil, timestamp (hindari <12px) |
-| Mono | JetBrains Mono | 16-24px | 600 | Token ujian, angka timer |
+| Level   | Font              | Ukuran / Line-height | Berat | Penggunaan                             |
+| ------- | ----------------- | -------------------- | ----- | -------------------------------------- |
+| Display | Plus Jakarta Sans | 30px / 1.2           | 700   | Judul halaman (halaman utama)          |
+| H1      | Plus Jakarta Sans | 24px / 1.25          | 700   | Judul halaman/detail                   |
+| H2      | Plus Jakarta Sans | 20px / 1.3           | 600   | Judul section                          |
+| H3      | Inter             | 16px / 1.4           | 600   | Judul kartu                            |
+| Body    | Inter             | 16px / 1.5           | 400   | Teks utama (base)                      |
+| Body-sm | Inter             | 14px / 1.5           | 400   | Teks sekunder, tabel                   |
+| Caption | Inter             | 12px / 1.4           | 500   | Label kecil, timestamp (hindari <12px) |
+| Mono    | JetBrains Mono    | 16-24px              | 600   | Token ujian, angka timer               |
 
 - **Plus Jakarta Sans** dipilih karena asal Indonesia & mendukung Latin; **Inter** untuk body agar nyaman di layar; **JetBrains Mono** untuk token/kode yang harus mudah dibedakan (0/O, 1/I/l).
 - Base **16px**; line-height **1.5**; panjang baris teks materi ≤ 75 karakter.
@@ -741,22 +762,22 @@ Aturan:
 
 ### 6.3 Spacing, Radius, Elevasi
 
-| Token | Nilai | Penggunaan |
-|-------|-------|------------|
-| `space-1` | 4px | Gap antar elemen inline (ikon-teks) |
-| `space-2` | 8px | Gap antar kontrol form, padding chip |
-| `space-3` | 12px | Padding kompak (badge, input) |
-| `space-4` | 16px | Padding kartu, gap antar kartu (mobile) |
-| `space-6` | 24px | Padding konten utama, gap section |
-| `space-8` | 32px | Jarak antar section besar |
-| `space-12` | 48px | Jarak antar blok halaman |
+| Token      | Nilai | Penggunaan                              |
+| ---------- | ----- | --------------------------------------- |
+| `space-1`  | 4px   | Gap antar elemen inline (ikon-teks)     |
+| `space-2`  | 8px   | Gap antar kontrol form, padding chip    |
+| `space-3`  | 12px  | Padding kompak (badge, input)           |
+| `space-4`  | 16px  | Padding kartu, gap antar kartu (mobile) |
+| `space-6`  | 24px  | Padding konten utama, gap section       |
+| `space-8`  | 32px  | Jarak antar section besar               |
+| `space-12` | 48px  | Jarak antar blok halaman                |
 
-| Token | Nilai | Penggunaan |
-|-------|-------|------------|
-| `radius-sm` | 6px | Input, badge |
-| `radius-md` | 8px | Tombol, kartu kecil |
-| `radius-lg` | 12px | Kartu besar, dialog |
-| `radius-full` | 999px | Pill, avatar, tombol ikon |
+| Token             | Nilai            | Penggunaan                            |
+| ----------------- | ---------------- | ------------------------------------- |
+| `radius-sm`       | 6px              | Input, badge                          |
+| `radius-md`       | 8px              | Tombol, kartu kecil                   |
+| `radius-lg`       | 12px             | Kartu besar, dialog                   |
+| `radius-full`     | 999px            | Pill, avatar, tombol ikon             |
 | `shadow-sm/md/lg` | Tailwind default | Kartu (sm), dialog (lg), fokus (ring) |
 
 - Grid: 4px base; konten max-width 1200px (desktop), padding halaman 16px (mobile) / 24px (desktop).
@@ -764,49 +785,49 @@ Aturan:
 
 ### 6.4 Komponen Inti + Mapping shadcn/ui
 
-| Komponen Produk | shadcn/ui | Catatan penyesuaian |
-|-----------------|-----------|---------------------|
-| Tombol (primary/secondary/outline/ghost/destructive/link) | `Button` | varian sesuai token §6.1; disabled 40% opacity + tetap kontras teks |
-| Kartu (kelas, tugas, materi, KPI) | `Card` (+ `CardHeader/Content/Footer`) | judul H3, padding space-4 |
-| Tabel (rekap nilai, absensi, tagihan, audit/flag) | `Table` | header sticky; mobile → kartu (bukan scroll horizontal) |
-| Dialog (konfirmasi, form cepat, preview) | `Dialog` + `AlertDialog` | focus trap, ESC tutup, judul `aria-labelledby` |
-| Form (tugas, kuis, PPDB, undangan) | `Form` + `Input` + `Textarea` + `Select` + `Label` + `Checkbox` + `RadioGroup` | label eksplisit selalu; error inline + `aria-describedby` |
-| Pemberitahuan aksi (sukses/gagal simpan) | `Sonner` (toast) | `aria-live="polite"`; tahan ≥4 detik |
-| Pemberitahuan penting/error blokir | `Alert` | `role="alert"` |
-| Tab (materi/tugas/kuis/nilai) | `Tabs` | keyboard arrow navigation |
-| Badge status (Tersubmit/Terlambat/Diverifikasi…) | `Badge` | ikon+teks+warna, bukan warna saja |
-| Drawer mobile (filter, detail cepat) | `Sheet` | swipe & ESC close |
-| Menu aksi per baris | `DropdownMenu` | item destruktif terpisah + konfirmasi |
-| Indikator loading | `Skeleton` | skeleton mengikuti bentuk layout (bukan spinner penuh) |
-| Progress (timer ujian, progres kelas) | `Progress` | + teks persen, `aria-valuenow` |
-| Avatar (siswa/guru) | `Avatar` | fallback inisial; alt/teks nama selalu ada |
-| Stepper wizard (onboarding, PPDB) | custom `Steps` (kombinasi) | status: selesai/aktif/terkunci; a11y `aria-current="step"` |
-| Toggle (data-saver, gamifikasi) | `Switch` | label jelas + state "on/off" teks |
-| Tooltip | `Tooltip` | tidak pernah jadi satu-satunya cara akses info |
-| Empty state | custom (Card + ikon + teks + CTA) | selalu beri CTA aksi pertama |
-| Pencarian global* | `Command` | fase lanjutan |
+| Komponen Produk                                           | shadcn/ui                                                                      | Catatan penyesuaian                                                 |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| Tombol (primary/secondary/outline/ghost/destructive/link) | `Button`                                                                       | varian sesuai token §6.1; disabled 40% opacity + tetap kontras teks |
+| Kartu (kelas, tugas, materi, KPI)                         | `Card` (+ `CardHeader/Content/Footer`)                                         | judul H3, padding space-4                                           |
+| Tabel (rekap nilai, absensi, tagihan, audit/flag)         | `Table`                                                                        | header sticky; mobile → kartu (bukan scroll horizontal)             |
+| Dialog (konfirmasi, form cepat, preview)                  | `Dialog` + `AlertDialog`                                                       | focus trap, ESC tutup, judul `aria-labelledby`                      |
+| Form (tugas, kuis, PPDB, undangan)                        | `Form` + `Input` + `Textarea` + `Select` + `Label` + `Checkbox` + `RadioGroup` | label eksplisit selalu; error inline + `aria-describedby`           |
+| Pemberitahuan aksi (sukses/gagal simpan)                  | `Sonner` (toast)                                                               | `aria-live="polite"`; tahan ≥4 detik                                |
+| Pemberitahuan penting/error blokir                        | `Alert`                                                                        | `role="alert"`                                                      |
+| Tab (materi/tugas/kuis/nilai)                             | `Tabs`                                                                         | keyboard arrow navigation                                           |
+| Badge status (Tersubmit/Terlambat/Diverifikasi…)          | `Badge`                                                                        | ikon+teks+warna, bukan warna saja                                   |
+| Drawer mobile (filter, detail cepat)                      | `Sheet`                                                                        | swipe & ESC close                                                   |
+| Menu aksi per baris                                       | `DropdownMenu`                                                                 | item destruktif terpisah + konfirmasi                               |
+| Indikator loading                                         | `Skeleton`                                                                     | skeleton mengikuti bentuk layout (bukan spinner penuh)              |
+| Progress (timer ujian, progres kelas)                     | `Progress`                                                                     | + teks persen, `aria-valuenow`                                      |
+| Avatar (siswa/guru)                                       | `Avatar`                                                                       | fallback inisial; alt/teks nama selalu ada                          |
+| Stepper wizard (onboarding, PPDB)                         | custom `Steps` (kombinasi)                                                     | status: selesai/aktif/terkunci; a11y `aria-current="step"`          |
+| Toggle (data-saver, gamifikasi)                           | `Switch`                                                                       | label jelas + state "on/off" teks                                   |
+| Tooltip                                                   | `Tooltip`                                                                      | tidak pernah jadi satu-satunya cara akses info                      |
+| Empty state                                               | custom (Card + ikon + teks + CTA)                                              | selalu beri CTA aksi pertama                                        |
+| Pencarian global*                                         | `Command`                                                                      | fase lanjutan                                                       |
 
 ### 6.5 Pola State (wajib konsisten di semua halaman)
 
-| State | Pola | Contoh |
-|-------|------|--------|
-| **Loading** | Skeleton sesuai layout + spinner kecil di tombol aksi; tidak ada layout shift (reserve space) | Detail kelas: 3 baris skeleton kartu |
-| **Error (blokir)** | `Alert role="alert"` di atas konten + tombol "Coba lagi" | Server tidak dapat dijangkau |
-| **Error (form)** | Inline di bawah field + border danger + `aria-describedby`; ringkasan error di atas form | "File lebih dari 5MB" |
-| **Empty** | Ikon + kalimat singkat + CTA primer | "Belum ada tugas. (Buat tugas)" (guru) |
-| **Success** | Toast sukses + status badge berubah; untuk aksi besar: layar konfirmasi | "Nilai tersimpan", "Submission terkirim" |
-| **Partial** | Badge "Sebagian gagal" + unduh log | Impor Excel 244/248 berhasil |
-| **Offline** | Banner non-blokir + ikon koneksi; input tetap bisa (queue lokal) | Ujian saat koneksi putus |
+| State              | Pola                                                                                          | Contoh                                   |
+| ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **Loading**        | Skeleton sesuai layout + spinner kecil di tombol aksi; tidak ada layout shift (reserve space) | Detail kelas: 3 baris skeleton kartu     |
+| **Error (blokir)** | `Alert role="alert"` di atas konten + tombol "Coba lagi"                                      | Server tidak dapat dijangkau             |
+| **Error (form)**   | Inline di bawah field + border danger + `aria-describedby`; ringkasan error di atas form      | "File lebih dari 5MB"                    |
+| **Empty**          | Ikon + kalimat singkat + CTA primer                                                           | "Belum ada tugas. (Buat tugas)" (guru)   |
+| **Success**        | Toast sukses + status badge berubah; untuk aksi besar: layar konfirmasi                       | "Nilai tersimpan", "Submission terkirim" |
+| **Partial**        | Badge "Sebagian gagal" + unduh log                                                            | Impor Excel 244/248 berhasil             |
+| **Offline**        | Banner non-blokir + ikon koneksi; input tetap bisa (queue lokal)                              | Ujian saat koneksi putus                 |
 
 ### 6.6 Responsive (mobile-first)
 
-| Breakpoint | Lebar | Perilaku |
-|------------|-------|----------|
-| Base | <640px | 1 kolom; bottom nav 5 item; tabel → kartu; dialog full-screen (Sheet) |
-| `sm` | ≥640px | 2 kolom kartu; bottom nav tetap |
-| `md` | ≥768px | Sidebar navigasi muncul (gantikan bottom nav); 2-3 kolom |
-| `lg` | ≥1024px | Layout penuh: sidebar + konten 3-4 kolom; grading side-by-side aktif |
-| `xl` | ≥1280px | Maks konten 1200px; padding 24px |
+| Breakpoint | Lebar   | Perilaku                                                              |
+| ---------- | ------- | --------------------------------------------------------------------- |
+| Base       | <640px  | 1 kolom; bottom nav 5 item; tabel → kartu; dialog full-screen (Sheet) |
+| `sm`       | ≥640px  | 2 kolom kartu; bottom nav tetap                                       |
+| `md`       | ≥768px  | Sidebar navigasi muncul (gantikan bottom nav); 2-3 kolom              |
+| `lg`       | ≥1024px | Layout penuh: sidebar + konten 3-4 kolom; grading side-by-side aktif  |
+| `xl`       | ≥1280px | Maks konten 1200px; padding 24px                                      |
 
 - Tidak pernah horizontal scroll; tabel lebar → pola kartu atau detail drill-down.
 - Konten penting (timer ujian, tombol submit) tetap terlihat di viewport mobile tanpa scroll.
@@ -817,23 +838,24 @@ Aturan:
 
 Sekolah inklusi ada di SMA/SMK reguler; standar aksesibilitas menyeluruh (bukan hanya halaman publik PPDB) [v3 G15].
 
-| Area | Standar wajib |
-|------|---------------|
-| **Semantic HTML** | Satu `<h1>` per halaman; landmark `<header>/<nav>/<main>/<aside>/<footer>`; daftar memakai `<ul>/<ol>`; tabel memakai `<th scope>`; link vs tombol dibedakan benar. |
-| **Skip link** | "Lewati ke konten utama" — target pertama di tab, terlihat saat fokus. |
-| **Keyboard** | Semua interaktif dapat difokus & dioperasikan keyboard; urutan fokus logis (kiri→kanan, atas→bawah); dialog: focus trap + ESC; tabs: arrow keys. |
-| **Focus state** | Focus ring terlihat: outline 2px `--primary-600` + offset 2px; JANGAN dihapus (`outline: none` tanpa pengganti). |
-| **Kontras** | AA semua teks (§6.1); status tidak hanya warna (ikon + teks). |
-| **Form** | Label eksplisit (bukan placeholder-only); `aria-required`; error inline + `aria-describedby` + `aria-invalid`; ringkasan error di atas form; focus pindah ke field error pertama. |
+| Area                   | Standar wajib                                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Semantic HTML**      | Satu `<h1>` per halaman; landmark `<header>/<nav>/<main>/<aside>/<footer>`; daftar memakai `<ul>/<ol>`; tabel memakai `<th scope>`; link vs tombol dibedakan benar.                 |
+| **Skip link**          | "Lewati ke konten utama" — target pertama di tab, terlihat saat fokus.                                                                                                              |
+| **Keyboard**           | Semua interaktif dapat difokus & dioperasikan keyboard; urutan fokus logis (kiri→kanan, atas→bawah); dialog: focus trap + ESC; tabs: arrow keys.                                    |
+| **Focus state**        | Focus ring terlihat: outline 2px `--primary-600` + offset 2px; JANGAN dihapus (`outline: none` tanpa pengganti).                                                                    |
+| **Kontras**            | AA semua teks (§6.1); status tidak hanya warna (ikon + teks).                                                                                                                       |
+| **Form**               | Label eksplisit (bukan placeholder-only); `aria-required`; error inline + `aria-describedby` + `aria-invalid`; ringkasan error di atas form; focus pindah ke field error pertama.   |
 | **Error announcement** | Error blokir/inline: `role="alert"` (assertive). Toast sukses: `aria-live="polite"`. Timer ujian & status autosave: `aria-live="polite"` (interval tidak mengganggu pembaca layar). |
-| **Timer ujian** | Waktu selalu teks besar & kontras; peringatan 10/5/1 menit (visual + audio opsional); tombol submit tetap fokusable. |
-| **Motion** | Hormati `prefers-reduced-motion`: tanpa animasi dekoratif; transisi ≤200ms; tidak ada elemen berkedip >3×/detik. |
-| **Target sentuh** | ≥44×44px; jarak ≥8px. |
-| **Gambar/ikon** | `alt` deskriptif; ikon dekoratif `aria-hidden`; ikon fungsional punya label teks (nama aksesibel). |
-| **Bahasa** | `lang="id"` di root; teks UI Bahasa Indonesia. |
-| **Multi-device** | Satu metode login untuk semua perangkat: 'Email atau Username' + Password (Argon2id); tanpa SSO eksternal (no third-party) [prd04 §5.O]. |
+| **Timer ujian**        | Waktu selalu teks besar & kontras; peringatan 10/5/1 menit (visual + audio opsional); tombol submit tetap fokusable.                                                                |
+| **Motion**             | Hormati `prefers-reduced-motion`: tanpa animasi dekoratif; transisi ≤200ms; tidak ada elemen berkedip >3×/detik.                                                                    |
+| **Target sentuh**      | ≥44×44px; jarak ≥8px.                                                                                                                                                               |
+| **Gambar/ikon**        | `alt` deskriptif; ikon dekoratif `aria-hidden`; ikon fungsional punya label teks (nama aksesibel).                                                                                  |
+| **Bahasa**             | `lang="id"` di root; teks UI Bahasa Indonesia.                                                                                                                                      |
+| **Multi-device**       | Satu metode login untuk semua perangkat: 'Email atau Username' + Password (Argon2id); tanpa SSO eksternal (no third-party) [prd04 §5.O].                                            |
 
 Kasus khusus siswa disabilitas:
+
 - **Low vision**: mode teks lebih besar (125%) tidak merusak layout; zoom 200% tanpa kehilangan fungsi (WCAG 1.4.4/1.4.10).
 - **Tuli**: materi video wajib teks/transkrip (unggahan guru disarankan menyertakan; platform menyediakan kolom deskripsi).
 - **Disleksia**: opsi font spasi lebar (toggle), hindari teks justify, jeda paragraf jelas.
@@ -844,16 +866,16 @@ Kasus khusus siswa disabilitas:
 
 Siswa banyak yang akses via kuota seluler terbatas — biaya data bisa menjadi barrier ekonomi [v3 G16]. Desain ini menggabungkan rekomendasi offline-first G10.
 
-| Fitur | Implementasi |
-|-------|--------------|
-| **Deteksi otomatis** | Aktif default saat `navigator.connection.saveData` true atau effectiveType 3g/2g; bisa di-toggle manual di Profil/Pengaturan. |
-| **Lazy-load** | Gambar & lampiran dimuat saat mendekati viewport (IntersectionObserver); placeholder berwarna `--surface-alt` (CLS ≤0.1). |
-| **Kompresi server-side** | Semua upload guru dikompresi otomatis di server sebelum disimpan (WebP/AVIF; target ≤200KB gambar materi) [v3 G10/G16]. |
-| **Format adaptif** | `srcset`/`sizes`; video: thumbnail + pilihan kualitas (rendah default di data-saver), tanpa autoplay. |
-| **Mode teks-only** | Toggle per materi: gambar di-skip, dokumen PDF → versi teks/detail ringkas; tombol "Buka file asli" bila perlu. |
-| **Cache offline (PWA)** | Service worker cache materi yang sudah dibuka; absensi QR di-queue lokal & sync saat online (G10); indikator "tersedia offline". |
-| **Batas notifikasi** | Push notifikasi diringkas (1 notifikasi per tugas, bukan per aktivitas); notifikasi tidak memuat lampiran berat. |
-| **Transparansi** | Badge "Hemat data ON" di header saat aktif; sekali toggle berlaku global (tidak per halaman). |
+| Fitur                    | Implementasi                                                                                                                     |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Deteksi otomatis**     | Aktif default saat `navigator.connection.saveData` true atau effectiveType 3g/2g; bisa di-toggle manual di Profil/Pengaturan.    |
+| **Lazy-load**            | Gambar & lampiran dimuat saat mendekati viewport (IntersectionObserver); placeholder berwarna `--surface-alt` (CLS ≤0.1).        |
+| **Kompresi server-side** | Semua upload guru dikompresi otomatis di server sebelum disimpan (WebP/AVIF; target ≤200KB gambar materi) [v3 G10/G16].          |
+| **Format adaptif**       | `srcset`/`sizes`; video: thumbnail + pilihan kualitas (rendah default di data-saver), tanpa autoplay.                            |
+| **Mode teks-only**       | Toggle per materi: gambar di-skip, dokumen PDF → versi teks/detail ringkas; tombol "Buka file asli" bila perlu.                  |
+| **Cache offline (PWA)**  | Service worker cache materi yang sudah dibuka; absensi QR di-queue lokal & sync saat online (G10); indikator "tersedia offline". |
+| **Batas notifikasi**     | Push notifikasi diringkas (1 notifikasi per tugas, bukan per aktivitas); notifikasi tidak memuat lampiran berat.                 |
+| **Transparansi**         | Badge "Hemat data ON" di header saat aktif; sekali toggle berlaku global (tidak per halaman).                                    |
 
 Indikator data-saver selalu terlihat (ikon di header) agar siswa paham mengapa gambar tidak dimuat.
 
@@ -863,13 +885,13 @@ Indikator data-saver selalu terlihat (ikon di header) agar siswa paham mengapa g
 
 Gamifikasi adalah penguat adopsi siswa [v3 G17], bukan gerbang akses. Semua mekanisme **opsional, non-blokir, dan dapat dinonaktifkan oleh admin sekolah** (toggle di Pengaturan Sekolah).
 
-| Elemen | Desain | Aturan non-blokir |
-|--------|--------|-------------------|
-| **Badge** | Badge keterampilan: "Rutin" (submit 10 tugas), "Juara Kuis" (nilai kuis ≥90), "Rajin" (hadir 100% sebulan) | Badge hanya info; tidak ada akses/poin yang ditahan. |
-| **Progress** | Bar progres per kelas/materi ("60% materi dibaca"), progress tugas per mapel | Progress tidak menghalangi materi berikutnya. |
-| **Streak** | Hitung hari belajar beruntun di Beranda siswa | Tidak ada penalti jika putus. |
-| **Leaderboard (opsional)** | Default NONAKTIF; admin sekolah dapat mengaktifkan per kelas | Privasi: nama samaran/pilih kelas; tidak pernah menampilkan nilai negatif. |
-| **Notifikasi positif** | Toast/netral saat siswa meraih badge — frekuensi dibatasi (≤2/hari) | Bisa dimatikan di pengaturan notifikasi. |
+| Elemen                     | Desain                                                                                                     | Aturan non-blokir                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Badge**                  | Badge keterampilan: "Rutin" (submit 10 tugas), "Juara Kuis" (nilai kuis ≥90), "Rajin" (hadir 100% sebulan) | Badge hanya info; tidak ada akses/poin yang ditahan.                       |
+| **Progress**               | Bar progres per kelas/materi ("60% materi dibaca"), progress tugas per mapel                               | Progress tidak menghalangi materi berikutnya.                              |
+| **Streak**                 | Hitung hari belajar beruntun di Beranda siswa                                                              | Tidak ada penalti jika putus.                                              |
+| **Leaderboard (opsional)** | Default NONAKTIF; admin sekolah dapat mengaktifkan per kelas                                               | Privasi: nama samaran/pilih kelas; tidak pernah menampilkan nilai negatif. |
+| **Notifikasi positif**     | Toast/netral saat siswa meraih badge — frekuensi dibatasi (≤2/hari)                                        | Bisa dimatikan di pengaturan notifikasi.                                   |
 
 - Aksesibel: pencapaian disampaikan teks + ikon, bukan hanya warna/animasi; hormati `prefers-reduced-motion`.
 - Etika: tidak ada mekanisme "kalah"/peringkat publik yang memalukan; fokus penguatan perilaku belajar.
@@ -880,15 +902,16 @@ Gamifikasi adalah penguat adopsi siswa [v3 G17], bukan gerbang akses. Semua meka
 
 Prioritas mengikuti prd04 §10 (roadmap): **fondasi + LMS inti + absensi/ujian + e-Rapor dasar + portal orang tua read-only + fondasi teknis** adalah MVP; PPDB/keuangan/live-class ditunda pasca-MVP; modul pendukung sesuai kebutuhan sekolah pilot [prd04 §10].
 
-| Fase | Fokus | Desain yang wajib tuntas | Desain yang boleh minimal |
-|------|-------|--------------------------|---------------------------|
-| **0-2 (MVP inti)** | Auth, onboarding, kelas, materi, tugas, submission, grading, notifikasi dasar | Login (Email/Username + Password); wizard onboarding (profil+impor+undang); kelas CRUD; detail kelas (materi/tugas); form tugas; submission siswa; queue & grading guru (side-by-side); rekap nilai dasar; design system inti; aksesibilitas dasar (semua halaman); data-saver dasar; notifikasi | Dashboard kepsek/waka; PPDB; keuangan; analitik |
-| **3-4** | Kuis & penilaian; absensi online QR; ujian online; e-Rapor; portal orang tua | Bank soal & kuis; absensi QR (generate/scan/validasi); ujian online (token, timer, autosave, auto-submit, log kecurangan, hasil); rekap nilai lanjut; izin/sakit + verifikasi wali kelas; dashboard wali kelas; **portal orang tua read-only (dashboard nilai/absensi/tagihan anak)** | Dashboard superadmin |
-| **5 (Gelombang 2 — W2)** | Keuangan SPP; payroll; aset & depresiasi; konsol admin; kalender terpadu; rollover tahun ajaran | Keuangan (tagihan/verifikasi/laporan) [W2-PAYMENT]; payroll (slip, PPh 21 TER/BPJS) [W2-PAYROLL]; aset (inventaris/depresiasi/opname) [W2-ASSET]; konsol admin sistem sekolah (pengaturan, feature flags, audit) [W2-ADMIN]; kalender terpadu lintas modul [W2-KALENDER]; rollover tahun ajaran [M-ROLLOVER] | PPDB; komunikasi; kesiswaan; perpustakaan; alumni |
-| **6 (Gelombang 3 — W3)** | PPDB; notifikasi penuh; akademik lanjut; kesiswaan; komunikasi | PPDB wizard 4 langkah + verifikasi TU + pengumuman; portal cek status; notifikasi penuh | Modul pendukung (BK, sarpras, perpustakaan, alumni, komunikasi) sesuai kebutuhan sekolah pilot |
-| **7+ (pasca MVP / DEFER)** | Dashboard kepsek penuh; superadmin; gamifikasi penuh; live class DITUNDA | Dashboard kepsek (KPI + tren); superadmin (statistik adopsi fitur dalam sekolah); gamifikasi penuh (G17) dengan toggle; live class DITUNDA (jika dibangun = WebRTC self-hosted; tanpa Jitsi) | - |
+| Fase                       | Fokus                                                                                           | Desain yang wajib tuntas                                                                                                                                                                                                                                                                                     | Desain yang boleh minimal                                                                      |
+| -------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| **0-2 (MVP inti)**         | Auth, onboarding, kelas, materi, tugas, submission, grading, notifikasi dasar                   | Login (Email/Username + Password); wizard onboarding (profil+impor+undang); kelas CRUD; detail kelas (materi/tugas); form tugas; submission siswa; queue & grading guru (side-by-side); rekap nilai dasar; design system inti; aksesibilitas dasar (semua halaman); data-saver dasar; notifikasi             | Dashboard kepsek/waka; PPDB; keuangan; analitik                                                |
+| **3-4**                    | Kuis & penilaian; absensi online QR; ujian online; e-Rapor; portal orang tua                    | Bank soal & kuis; absensi QR (generate/scan/validasi); ujian online (token, timer, autosave, auto-submit, log kecurangan, hasil); rekap nilai lanjut; izin/sakit + verifikasi wali kelas; dashboard wali kelas; **portal orang tua read-only (dashboard nilai/absensi/tagihan anak)**                        | Dashboard superadmin                                                                           |
+| **5 (Gelombang 2 — W2)**   | Keuangan SPP; payroll; aset & depresiasi; konsol admin; kalender terpadu; rollover tahun ajaran | Keuangan (tagihan/verifikasi/laporan) [W2-PAYMENT]; payroll (slip, PPh 21 TER/BPJS) [W2-PAYROLL]; aset (inventaris/depresiasi/opname) [W2-ASSET]; konsol admin sistem sekolah (pengaturan, feature flags, audit) [W2-ADMIN]; kalender terpadu lintas modul [W2-KALENDER]; rollover tahun ajaran [M-ROLLOVER] | PPDB; komunikasi; kesiswaan; perpustakaan; alumni                                              |
+| **6 (Gelombang 3 — W3)**   | PPDB; notifikasi penuh; akademik lanjut; kesiswaan; komunikasi                                  | PPDB wizard 4 langkah + verifikasi TU + pengumuman; portal cek status; notifikasi penuh                                                                                                                                                                                                                      | Modul pendukung (BK, sarpras, perpustakaan, alumni, komunikasi) sesuai kebutuhan sekolah pilot |
+| **7+ (pasca MVP / DEFER)** | Dashboard kepsek penuh; superadmin; gamifikasi penuh; live class DITUNDA                        | Dashboard kepsek (KPI + tren); superadmin (statistik adopsi fitur dalam sekolah); gamifikasi penuh (G17) dengan toggle; live class DITUNDA (jika dibangun = WebRTC self-hosted; tanpa Jitsi)                                                                                                                 | -                                                                                              |
 
 Aturan fase:
+
 1. **Setiap fase wajib lulus quality gate desain** (hierarki jelas, spacing konsisten, tipografi terbaca, kontras AA, state interaktif lengkap, responsive) sebelum hand-off ke openteam-coder.
 2. **Desain tidak boleh mendahului validasi**: fitur SMK (PKL/UKK) dan Dapodik/ANBK hanya didesain setelah validasi ke sekolah SMK riil [v3 §8 #3].
 3. Komponen baru yang dipakai di fase berikutnya wajib ditambahkan ke design system (bukan ad-hoc).

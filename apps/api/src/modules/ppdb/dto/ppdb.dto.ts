@@ -14,7 +14,7 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 
-/** Type lokal — @openlms/types belum mengekspor Gender (ISSUES). */
+/** Type lokal — @opensis/types belum mengekspor Gender (ISSUES). */
 export type Gender = "L" | "P";
 
 export class ConsentProofDto {

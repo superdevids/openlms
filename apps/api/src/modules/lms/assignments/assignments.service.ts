@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { AssignmentStatus, Prisma } from "@prisma/client";
-import { prisma } from "@openlms/database";
-import type { RequestContext } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { RequestContext } from "@opensis/types";
 import { assertTeacherOfClassSubject, classIdFilter, scopeOf } from "../lms-scope";
 import { writeAudit } from "../lms-audit";
 import {

@@ -1,10 +1,10 @@
-# openlms — Konfigurasi template issue GitHub
+# opensis — Konfigurasi template issue GitHub
 # blank_issues_enabled: false → semua issue harus lewat template yang tersedia.
 
 blank_issues_enabled: false
 
 contact_links:
-  - name: Laporan Keamanan (Security) — openlms
+  - name: Laporan Keamanan (Security) — opensis
     url: https://github.com/superdevids/openlms/blob/main/SECURITY.md
     about: >
       Jangan buka issue publik untuk masalah keamanan.

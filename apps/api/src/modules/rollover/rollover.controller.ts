@@ -21,10 +21,10 @@ import {
 } from "@nestjs/common";
 import { RolloverService } from "./rollover.service";
 import { CreateRolloverDraftDto, RollbackRolloverDto } from "./dto/rollover.dto";
-import type { RolloverRunStatus } from "@openlms/types";
+import type { RolloverRunStatus } from "@opensis/types";
 import type { AuthenticatedRequest } from "../../common/auth.guard";
 import { RequirePermission } from "../../common/require-permission.decorator";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { JOB_NAMES, QUEUE_TOKEN, type IJobQueue } from "../queue/queue.types";
 
 @Controller("rollover")

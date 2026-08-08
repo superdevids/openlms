@@ -9,6 +9,8 @@ dari `request.requestContext` (AuthGuard), bukan header klien.
 ## Daftar Fitur
 
 - Pengumuman: CRUD + publish/unpublish + daftar per role.
+- Pengumuman terbit mengirim notifikasi ke seluruh user role target + emit WS
+  `announcement:new` (best-effort; REST tetap sumber kebenaran).
 - Surat: ajukan, submit, approve, reject, sign; pemohon hanya melihat surat miliknya.
 
 ## Endpoint (prefix global `/api/v1`)

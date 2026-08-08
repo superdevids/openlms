@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import { cn } from "../lib/utils";
 import { IconCheck } from "./icons";
 
@@ -21,7 +22,7 @@ export function Steps({
   steps: StepDef[];
   current: number; // 0-based
   className?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <ol
       className={cn("flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0", className)}

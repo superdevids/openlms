@@ -1,4 +1,4 @@
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 import { api, DEMO_MODE, type ApiError } from "@/lib/api-client";
 import { DEMO_ROLE_KEY, DEMO_USER } from "@/lib/demo";
 

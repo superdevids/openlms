@@ -12,6 +12,8 @@ Aktor selalu dari `@CurrentUser` (AuthGuard).
 - Master: JobPosition, PayrollComponent, SalaryStructure.
 - Payroll run: create, list, detail, calculate, validate, approve-keuangan,
   rekap kepsek (tanpa detail gaji), approve-kepsek.
+- Approval (keuangan/kepsek) mengirim event WS `payroll:status` ke user
+  KEUANGAN/KEPSEK aktif (best-effort; REST tetap sumber kebenaran).
 - Payslip: slip sendiri (scope `payslip:read:self` — anti-IDOR), detail.
 - Laporan: summary per periode, komparasi bulanan, rekap potongan.
 

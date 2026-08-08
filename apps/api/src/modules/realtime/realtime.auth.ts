@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { prisma } from "@openlms/database";
-import type { Role } from "@openlms/types";
+import { prisma } from "@opensis/database";
+import type { Role } from "@opensis/types";
 import { ACCESS_COOKIE_NAME } from "../auth/auth.constants";
 import { verifyAccessToken } from "../auth/jwt.util";
 
@@ -12,7 +12,7 @@ export interface RealtimeUser {
 /**
  * RealtimeAuthService — handshake auth Socket.IO (docs/02 §7.1).
  * Terima token dari `auth.token` (Bearer JWT in-house) ATAU cookie httpOnly
- * `openlms_access`; verifikasi memakai verifyAccessToken bersama (jwt.util,
+ * `opensis_access`; verifikasi memakai verifyAccessToken bersama (jwt.util,
  * HS256 + typ "access" + exp) — tidak ada verifikasi HMAC duplikat.
  * JWT hanya identitas (`sub`) — role di-resolve dari tabel UserRole (P2).
  */

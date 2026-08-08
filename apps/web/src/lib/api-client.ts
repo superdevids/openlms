@@ -1,14 +1,15 @@
-import type { ApiErrorBody, ErrorCode } from "@openlms/types";
+import type { ApiErrorBody, ErrorCode } from "@opensis/types";
 import { API_BASE_FALLBACK, API_TIMEOUT_MS } from "./constants";
+import { getDataSaverPreference } from "./storage";
 
 /**
- * API client openlms — base /api/v1, credentials include (httpOnly cookie JWT).
+ * API client opensis — base /api/v1, credentials include (httpOnly cookie JWT).
  * Format error standar: docs/04-api-contract.md §1.6.
  * FEATURE_DISABLED (403) dilempar sebagai ApiError dengan code terkait.
  */
 
 export const API_BASE: string = process.env.NEXT_PUBLIC_API_BASE ?? "/api/v1";
-export const SESSION_COOKIE = "openlms_session";
+export const SESSION_COOKIE = "opensis_session";
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO === "1";
 
 export interface RequestOptions {
@@ -54,6 +55,11 @@ function buildQuery(query?: RequestOptions["query"]): string {
 }
 
 function isSaveDataActive(): boolean {
+  // Preferensi eksplisit user menang (opensis_data_saver); fallback sinyal
+  // koneksi browser (Save-Data / effectiveType 2g).
+  const pref = getDataSaverPreference();
+  if (pref === true) return true;
+  if (pref === false) return false;
   if (typeof navigator === "undefined") return false;
   const nav = navigator as Navigator & {
     connection?: { saveData?: boolean; effectiveType?: string };
@@ -285,8 +291,10 @@ export const RBAC_ADMIN_ROLES = [
   "KEUANGAN",
   "WAKEPSEK",
   "KEPSEK",
+  "AUDITOR",
   "GURU",
-  "GURU_BK",
+  "BK",
+  "KAPRODI",
   "SISWA",
   "WALI_MURID"
 ] as const;

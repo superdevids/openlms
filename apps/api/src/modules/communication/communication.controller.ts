@@ -16,7 +16,7 @@ import {
   Req,
   UnauthorizedException
 } from "@nestjs/common";
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 import { AnnouncementService } from "./announcement.service";
 import { OfficialLetterService } from "./official-letter.service";
 import {

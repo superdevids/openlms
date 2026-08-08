@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { AuditAction, Prisma } from "@prisma/client";
-import { PrismaClient } from "@openlms/database";
-import { readCacheTtlMs } from "../../common/cache.util";
+import { PrismaClient } from "@opensis/database";
+import { readCacheTtlMs, pruneExpiredCache } from "../../common/cache.util";
 import { CreateNewsDto } from "./dto/create-news.dto";
 import { UpdateNewsDto } from "./dto/update-news.dto";
 import { UpsertLandingContentDto } from "./dto/upsert-landing-content.dto";
@@ -106,6 +106,7 @@ export class LandingService {
 
   private landingCache: { value: LandingPageView; expiresAt: number } | null = null;
   private newsCache: { value: NewsArticlePublic[]; expiresAt: number } | null = null;
+  private newsSlugCache = new Map<string, { value: NewsArticleView; expiresAt: number }>();
 
   constructor(private readonly db: PrismaClient) {}
 
@@ -161,13 +162,21 @@ export class LandingService {
   }
 
   async getPublicNewsBySlug(slug: string): Promise<NewsArticleView> {
+    const now = Date.now();
+    const cached = this.newsSlugCache.get(slug);
+    if (cached && cached.expiresAt > now) {
+      return cached.value;
+    }
     const row = await this.db.newsArticle.findFirst({
       where: { slug, is_published: true }
     });
     if (!row) {
       throw new NotFoundException("Berita tidak ditemukan.");
     }
-    return this.toNewsView(row);
+    const value = this.toNewsView(row);
+    pruneExpiredCache(this.newsSlugCache);
+    this.newsSlugCache.set(slug, { value, expiresAt: now + this.cacheTtlMs });
+    return value;
   }
 
   // ============================================================
@@ -178,6 +187,7 @@ export class LandingService {
   private invalidatePublic(): void {
     this.landingCache = null;
     this.newsCache = null;
+    this.newsSlugCache.clear();
   }
 
   async getAdminLanding(): Promise<LandingContentView[]> {

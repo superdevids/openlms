@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
 import { api } from "@/lib/api-client";
@@ -20,7 +21,7 @@ import {
   TableHead,
   TableCell,
   DataView
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatPercent } from "@/lib/format";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
@@ -37,7 +38,14 @@ interface DashboardStats {
   featureFlagsTotal: number;
 }
 
-export default function SuperadminDashboardPage(): React.JSX.Element {
+// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
+const FLAG_KOLOM: { key: string; label: string }[] = [
+  { key: "key", label: "Key" },
+  { key: "kategori", label: "Kategori" },
+  { key: "status", label: "Status" }
+];
+
+export default function SuperadminDashboardPage(): JSX.Element {
   const { flags } = useFeatureFlags();
   const summary = flags.slice(0, 8);
   const stats = useApi<DashboardStats>(() => api.get<DashboardStats>("/admin/dashboard/stats"), []);
@@ -46,7 +54,7 @@ export default function SuperadminDashboardPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Statistik Sekolah</h1>
+      <h1 className="text-2xl font-bold text-foreground">Statistik Sekolah</h1>
 
       <DataView
         status={stats.status}
@@ -67,7 +75,7 @@ export default function SuperadminDashboardPage(): React.JSX.Element {
           />
         </div>
         {s?.academicYear ? (
-          <p className="mt-2 text-sm text-neutral-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             Tahun ajaran: <span className="font-medium">{s.academicYear.name}</span>{" "}
             <Badge variant={s.academicYear.status === "OPEN" ? "success" : "neutral"}>
               {s.academicYear.status}
@@ -100,16 +108,16 @@ export default function SuperadminDashboardPage(): React.JSX.Element {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>Kategori</TableHead>
-                <TableHead>Status</TableHead>
+                {FLAG_KOLOM.map((k) => (
+                  <TableHead key={k.key}>{k.label}</TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {summary.map((f) => (
                 <TableRow key={f.key}>
                   <TableCell>
-                    <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">{f.key}</code>
+                    <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{f.key}</code>
                     {f.locked ? (
                       <Badge variant="neutral" className="ml-2">
                         locked
@@ -132,21 +140,13 @@ export default function SuperadminDashboardPage(): React.JSX.Element {
   );
 }
 
-function Kpi({
-  label,
-  value,
-  hint
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}): React.JSX.Element {
+function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }): JSX.Element {
   return (
     <Card>
       <CardContent>
-        <p className="text-sm text-neutral-600">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-neutral-500">{hint}</p> : null}
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );

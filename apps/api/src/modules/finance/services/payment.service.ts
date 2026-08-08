@@ -1,13 +1,15 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { Payment, PaymentStatus, Prisma } from "@prisma/client";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { computeInvoiceTotals } from "../calculator/invoice-status";
 import { allocatePayment } from "../calculator/payment-allocation";
 import { money, ZERO } from "../calculator/money";
-import { InvoiceService } from "./invoice.service";
 import { FinanceStore } from "../finance.store";
 import { FINANCE_STORE } from "../finance.constants";
+import { NotificationService } from "../../notifications/notifications.service";
+import { RealtimeGateway } from "../../realtime/realtime.gateway";
+import { INVOICE_PAID_EVENT } from "../../notifications/notification-events";
 
 /**
  * PaymentService — pembayaran parsial/cicilan + alokasi (prd04 §5.F.2).
@@ -30,8 +32,9 @@ export interface RecordPaymentInput {
 @Injectable()
 export class PaymentService {
   constructor(
-    private readonly invoiceService: InvoiceService,
-    @Inject(FINANCE_STORE) private readonly store: FinanceStore
+    @Inject(FINANCE_STORE) private readonly store: FinanceStore,
+    private readonly notifications: NotificationService,
+    private readonly realtime: RealtimeGateway
   ) {}
 
   /** Catat pembayaran (status PENDING sampai diverifikasi KEUANGAN). */
@@ -84,9 +87,19 @@ export class PaymentService {
       throw new BadRequestException("invoiceIds wajib diisi minimal 1");
     }
     const primaryInvoiceId = primary;
+    // Batch lookup SEMUA invoice target dalam SATU query (sebelumnya
+    // invoiceService.findById per invoice = N+1), lalu map di memori.
+    const invoices = await prisma.invoice.findMany({
+      where: { id: { in: input.invoiceIds } },
+      include: { payments: true }
+    });
+    const byId = new Map(invoices.map((inv) => [inv.id, inv]));
     const targets: Array<{ invoiceId: string; outstanding: Decimal }> = [];
     for (const invoiceId of input.invoiceIds) {
-      const inv = await this.invoiceService.findById(invoiceId);
+      const inv = byId.get(invoiceId);
+      if (!inv) {
+        throw new NotFoundException(`Tagihan ${invoiceId} tidak ditemukan`);
+      }
       const paidSum = this.paidSumOf(inv);
       const totals = computeInvoiceTotals({
         amount: inv.amount,
@@ -168,7 +181,43 @@ export class PaymentService {
 
     // Hitung ulang status invoice induk setelah verifikasi.
     await this.recomputeInvoiceStatus(payment.invoice_id);
+    if (approved) {
+      await this.notifyInvoicePaid(updated, payment.invoice);
+    }
     return updated;
+  }
+
+  /**
+   * Notifikasi + event realtime ke siswa saat pembayaran terverifikasi (PAID):
+   * NotificationService → inbox (notification:new + payment:confirmed) dan
+   * event eksplisit invoice:paid (payload ringkas). Best-effort.
+   */
+  private async notifyInvoicePaid(
+    payment: Payment,
+    invoice: { id: string; invoice_no: string; student_id: string }
+  ): Promise<void> {
+    try {
+      await this.notifications.createForUser({
+        userId: invoice.student_id,
+        type: "PAYMENT_CONFIRMED",
+        title: "Pembayaran terverifikasi",
+        body: `Tagihan ${invoice.invoice_no} telah lunas`,
+        data: {
+          invoiceId: invoice.id,
+          invoiceNo: invoice.invoice_no,
+          amount: payment.amount.toFixed(2),
+          status: "PAID"
+        }
+      });
+      this.realtime.emitToUser(invoice.student_id, INVOICE_PAID_EVENT, {
+        invoiceId: invoice.id,
+        invoiceNo: invoice.invoice_no,
+        amount: payment.amount.toFixed(2),
+        status: "PAID"
+      });
+    } catch {
+      // best-effort
+    }
   }
 
   /** Jumlah pembayaran terverifikasi sebuah invoice (PAID). */

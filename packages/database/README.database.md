@@ -2,7 +2,7 @@
 
 ## Fungsi Folder
 
-Paket bersama **Prisma + PostgreSQL** untuk seluruh openlms: skema tunggal
+Paket bersama **Prisma + PostgreSQL** untuk seluruh opensis: skema tunggal
 (single-school), client singleton, migrasi, seed, dan RLS opsional. Satu-satunya
 tempat yang boleh berisi skema/query database; aplikasi lain tidak query Prisma
 langsung kecuali `apps/api`.
@@ -17,7 +17,7 @@ langsung kecuali `apps/api`.
 | `prisma/rls/`          | Skrip RLS PostgreSQL **opsional** (defense-in-depth)                                              |
 | `prisma/seed-data/`    | Data seed (permission, kurikulum, dsb.)                                                           |
 | `prisma.config.ts`     | Konfigurasi Prisma (dotenv)                                                                       |
-| `src/index.ts`         | `PrismaClient` singleton (`globalThis.openlmsPrisma`)                                             |
+| `src/index.ts`         | `PrismaClient` singleton (`globalThis.opensisPrisma`)                                             |
 
 ## Perintah
 
@@ -33,6 +33,6 @@ langsung kecuali `apps/api`.
 ## Konvensi
 
 - `id String @id @default(cuid())`; `created_at`/`updated_at` DateTime.
-- Enum dipakai dari `@prisma/client` (API) dan `@openlms/types` (web).
+- Enum dipakai dari `@prisma/client` (API) dan `@opensis/types` (web).
 - `DATABASE_URL` dari env (root `.env` atau `packages/database/.env`).
 - Client singleton: dev memakai `globalThis` agar tidak bocor koneksi (hot reload).

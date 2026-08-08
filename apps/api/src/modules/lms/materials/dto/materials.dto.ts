@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
 import { MaterialType } from "@prisma/client";
+import { StrictBoolean } from "../../dto/transform";
 
 export class CreateMaterialDto {
   @IsString()
@@ -61,7 +62,7 @@ export class FindMaterialsQueryDto {
   classSubjectId?: string;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @StrictBoolean()
   isPublished?: boolean;
 }
 

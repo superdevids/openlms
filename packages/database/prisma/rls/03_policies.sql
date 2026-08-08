@@ -1,5 +1,5 @@
 -- ============================================================
--- openlms RLS — 03: Contoh policy role/scope (deskriptif)
+-- opensis RLS — 03: Contoh policy role/scope (deskriptif)
 -- Sumber: docs/03-database-erd.md §7.3 + docs/02 §8.3.
 -- Policy di bawah adalah CONTOH — sesuaikan saat module service dibangun (F2+).
 -- ============================================================
@@ -15,7 +15,7 @@ CREATE POLICY assignment_role_scope ON "assignment"
 
 -- (2) counseling_note: hanya role BK terbatas (field-level access, G14)
 CREATE POLICY counseling_limited_roles ON "counseling_note"
-  USING (app.has_role('GURU_BK')
+  USING (app.has_role('BK')
       OR app.has_role('WAKEPSEK')
       OR app.has_role('KEPSEK'));
 

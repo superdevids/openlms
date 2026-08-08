@@ -47,3 +47,6 @@ gitleaks-report.json
 # Uploaded files (keep dir structure via .gitkeep)
 apps/api/storage/*
 !apps/api/storage/.gitkeep
+
+# Scratch / session notes
+note

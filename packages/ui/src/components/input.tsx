@@ -1,9 +1,10 @@
 "use client";
 
-import * as React from "react";
+import { type ComponentProps, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
-export function Input({ className, ...props }: React.ComponentProps<"input">): React.JSX.Element {
+export function Input({ className, ...props }: ComponentProps<"input">): JSX.Element {
   return (
     <input
       className={cn(

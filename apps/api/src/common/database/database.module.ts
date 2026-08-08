@@ -1,10 +1,10 @@
 import { Global, Module } from "@nestjs/common";
-import { PrismaClient, prisma } from "@openlms/database";
+import { PrismaClient, prisma } from "@opensis/database";
 import { DATABASE_CLIENT } from "../../modules/database/database.constants";
 
 /**
  * DatabaseModule — GLOBAL provider PrismaClient tunggal (singleton dari
- * @openlms/database, packages/database/src/index.ts).
+ * @opensis/database, packages/database/src/index.ts).
  *
  * Menyediakan dua token yang menunjuk ke instance yang sama:
  * - `PrismaClient` (token class) — pola modul lama (auth, landing, branding, ...).

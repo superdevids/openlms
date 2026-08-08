@@ -2,7 +2,7 @@
 
 ## Fungsi Folder
 
-`apps/api/src/` berisi aplikasi backend **NestJS 11** untuk openlms. Backend ini
+`apps/api/src/` berisi aplikasi backend **NestJS 11** untuk opensis. Backend ini
 menyediakan REST API (prefix global `/api/v1`), real-time via Socket.IO (namespace
 `/ws`), otorisasi RBAC fail-closed, serta antrean job opsional (BullMQ/in-process).
 

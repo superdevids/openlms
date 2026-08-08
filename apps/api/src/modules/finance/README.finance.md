@@ -13,6 +13,8 @@ SPP/denda (manual trigger + cron). Semua jumlah memakai kalkulator sen
 - Invoice: buat tunggal/bulk, list/filter, carry-over tahun ajaran, hapus.
 - SPP: generate SPP per periode, summary bulanan.
 - Pembayaran: record, alokasi cicilan lintas tagihan, verifikasi, histori.
+- Verifikasi pembayaran PAID mengirim notifikasi ke siswa + emit WS `invoice:paid`
+  (payload ringkas: invoiceId, invoiceNo, amount, status) — best-effort.
 - Denda: rule denda, job harian, daftar/hapus denda.
 - Refund: buat, list, approve keuangan & kepsek.
 - Rekonsiliasi: impor CSV, list, resolve item.

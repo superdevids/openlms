@@ -34,5 +34,5 @@ didaftarkan di dalam AuthModule via `APP_GUARD`, tidak perlu perubahan app.modul
 ## Verifikasi
 
 - Unit: `apps/api/src/modules/auth/auth.service.spec.ts`, `permissions.guard.spec.ts`
-- Integrasi: `POST /api/v1/auth/login` → cookie `openlms_access`/`openlms_refresh`;
+- Integrasi: `POST /api/v1/auth/login` → cookie `opensis_access`/`opensis_refresh`;
   `GET /api/v1/auth/me` dengan cookie → profil+roles+scope.

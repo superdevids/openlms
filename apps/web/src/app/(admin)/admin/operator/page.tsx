@@ -1,22 +1,70 @@
 "use client";
 
-import * as React from "react";
+import { useState, type FormEvent, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, CardDescription, Tabs, TabPanel, Button, Input, Label, Select, Badge, Alert, Dialog, Table, TableHeader, TableBody, TableRow, TableHead, TableCell, EmptyState, toast, IconUpload, IconDownload, IconUser } from "@openlms/ui";
+import {
+  DataView,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Tabs,
+  TabPanel,
+  Button,
+  Input,
+  Label,
+  Select,
+  Badge,
+  Alert,
+  Dialog,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  EmptyState,
+  toast,
+  IconUpload,
+  IconDownload,
+  IconUser
+} from "@opensis/ui";
 
 interface Applicant {
   id: string;
   registrationNo: string;
   fullName: string;
-  status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "REJECTED";
+  status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "WAITLIST" | "ENROLLED" | "REJECTED";
 }
 
 interface StudentRow {
   id: string;
   fullName: string;
-  nisn: string;
-  className: string;
+  username: string | null;
+  roles: string[];
+  isActive: boolean;
+}
+
+interface ImportPreviewResult {
+  importType: string;
+  totalRows: number;
+  validCount: number;
+  errorCount: number;
+  validRows: Record<string, unknown>[];
+  errors: Array<{ rowNumber: number; field: string | null; message: string }>;
+}
+
+interface ImportRunResult {
+  batchId: string;
+  importType: string;
+  totalRows: number;
+  successRows: number;
+  failedRows: number;
+  status: string;
+  errors: Array<{ rowNumber: number; field: string | null; message: string }>;
 }
 
 const DEMO_APPLICANTS: Applicant[] = [
@@ -26,27 +74,83 @@ const DEMO_APPLICANTS: Applicant[] = [
 ];
 
 const DEMO_STUDENTS: StudentRow[] = [
-  { id: "std_1", fullName: "Andi Setiawan", nisn: "0081234567", className: "XI IPA 1" },
-  { id: "std_2", fullName: "Sari Wulandari", nisn: "0087654321", className: "XI IPA 1" }
+  { id: "std_1", fullName: "Andi Setiawan", username: "andi.s", roles: ["SISWA"], isActive: true },
+  { id: "std_2", fullName: "Sari Wulandari", username: "sari.w", roles: ["SISWA"], isActive: true }
 ];
 
-export default function AdminOperatorPage(): React.JSX.Element {
-  const [tab, setTab] = React.useState("siswa");
-  const students = useApi<StudentRow[]>(() => api.get("/classes"), [], {
-    fallbackData: DEMO_STUDENTS
-  });
-  const applicants = useApi<Applicant[]>(() => api.get("/ppdb/applicants"), [], {
-    fallbackData: DEMO_APPLICANTS
-  });
+const IMPORT_PREVIEW_EMPTY: ImportPreviewResult = {
+  importType: "STUDENT",
+  totalRows: 0,
+  validCount: 0,
+  errorCount: 0,
+  validRows: [],
+  errors: []
+};
 
-  const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [inviteUsername, setInviteUsername] = React.useState("");
-  const [inviteRole, setInviteRole] = React.useState("GURU");
-  const [inviteClass, setInviteClass] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [importState, setImportState] = React.useState<"idle" | "preview" | "done">("idle");
+// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
+const STUDENT_KOLOM: { key: string; label: string }[] = [
+  { key: "nama", label: "Nama" },
+  { key: "username", label: "Username" },
+  { key: "role", label: "Role" },
+  { key: "status", label: "Status" }
+];
 
-  const invite = async (e: React.FormEvent): Promise<void> => {
+const ERROR_KOLOM: { key: string; label: string }[] = [
+  { key: "baris", label: "Baris" },
+  { key: "kolom", label: "Kolom" },
+  { key: "masalah", label: "Masalah" }
+];
+
+const APPLICANT_KOLOM: { key: string; label: string }[] = [
+  { key: "noPendaftaran", label: "No. Pendaftaran" },
+  { key: "nama", label: "Nama" },
+  { key: "status", label: "Status" },
+  { key: "aksi", label: "Aksi" }
+];
+
+export default function AdminOperatorPage(): JSX.Element {
+  const [tab, setTab] = useState("siswa");
+  // Data Induk siswa: GET /admin/users → filter role SISWA (R-38).
+  const students = useApi<StudentRow[]>(
+    async () => {
+      const res = await api.get<{ items: StudentRow[]; total: number }>("/admin/users");
+      return (res.items ?? []).filter((u) => u.roles.includes("SISWA"));
+    },
+    [],
+    { fallbackData: DEMO_STUDENTS }
+  );
+  // PPDB: GET /ppdb/selection — daftar calon SELECTED/WAITLIST (pengumuman).
+  const applicants = useApi<Applicant[]>(
+    async () => {
+      const rows = await api.get<
+        Array<{
+          id: string;
+          registration_no: string;
+          full_name: string;
+          status: string;
+        }>
+      >("/ppdb/selection");
+      return rows.map((r) => ({
+        id: r.id,
+        registrationNo: r.registration_no,
+        fullName: r.full_name,
+        status: r.status as Applicant["status"]
+      }));
+    },
+    [],
+    { fallbackData: DEMO_APPLICANTS }
+  );
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [inviteFullName, setInviteFullName] = useState("");
+  const [inviteRole, setInviteRole] = useState("GURU");
+  const [saving, setSaving] = useState(false);
+  const [importState, setImportState] = useState<"idle" | "preview" | "done">("idle");
+  const [preview, setPreview] = useState<ImportPreviewResult | null>(null);
+  const [runResult, setRunResult] = useState<ImportRunResult | null>(null);
+
+  const invite = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -54,19 +158,52 @@ export default function AdminOperatorPage(): React.JSX.Element {
         await new Promise((r) => setTimeout(r, 200));
         toast({ variant: "success", title: "Undangan dikirim (demo)" });
       } else {
-        await api.post("/app/invitations", {
+        // InvitationDto: username/email opsional + fullName wajib + role.
+        await api.post("/auth/invitations", {
           username: inviteUsername,
-          role: inviteRole,
-          classIds: inviteClass ? [inviteClass] : []
+          fullName: inviteFullName || inviteUsername,
+          role: inviteRole
         });
         toast({ variant: "success", title: "Undangan dikirim" });
       }
       setInviteOpen(false);
       setInviteUsername("");
+      setInviteFullName("");
     } catch {
       toast({ variant: "error", title: "Gagal mengirim undangan" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const runPreview = async (): Promise<void> => {
+    if (DEMO_MODE) {
+      await new Promise((r) => setTimeout(r, 400));
+      setPreview({
+        importType: "STUDENT",
+        totalRows: 248,
+        validCount: 244,
+        errorCount: 4,
+        validRows: [],
+        errors: [
+          { rowNumber: 12, field: "NISN", message: "Duplikat (sudah ada)" },
+          { rowNumber: 57, field: "Nama", message: "Kosong" }
+        ]
+      });
+      setImportState("preview");
+      return;
+    }
+    try {
+      // ImportRowsDto: importType + rows. Belum ada upload file → rows kosong.
+      const res = await api.post<ImportPreviewResult>("/app/import/preview", {
+        importType: "STUDENT",
+        rows: []
+      });
+      setPreview(res);
+      setImportState("preview");
+    } catch {
+      setImportState("idle");
+      toast({ variant: "error", title: "Gagal memvalidasi impor" });
     }
   };
 
@@ -75,6 +212,15 @@ export default function AdminOperatorPage(): React.JSX.Element {
     if (DEMO_MODE) {
       await new Promise((r) => setTimeout(r, 500));
       setImportState("done");
+      setRunResult({
+        batchId: "batch_demo",
+        importType: "STUDENT",
+        totalRows: 248,
+        successRows: 244,
+        failedRows: 4,
+        status: "COMPLETED",
+        errors: []
+      });
       toast({
         variant: "success",
         title: "Impor selesai (demo)",
@@ -83,9 +229,18 @@ export default function AdminOperatorPage(): React.JSX.Element {
       return;
     }
     try {
-      await api.post("/app/import", { type: "STUDENTS" });
+      const rows = preview?.validRows ?? [];
+      const res = await api.post<ImportRunResult>("/app/import/run", {
+        importType: "STUDENT",
+        rows
+      });
+      setRunResult(res);
       setImportState("done");
-      toast({ variant: "success", title: "Impor selesai" });
+      toast({
+        variant: "success",
+        title: "Impor selesai",
+        description: `${res.successRows} berhasil · ${res.failedRows} dilewati`
+      });
     } catch {
       setImportState("idle");
       toast({ variant: "error", title: "Gagal memulai impor" });
@@ -94,7 +249,7 @@ export default function AdminOperatorPage(): React.JSX.Element {
 
   const verifyApplicant = async (id: string): Promise<void> => {
     try {
-      if (!DEMO_MODE) await api.patch(`/ppdb/applicants/${id}/verify`, {});
+      if (!DEMO_MODE) await api.patch(`/ppdb/${id}/verify`, { approve: true });
       toast({ variant: "success", title: "Dokumen diverifikasi" });
       applicants.refetch();
     } catch {
@@ -102,12 +257,14 @@ export default function AdminOperatorPage(): React.JSX.Element {
     }
   };
 
+  const previewData = preview ?? IMPORT_PREVIEW_EMPTY;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Operator / Tata Usaha</h1>
-          <p className="text-sm text-neutral-600">
+          <h1 className="text-2xl font-bold text-foreground">Operator / Tata Usaha</h1>
+          <p className="text-sm text-muted-foreground">
             Data induk, impor, undangan, verifikasi PPDB, pengaturan
           </p>
         </div>
@@ -145,20 +302,21 @@ export default function AdminOperatorPage(): React.JSX.Element {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>NISN</TableHead>
-                      <TableHead>Kelas</TableHead>
-                      <TableHead>Status</TableHead>
+                      {STUDENT_KOLOM.map((k) => (
+                        <TableHead key={k.key}>{k.label}</TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(students.data ?? []).map((s) => (
                       <TableRow key={s.id}>
                         <TableCell className="font-medium">{s.fullName}</TableCell>
-                        <TableCell>{s.nisn}</TableCell>
-                        <TableCell>{s.className}</TableCell>
+                        <TableCell className="font-mono text-sm">{s.username ?? "-"}</TableCell>
+                        <TableCell>{s.roles.join(", ")}</TableCell>
                         <TableCell>
-                          <Badge variant="success">AKTIF</Badge>
+                          <Badge variant={s.isActive ? "success" : "warning"}>
+                            {s.isActive ? "AKTIF" : "NONAKTIF"}
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -175,7 +333,8 @@ export default function AdminOperatorPage(): React.JSX.Element {
           <CardHeader>
             <CardTitle>Wizard Impor Data (G9)</CardTitle>
             <CardDescription>
-              Upload Excel → validasi → preview error per baris → impor parsial yang aman.
+              Preview via POST /app/import/preview, commit via POST /app/import/run (parsial aman).
+              Upload file Excel belum tersedia di UI ini — preview memakai baris kosong.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -184,45 +343,51 @@ export default function AdminOperatorPage(): React.JSX.Element {
                 <Button variant="outline">
                   <IconDownload className="h-4 w-4" /> Unduh Template
                 </Button>
-                <Button onClick={() => void runImport()}>
+                <Button onClick={() => void runPreview()}>
                   <IconUpload className="h-4 w-4" /> Pilih File Excel &amp; Validasi
                 </Button>
               </div>
             ) : importState === "preview" ? (
-              <div aria-busy="true" className="space-y-3">
-                <Alert variant="info" className="text-sm">
-                  Validasi: 248 baris · 4 error ditemukan
+              <div className="space-y-3">
+                <Alert
+                  variant={previewData.errorCount > 0 ? "warning" : "info"}
+                  className="text-sm"
+                >
+                  Validasi: {previewData.totalRows} baris · {previewData.validCount} valid ·{" "}
+                  {previewData.errorCount} error
                 </Alert>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Baris</TableHead>
-                      <TableHead>Kolom</TableHead>
-                      <TableHead>Masalah</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>12</TableCell>
-                      <TableCell>NISN</TableCell>
-                      <TableCell>Duplikat (sudah ada)</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>57</TableCell>
-                      <TableCell>Nama</TableCell>
-                      <TableCell>Kosong</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                {previewData.errors.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {ERROR_KOLOM.map((k) => (
+                          <TableHead key={k.key}>{k.label}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewData.errors.map((err, i) => (
+                        <TableRow key={`${err.rowNumber}-${i}`}>
+                          <TableCell>{err.rowNumber}</TableCell>
+                          <TableCell>{err.field ?? "-"}</TableCell>
+                          <TableCell>{err.message}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline">Perbaiki file</Button>
-                  <Button onClick={() => void runImport()}>Impor 244 valid</Button>
+                  <Button onClick={() => void runImport()} disabled={previewData.validCount === 0}>
+                    Impor {previewData.validCount} valid
+                  </Button>
                 </div>
               </div>
             ) : (
               <div role="status">
                 <Alert variant="success" className="text-sm">
-                  Hasil: 244 berhasil · 4 dilewati (lihat log)
+                  Hasil: {runResult?.successRows ?? 0} berhasil · {runResult?.failedRows ?? 0}{" "}
+                  dilewati (batch {runResult?.batchId ?? "-"})
                 </Alert>
               </div>
             )}
@@ -240,7 +405,7 @@ export default function AdminOperatorPage(): React.JSX.Element {
           {applicants.data?.length === 0 ? (
             <EmptyState
               title="Belum ada pendaftar"
-              description="Formulir PPDB publik akan mengisi daftar ini."
+              description="Pendaftar yang sudah diverifikasi/diseleksi akan tampil di sini (GET /ppdb/selection)."
             />
           ) : (
             <Card>
@@ -248,10 +413,9 @@ export default function AdminOperatorPage(): React.JSX.Element {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>No. Pendaftaran</TableHead>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Aksi</TableHead>
+                      {APPLICANT_KOLOM.map((k) => (
+                        <TableHead key={k.key}>{k.label}</TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -268,7 +432,9 @@ export default function AdminOperatorPage(): React.JSX.Element {
                                   ? "info"
                                   : a.status === "SELECTED"
                                     ? "primary"
-                                    : "success"
+                                    : a.status === "WAITLIST"
+                                      ? "warning"
+                                      : "success"
                             }
                           >
                             {a.status === "SUBMITTED"
@@ -277,9 +443,11 @@ export default function AdminOperatorPage(): React.JSX.Element {
                                 ? "Dokumen OK"
                                 : a.status === "SELECTED"
                                   ? "Diterima"
-                                  : a.status === "ENROLLED"
-                                    ? "Jadi Siswa"
-                                    : "Ditolak"}
+                                  : a.status === "WAITLIST"
+                                    ? "Waitlist"
+                                    : a.status === "ENROLLED"
+                                      ? "Jadi Siswa"
+                                      : "Ditolak"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -355,6 +523,15 @@ export default function AdminOperatorPage(): React.JSX.Element {
             />
           </div>
           <div className="space-y-1.5">
+            <Label htmlFor="inv-fullname">Nama Lengkap</Label>
+            <Input
+              id="inv-fullname"
+              value={inviteFullName}
+              onChange={(e) => setInviteFullName(e.target.value)}
+              placeholder="Nama lengkap pengguna"
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="inv-role">Role</Label>
             <Select
               id="inv-role"
@@ -366,15 +543,6 @@ export default function AdminOperatorPage(): React.JSX.Element {
                 { value: "KEUANGAN", label: "Keuangan / TU" },
                 { value: "WAKEPSEK", label: "Wakepsek" }
               ]}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inv-class">Kelas (opsional)</Label>
-            <Input
-              id="inv-class"
-              value={inviteClass}
-              onChange={(e) => setInviteClass(e.target.value)}
-              placeholder="cls_1"
             />
           </div>
           <div className="flex justify-end gap-2">

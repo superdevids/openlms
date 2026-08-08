@@ -9,6 +9,10 @@ import { createMockDb, mockFn, MockDb } from "../helpers/mock-db";
 
 describe("Communication", () => {
   let db: MockDb;
+  const notifications = {
+    createForUser: jest.fn(),
+    createForRoles: jest.fn().mockResolvedValue(1)
+  };
 
   beforeEach(() => {
     db = createMockDb();
@@ -16,7 +20,7 @@ describe("Communication", () => {
 
   describe("AnnouncementService", () => {
     it("publish menolak pengumuman yang sudah terbit -> 409", async () => {
-      const service = new AnnouncementService(db);
+      const service = new AnnouncementService(db, notifications as never);
       mockFn(db, "announcement", "findUnique").mockResolvedValue({
         id: "ann-1",
         published_at: new Date()
@@ -25,19 +29,25 @@ describe("Communication", () => {
     });
 
     it("publish menetapkan published_at", async () => {
-      const service = new AnnouncementService(db);
+      const service = new AnnouncementService(db, notifications as never);
       mockFn(db, "announcement", "findUnique").mockResolvedValue({
         id: "ann-1",
-        published_at: null
+        published_at: null,
+        target_role: ["SISWA", "GURU"]
       });
       mockFn(db, "announcement", "update").mockImplementation(
         async ({ data }: { data: Record<string, unknown> }) => ({
           id: "ann-1",
-          published_at: data.published_at
+          published_at: data.published_at,
+          target_role: ["SISWA", "GURU"]
         })
       );
       const published = await service.publish("ann-1");
       expect(published.published_at).toBeInstanceOf(Date);
+      // Publish terbit → notifikasi dikirim ke role target (best-effort).
+      expect(notifications.createForRoles).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "ANNOUNCEMENT", roles: ["SISWA", "GURU"] })
+      );
     });
   });
 

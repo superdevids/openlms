@@ -1,5 +1,5 @@
 -- ============================================================
--- openlms RLS — 02: Session variable `app.user_id` + helper
+-- opensis RLS — 02: Session variable `app.user_id` + helper
 -- TANPA session var tenant (single-school, docs/03 §7.2).
 -- Dipanggil di awal tiap transaksi oleh interceptor Prisma:
 --   SELECT set_config('app.user_id', $1, true);

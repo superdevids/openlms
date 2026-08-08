@@ -26,6 +26,7 @@ dengan rubrik + penilaian), dan **direktori DUDI** (dunia usaha/dunia industri
 | PATCH  | `/smk/internships/:internshipId/complete` | `internship:write:school`                             | Selesaikan PKL             |
 | POST   | `/smk/competency-tests`                   | `competency:grade:school`                             | Buat UKK                   |
 | POST   | `/smk/competency-tests/:testId/rubric`    | `competency:grade:school`                             | Tambah rubrik              |
+| GET    | `/smk/competency-tests/by-examiner`       | `competency:grade:self`/`school`                      | Jadwal UKK by penguji      |
 | POST   | `/smk/competency-tests/:testId/grade`     | `competency:grade:self`/`school`                      | Nilai UKK                  |
 | GET    | `/smk/partners`                           | `partner:write:school`/`internship:write:school`      | Daftar DUDI                |
 | POST   | `/smk/partners`                           | `partner:write:school`                                | Buat DUDI                  |

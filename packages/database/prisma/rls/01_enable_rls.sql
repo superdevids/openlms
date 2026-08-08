@@ -1,5 +1,5 @@
 -- ============================================================
--- openlms RLS — 01: Aktifkan Row Level Security (idempotent)
+-- opensis RLS — 01: Aktifkan Row Level Security (idempotent)
 -- Lapisan kedua defense-in-depth; TANPA dimensi tenant (single-school).
 -- Jalankan manual (opsional), bukan bagian migrasi Prisma default.
 -- ============================================================

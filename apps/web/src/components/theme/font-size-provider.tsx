@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
+
 import { fetchAppFontSettings } from "@/lib/api-client";
 import {
   DEFAULT_FONT_FAMILY,
@@ -16,7 +17,7 @@ import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
 
 /**
  * FontSizeProvider — skala ukuran teks per user (normal/large/big) + font global.
- * - fontScale: pilihan user, persist ke localStorage (key openlms_font_scale);
+ * - fontScale: pilihan user, persist ke localStorage (key opensis_font_scale);
  *   diterapkan sebagai class .font-scale-* di <html> (root font-size → seluruh UI).
  * - Global SUPERADMIN (SchoolProfile.settings.font via GET /app/settings/font):
  *   menjadi default untuk user yang belum memilih sendiri, dan mengatur
@@ -29,7 +30,7 @@ interface FontSizeContextValue {
   setFontScale: (scale: FontScale) => void;
 }
 
-const FontSizeContext = React.createContext<FontSizeContextValue | null>(null);
+const FontSizeContext = createContext<FontSizeContextValue | null>(null);
 
 function readStoredScale(): FontScale | null {
   if (typeof window === "undefined") return null;
@@ -60,18 +61,18 @@ function applyGlobalFont(fontFamily: string): void {
   ensureFontLink(option.googleUrl);
 }
 
-export function FontSizeProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
-  const [fontScale, setFontScaleState] = React.useState<FontScale>(
+export function FontSizeProvider({ children }: { children: ReactNode }): JSX.Element {
+  const [fontScale, setFontScaleState] = useState<FontScale>(
     () => readStoredScale() ?? DEFAULT_FONT_SCALE
   );
 
   // Terapkan class skala setiap fontScale berubah (state awal juga).
-  React.useEffect(() => {
+  useEffect(() => {
     applyScale(fontScale);
   }, [fontScale]);
 
   // Global settings sekolah: seed default + font family (satu kali saat mount).
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     void fetchAppFontSettings()
       .then((global) => {
@@ -89,12 +90,12 @@ export function FontSizeProvider({ children }: { children: React.ReactNode }): R
     };
   }, []);
 
-  const setFontScale = React.useCallback((next: FontScale): void => {
+  const setFontScale = useCallback((next: FontScale): void => {
     setFontScaleState(next);
     safeSet(STORAGE_KEYS.fontScale, next);
   }, []);
 
-  const value = React.useMemo<FontSizeContextValue>(
+  const value = useMemo<FontSizeContextValue>(
     () => ({ fontScale, setFontScale }),
     [fontScale, setFontScale]
   );
@@ -103,7 +104,7 @@ export function FontSizeProvider({ children }: { children: React.ReactNode }): R
 }
 
 export function useFontSize(): FontSizeContextValue {
-  const ctx = React.useContext(FontSizeContext);
+  const ctx = useContext(FontSizeContext);
   if (!ctx) throw new Error("useFontSize harus dipakai di dalam <FontSizeProvider>");
   return ctx;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
@@ -16,12 +17,12 @@ import {
   Alert,
   ConfirmDialog,
   toast
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { formatDuration } from "@/lib/format";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
-import { cn } from "@openlms/ui";
+import { cn } from "@opensis/ui";
 
 interface QuizQuestion {
   id: string;
@@ -54,7 +55,7 @@ function mapQuizDetail(raw: ApiQuizDetail): QuizMeta {
   };
 }
 
-export default function SiswaKuisKerjakanPage(): React.JSX.Element {
+export default function SiswaKuisKerjakanPage(): JSX.Element {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const quizId = params.id ?? "";
@@ -74,29 +75,29 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
     }
   );
 
-  const [attemptId, setAttemptId] = React.useState<string | null>(null);
-  const [startError, setStartError] = React.useState<string | null>(null);
-  const [index, setIndex] = React.useState(0);
-  const [answers, setAnswers] = React.useState<Record<string, string>>({});
-  const [flags, setFlags] = React.useState<Record<string, boolean>>({});
-  const [remaining, setRemaining] = React.useState<number | null>(null);
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [flags, setFlags] = useState<Record<string, boolean>>({});
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const answersRef = React.useRef(answers);
+  const answersRef = useRef(answers);
   answersRef.current = answers;
-  const startRef = React.useRef(false);
-  const submittedRef = React.useRef(false);
+  const startRef = useRef(false);
+  const submittedRef = useRef(false);
 
   const questions = quiz.data?.questions ?? [];
   const current = questions[index];
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (quiz.data && remaining === null) setRemaining(quiz.data.durationSeconds);
   }, [quiz.data, remaining]);
 
   // G-03: mulai attempt saat kuis siap → dapatkan attemptId untuk save/submit.
-  React.useEffect(() => {
+  useEffect(() => {
     if (!quizId || !quiz.data || attemptId || startRef.current || DEMO_MODE) return;
     startRef.current = true;
     void (async () => {
@@ -116,7 +117,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
     })();
   }, [quizId, quiz.data, attemptId]);
 
-  const saveOne = React.useCallback(
+  const saveOne = useCallback(
     async (questionId: string, answer: string): Promise<void> => {
       if (!attemptId) return;
       await api.post(`/quiz/attempts/${attemptId}/answers`, {
@@ -128,7 +129,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
   );
 
   // Kirim SEMUA jawaban secara berurutan sebelum submit (hindari race baca-tulis JSON).
-  const flushAnswers = React.useCallback(async (): Promise<void> => {
+  const flushAnswers = useCallback(async (): Promise<void> => {
     if (!attemptId) return;
     const current = answersRef.current;
     for (const q of questions) {
@@ -140,7 +141,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
   }, [attemptId, questions, saveOne]);
 
   // Timer: saat habis, kirim jawaban lalu submit otomatis (server juga auto-submit).
-  React.useEffect(() => {
+  useEffect(() => {
     if (remaining === null) return;
     const t = window.setInterval(() => {
       setRemaining((r) => {
@@ -196,7 +197,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-neutral-900">{quiz.data?.title ?? "Kuis"}</h1>
+        <h1 className="text-xl font-bold text-foreground">{quiz.data?.title ?? "Kuis"}</h1>
         <div
           className="rounded-md bg-neutral-900 px-3 py-1 font-mono text-lg font-semibold text-white"
           aria-live="polite"
@@ -215,10 +216,10 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
           <>
             <Card>
               <CardContent className="space-y-4">
-                <p className="text-sm font-medium text-neutral-600">
+                <p className="text-sm font-medium text-muted-foreground">
                   Pertanyaan {index + 1} dari {questions.length}
                 </p>
-                <p className="text-base font-medium text-neutral-900">{current.text}</p>
+                <p className="text-base font-medium text-foreground">{current.text}</p>
                 {current.type === "PILIHAN_GANDA" ? (
                   <RadioGroup
                     name={`q-${current.id}`}
@@ -274,7 +275,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
                   className={cn(
                     "h-9 w-9 rounded-md text-sm font-medium",
                     i === index && "ring-2 ring-primary-600",
-                    answers[q.id] ? "bg-success-600 text-white" : "bg-neutral-200 text-neutral-700",
+                    answers[q.id] ? "bg-success-600 text-white" : "bg-muted text-foreground",
                     flags[q.id] && "bg-warning-100 text-warning-700"
                   )}
                 >
@@ -292,7 +293,7 @@ export default function SiswaKuisKerjakanPage(): React.JSX.Element {
                 }
                 showLabel
               />
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {unanswered > 0 ? `${unanswered} soal belum dijawab` : "Semua soal sudah dijawab"}
               </p>
             </div>

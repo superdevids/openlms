@@ -17,8 +17,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@openlms/ui": path.resolve(__dirname, "../../packages/ui/src"),
-      "@openlms/types": path.resolve(__dirname, "../../packages/types/src")
+      "@opensis/ui": path.resolve(__dirname, "../../packages/ui/src"),
+      "@opensis/types": path.resolve(__dirname, "../../packages/types/src")
     }
   }
 });

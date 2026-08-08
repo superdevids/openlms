@@ -1,7 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { cn } from "@openlms/ui";
+import { type JSX } from "react";
+
+import { cn } from "@opensis/ui";
 import { FONT_SCALES, FONT_SCALE_ORDER, type FontScale } from "@/lib/font";
 import { useFontSize } from "./font-size-provider";
 
@@ -9,7 +10,7 @@ import { useFontSize } from "./font-size-provider";
  * FontSizeToggle — kontrol skala ukuran teks (A / A+ / A++) untuk semua role.
  * Dipasang di header AppShell di samping ThemeToggle.
  */
-export function FontSizeToggle(): React.JSX.Element {
+export function FontSizeToggle(): JSX.Element {
   const { fontScale, setFontScale } = useFontSize();
 
   return (

@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
+import { StrictBoolean } from "../../dto/transform";
 
 export class CreateClassDto {
   @IsString()
@@ -69,7 +70,7 @@ export class FindClassesQueryDto {
   academicYearId?: string;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @StrictBoolean()
   @IsBoolean()
   isActive?: boolean;
 }

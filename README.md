@@ -1,13 +1,15 @@
-# openlms
+# opensis
 
-**Super-app LMS + SIS untuk sekolah SMA/SMK Indonesia.** Satu platform, satu akun, satu sumber data untuk seluruh operasional sekolah — dengan fokus inti yang tidak bisa ditawar: belajar dan mengajar (LMS).
+**Super-app LMS + SIS untuk satu sekolah SMA/SMK Indonesia.** Satu platform, satu akun, satu sumber data untuk seluruh operasional sekolah — dengan fokus inti yang tidak bisa ditawar: belajar dan mengajar (LMS).
 
-![Build status](https://img.shields.io/badge/build-passing-brightgreen)
-![Tests](https://img.shields.io/badge/tests-unit%20%26%20integration-yellow)
-![Node](https://img.shields.io/badge/node-%3E%3D20-green)
-![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-2000%2B%20hijau-brightgreen)
+![Node](https://img.shields.io/badge/node-%3E%3D20-339933)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-> Lencana di atas adalah placeholder dan menyesuaikan status CI terbaru. Pipeline CI berjalan pada setiap push ke `main` dan pull request (lihat `.github/workflows/ci.yml`).
+> **Catatan rebranding:** proyek ini sebelumnya bernama _openlms_ (LMS+SIS) dan telah direbrand menjadi **opensis** — super-app manajemen sekolah penuh (LMS, SIS, keuangan, payroll, aset, PPDB). Paket npm, konstanta kode, cookie, dan storage keys memakai prefix `opensis`. Referensi `openlms` yang tersisa di `docs/` (PRD, review, arsitektur awal) adalah catatan sejarah.
+>
+> Lencana di atas adalah placeholder statis — ganti dengan lencana status pipeline CI yang sesungguhnya bila workflow sudah disambungkan ke badge service. Pipeline CI berjalan pada setiap push ke `main` dan pull request (lihat `.github/workflows/ci.yml`).
 
 ---
 
@@ -15,6 +17,7 @@
 
 - [Tentang](#tentang)
 - [Fitur Utama](#fitur-utama)
+- [Tangkapan Layar](#tangkapan-layar)
 - [Teknologi](#teknologi)
 - [Arsitektur](#arsitektur)
 - [Quick Start (Pengembangan)](#quick-start-pengembangan)
@@ -27,54 +30,73 @@
 - [Pengujian](#pengujian)
 - [Perintah Umum](#perintah-umum)
 - [Dokumentasi](#dokumentasi)
+- [Roadmap](#roadmap)
 - [Lisensi](#lisensi)
 
 ---
 
 ## Tentang
 
-**openlms adalah SUPER-APP untuk SMA/SMK/sederajat Indonesia**: satu platform, satu akun, satu sumber data untuk seluruh operasional sekolah — dengan fokus inti yang tidak bisa ditawar: **belajar & mengajar (LMS)** [docs/prd/prd04.md §1].
+**opensis adalah super-app untuk SMA/SMK/sederajat Indonesia**: satu platform, satu akun, satu sumber data untuk seluruh operasional sekolah — dengan fokus inti yang tidak bisa ditawar: **belajar & mengajar (LMS)** [docs/prd/prd04.md §1](docs/prd/prd04.md).
 
 - **Inti = LMS.** Kelas, materi, tugas, submission, kuis, bank soal, ujian online, penilaian, absensi, dan kalender adalah jantung produk.
 - **Super-app, bukan kumpulan modul.** Satu login, satu navigasi per peran, satu sumber data yang saling terhubung: nilai → rapor → portal wali murid → keuangan → payroll.
-- **Single-school.** Aplikasi dijalankan untuk SATU sekolah — tanpa multi-tenant, tanpa pemisahan data antar-sekolah [docs/02-technical-architecture.md §16 ADR-001].
-- **RBAC penuh.** 12 role standar, kontrol akses per permission `resource:action:scope` (SENDIRI/KELAS/SEKOLAH), hierarki role, dan konfigurasi RBAC oleh SUPERADMIN.
+- **Single-school.** Aplikasi dijalankan untuk **satu sekolah** — tanpa multi-tenant, tanpa pemisahan data antar-sekolah [docs/02-technical-architecture.md §16 ADR-001](docs/02-technical-architecture.md).
+- **RBAC penuh.** 14 role standar, kontrol akses per permission `resource:action:scope` (SENDIRI/KELAS/SEKOLAH), hierarki role, dan konfigurasi RBAC oleh SUPERADMIN.
 - **Selaras regulasi Indonesia.** Kurikulum Merdeka (CP/ATP/P5), e-Rapor dua-track (roadmap), PPh 21 skema TER & BPJS, dan ekspor Dapodik berbasis file (roadmap).
-- **Ringan, cepat, hemat kuota.** Dirancang untuk koneksi 4G/sinyal lemah dan kuota terbatas siswa.
+- **Ringan, cepat, hemat kuota.** Dirancang untuk koneksi 4G/sinyal lemah dan kuota terbatas siswa; mode hemat data + autosave offline untuk ujian dan absensi QR.
 - **Kustomisasi fitur.** Setiap modul dan sub-fitur punya saklar on/off (feature flags) yang dikendalikan SUPERADMIN.
 - **Tanpa dependensi API pihak ketiga untuk fitur.** Seluruh fitur diimplementasikan in-house; infrastruktur (DB, Redis) boleh managed dan swappable.
 
+**Mengapa opensis?** Sekolah menengah di Indonesia tidak butuh tumpukan aplikasi terpisah (LMS dari vendor A, SIS dari vendor B, keuangan dari vendor C) yang datanya tidak saling bicara. opensis menggabungkan semuanya dalam satu aplikasi, satu akun, satu database — dengan biaya operasional yang masuk akal untuk skala satu sekolah (500–3.000 pengguna) dan dirancang untuk jaringan terbatas.
+
 ## Fitur Utama
 
-| Area                      | Status        | Cakupan                                                                                                                                                           |
-| ------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LMS (inti)**            | Aktif         | Kelas, materi, tugas & submission, kuis & bank soal, ujian online (token sesi, autosave idempotent, auto-submit server-side), penilaian, absensi (manual/QR/izin) |
-| **SIS**                   | Aktif         | Data induk siswa/guru/staf, kelas & rombel, jadwal, impor Excel, undangan user                                                                                    |
-| **Keuangan**              | Aktif         | Tagihan (SPP dkk.), pembayaran, verifikasi bukti, rekap                                                                                                           |
-| **Payroll**               | Aktif (modul) | Run payroll bulanan, komponen gaji, slip digital, PPh 21 TER & BPJS sebagai nilai terkonfigurasi per periode                                                      |
-| **Aset**                  | Aktif (modul) | Inventaris, peminjaman, pemeliharaan, opname                                                                                                                      |
-| **PPDB**                  | Aktif         | Pendaftaran publik, upload dokumen, cek status, verifikasi                                                                                                        |
-| **e-Rapor**               | Roadmap       | Konsolidasi nilai → rapor dua-track Kurikulum Merdeka (mapel + P5) [prd05 G-49]                                                                                   |
-| **Branding config**       | Aktif         | Identitas visual sekolah (nama, logo, warna) dikelola via API + UI SUPERADMIN                                                                                     |
-| **RBAC configurable**     | Aktif         | CRUD permission/role per SUPERADMIN (`/superadmin/rbac`)                                                                                                          |
-| **Maintenance mode**      | Aktif         | Mode pemeliharaan global dikontrol SUPERADMIN (`system:maintenance:write`)                                                                                        |
-| **Landing CMS**           | Aktif         | Kelola konten halaman landing (hero, tentang, piagam, kontak, berita)                                                                                             |
-| **Portal wali murid**     | Aktif         | Read-only: nilai, absensi, tagihan anak                                                                                                                           |
-| **Realtime**              | Aktif         | Socket.IO namespace `/ws` — notifikasi, event ujian, pengumuman                                                                                                   |
-| **Rollover tahun ajaran** | Aktif         | Preview/execute/rollback tutup tahun ajaran                                                                                                                       |
+| Area                      | Status  | Cakupan                                                                                                                                                           |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LMS (inti)**            | Aktif   | Kelas, materi, tugas & submission, kuis & bank soal, ujian online (token sesi, autosave idempotent, auto-submit server-side), penilaian, absensi (manual/QR/izin) |
+| **SIS**                   | Aktif   | Data induk siswa/guru/staf, kelas & rombel, jadwal, impor Excel, undangan user                                                                                    |
+| **Keuangan**              | Aktif   | Tagihan (SPP dkk.), pembayaran & alokasi cicilan, denda, refund, rekonsiliasi bank (CSV), arus kas                                                                |
+| **Payroll**               | Aktif   | Run payroll bulanan (hitung → validasi → approve keuangan → rekap → approve kepsek), komponen gaji, slip digital, PPh 21 TER & BPJS                               |
+| **Aset**                  | Aktif   | Inventaris, peminjaman (cek bentrok jadwal), penyusutan, pemeliharaan, opname                                                                                     |
+| **PPDB**                  | Aktif   | Pendaftaran publik tanpa login, upload dokumen, tracking status, verifikasi, seleksi/waitlist, enroll ke kelas                                                    |
+| **Absensi**               | Aktif   | Manual bulk idempotent, sesi QR + token sekali pakai, geofencing, izin/sakit online + verifikasi, rekap & dashboard kedisiplinan                                  |
+| **e-Rapor**               | Roadmap | Konsolidasi nilai → rapor dua-track Kurikulum Merdeka (mapel + P5) [prd05 G-49](docs/prd/prd05.md)                                                                |
+| **Branding config**       | Aktif   | Identitas visual sekolah (nama, logo, warna) dikelola via API + UI SUPERADMIN                                                                                     |
+| **RBAC configurable**     | Aktif   | CRUD permission/role per SUPERADMIN (`/superadmin/rbac`)                                                                                                          |
+| **Maintenance mode**      | Aktif   | Mode pemeliharaan global dikontrol SUPERADMIN (`system:maintenance:write`)                                                                                        |
+| **Landing CMS**           | Aktif   | Kelola konten halaman landing (hero, sambutan, visi-misi, program, ekstrakurikuler, prestasi, fasilitas, galeri, FAQ, berita)                                     |
+| **Portal wali murid**     | Aktif   | Read-only: nilai, absensi, tagihan anak                                                                                                                           |
+| **Realtime**              | Aktif   | Socket.IO namespace `/ws` — notifikasi, event ujian (`exam:force-submit`, `exam:tick`), pengumuman; Redis adapter untuk multi-instance                            |
+| **Rollover tahun ajaran** | Aktif   | Preview/execute/rollback tutup tahun ajaran (draft → pre-check → dry-run → execute → rollback)                                                                    |
+
+## Tangkapan Layar
+
+> **TODO:** Tambahkan tangkapan layar aplikasi di bawah ini. Gunakan gambar dari environment staging (bukan production) dan pastikan tidak menampilkan data pribadi siswa/guru.
+
+<!--
+| Halaman | Preview |
+| ------- | ------- |
+| Dashboard siswa | ![Dashboard siswa](docs/screenshots/dashboard-siswa.png) |
+| Ujian online | ![Ujian online](docs/screenshots/ujian-online.png) |
+| Keuangan (tagihan & pembayaran) | ![Keuangan](docs/screenshots/keuangan.png) |
+| Portal wali murid | ![Portal wali](docs/screenshots/portal-wali.png) |
+| Landing page | ![Landing](docs/screenshots/landing.png) |
+-->
 
 ## Teknologi
 
-| Komponen           | Path                | Teknologi                                                           |
-| ------------------ | ------------------- | ------------------------------------------------------------------- |
-| API                | `apps/api`          | NestJS 11, REST prefix `/api/v1`, Socket.IO namespace `/ws`, Prisma |
-| Web                | `apps/web`          | Next.js App Router, Tailwind CSS v4, shadcn/ui, TanStack Query      |
-| Database           | `packages/database` | Prisma + PostgreSQL (skema tunggal, single-school)                  |
-| UI kit             | `packages/ui`       | Komponen shared (shadcn/ui primitives)                              |
-| Types              | `packages/types`    | Enum & tipe bersama (satu sumber kebenaran)                         |
-| Orchestrasi        | root                | Turborepo, npm workspaces, Node.js ≥ 20                             |
-| Antrean (opsional) | `apps/api`          | BullMQ via Redis (`REDIS_URL`); fallback in-process tanpa Redis     |
-| Reverse proxy      | `deploy/nginx.conf` | Nginx — rate limit, security headers, gzip, WebSocket               |
+| Komponen           | Path                | Teknologi                                                                         |
+| ------------------ | ------------------- | --------------------------------------------------------------------------------- |
+| API                | `apps/api`          | NestJS 11, REST prefix `/api/v1`, Socket.IO namespace `/ws`, Prisma               |
+| Web                | `apps/web`          | Next.js App Router, Tailwind CSS v4, shadcn/ui, TanStack Query, Zustand           |
+| Database           | `packages/database` | Prisma + PostgreSQL (skema tunggal, single-school)                                |
+| UI kit             | `packages/ui`       | Komponen shared (shadcn/ui primitives)                                            |
+| Types              | `packages/types`    | Enum & tipe bersama (satu sumber kebenaran)                                       |
+| Orchestrasi        | root                | Turborepo, npm workspaces, Node.js ≥ 20                                           |
+| Antrean (opsional) | `apps/api`          | BullMQ via Redis (`REDIS_URL`); fallback in-process tanpa Redis                   |
+| Testing            | API / Web           | Jest + Supertest (API); Vitest + Testing Library (web); Playwright (E2E, roadmap) |
+| Reverse proxy      | `deploy/nginx.conf` | Nginx — rate limit, security headers, gzip, WebSocket                             |
 
 ## Arsitektur
 
@@ -82,8 +104,10 @@
                         ┌──────────────────────────────────────────────┐
                         │                apps/web (Next.js)            │
                         │  Route groups: (siswa) (guru) (admin) (ortu) │
-                        │  (superadmin) (ppdb) (landing)               │
+                        │  (superadmin) (ppdb) (landing) (auth)        │
+                        │  (calonsiswa) (pembimbing) (penguji)         │
                         │  Server Components + Client Components       │
+                        │  TanStack Query · Zustand · IndexedDB queue  │
                         └───────┬───────────────────────┬──────────────┘
                                 │ HTTPS (REST /api/v1)  │ WSS (Socket.IO)
                                 │ (JWT httpOnly cookie) │ namespace /ws
@@ -93,19 +117,30 @@
         │  JWT middleware → RBAC guard → Controller → Service → Repo    │
         │  Guard: @RequirePermission + scope SENDIRI/KELAS/SEKOLAH      │
         │  Rate limiter · Request ID · pino · AuditLog · Helmet         │
-        │  29 modul (auth, lms, quiz, exam, finance, payroll, asset,    │
-        │  ppdb, attendance, smk, parent-portal, maintenance, dll.)     │
+        │  32 modul domain (auth, lms, quiz, exam, finance, payroll,    │
+        │  asset, ppdb, attendance, smk, parent-portal, rollover, dll.) │
         └──────┬──────────────┬──────────────┬──────────────┬───────────┘
                │              │              │              │
         ┌──────▼─────┐ ┌──────▼─────┐ ┌──────▼──────┐ ┌─────▼──────────┐
         │ PostgreSQL │ │ Redis      │ │ Storage     │ │ Queue (BullMQ) │
         │ skema      │ │ (opsional) │ │ lokal       │ │ (opsional)     │
-        │ tunggal    │ │ cache/rate │ │ STORAGE_    │ │ in-process     │
+        │ tunggal,   │ │ cache/rate │ │ STORAGE_    │ │ in-process     │
         │ RLS ops.   │ │ lock/socket│ │ LOCAL_DIR   │ │ fallback       │
         └────────────┘ └────────────┘ └─────────────┘ └────────────────┘
 ```
 
-Alur request production: **Nginx → `apps/web` (:3000) / `apps/api` (:3001)**. Konfigurasi lengkap di [`deploy/nginx.conf`](deploy/nginx.conf) (gzip, security headers, rate limiting login/API, cache immutable `/_next/static`, WebSocket `/ws`). Diagram detail: [docs/02-technical-architecture.md §15](docs/02-technical-architecture.md).
+**Alur request production:** Nginx → `apps/web` (:3000) untuk halaman → `apps/api` (:3001) untuk REST `/api/v1` dan Socket.IO `/ws`. Konfigurasi lengkap di [`deploy/nginx.conf`](deploy/nginx.conf) (gzip, security headers, rate limiting login/API, cache immutable `/_next/static`, proxy WebSocket). Alur request per-request di API:
+
+```
+HTTP request
+  → JWT middleware (verify JWT in-house, resolve UserRole, build RequestContext)
+  → Rate limiter (login/ujian/scan QR lebih ketat)
+  → Global guard RBAC (@RequirePermission + scope, @Public)
+  → Controller → Service → Repository (filter scope SENDIRI/KELAS/SEKOLAH)
+  → Response + requestId + audit log (jika sensitif)
+```
+
+Diagram detail dan alur data ujian online: [docs/02-technical-architecture.md §15](docs/02-technical-architecture.md).
 
 ## Quick Start (Pengembangan)
 
@@ -160,7 +195,7 @@ Lihat [`.env.example`](.env.example) sebagai referensi lengkap.
 | `CORS_ORIGINS`                                                     | Tidak    | Origin diizinkan (koma-pisah), REST + Socket.IO                   |
 | `REDIS_URL`                                                        | Tidak    | Aktifkan BullMQ bila diisi; tanpa ini memakai in-process fallback |
 | `NEXT_PUBLIC_API_BASE`                                             | Ya (web) | Base URL API untuk `apps/web`                                     |
-| `NEXT_PUBLIC_APP_NAME`                                             | Tidak    | Nama aplikasi runtime (override branding default `openlms`)       |
+| `NEXT_PUBLIC_APP_NAME`                                             | Tidak    | Nama aplikasi runtime (override branding default)                 |
 | `PORT`                                                             | Tidak    | Default `3000` (web); konvensi production API di `3001`           |
 | `STORAGE_LOCAL_DIR`                                                | Tidak    | Direktori upload lokal (default `./storage`)                      |
 | `LOG_LEVEL`                                                        | Tidak    | Level log pino (default `info`)                                   |
@@ -168,29 +203,30 @@ Lihat [`.env.example`](.env.example) sebagai referensi lengkap.
 | `RATE_LIMIT_*`                                                     | Tidak    | Ambang rate limiting per-IP/identitas/login/refresh               |
 | `TRUST_PROXY`                                                      | Tidak    | `true` bila API di belakang reverse proxy (Nginx)                 |
 
-> **Storage: LOKAL saja — S3/MinIO TIDAK dipakai.** Semua unggahan (branding, avatar, materi) disimpan di filesystem backend lewat `STORAGE_LOCAL_DIR`. Tidak ada variabel `S3_*` maupun layanan object storage di seluruh repo — jangan menambahkan dependensi object storage tanpa persetujuan arsitek [docs/02-technical-architecture.md §8].
+> **Storage: LOKAL saja — S3/MinIO TIDAK dipakai.** Semua unggahan (branding, avatar, materi) disimpan di filesystem backend lewat `STORAGE_LOCAL_DIR`. Tidak ada variabel `S3_*` maupun layanan object storage di seluruh repo — jangan menambahkan dependensi object storage tanpa persetujuan arsitek [docs/02-technical-architecture.md §8](docs/02-technical-architecture.md).
 
 ## Struktur Proyek
 
 ```
-openlms/
+opensis/
 ├── apps/
 │   ├── api/                    # NestJS backend (REST + Socket.IO gateway)
-│   │   └── src/modules/        # 29 modul domain + README.<modul>.md
+│   │   ├── src/common/         # guard, middleware, interceptor, filter
+│   │   └── src/modules/        # 32 modul domain + README.<modul>.md
 │   └── web/                    # Next.js App Router (frontend)
-│       └── src/app/            # route groups per role & halaman publik
+│       └── src/app/            # 11 route group per role & halaman publik (55 page.tsx)
 ├── packages/
-│   ├── database/               # Prisma schema, migrasi, seed, RLS opsional
+│   ├── database/               # Prisma schema (90 model), migrasi, seed, RLS opsional
 │   ├── ui/                     # komponen shared (shadcn/ui)
 │   └── types/                  # enum & tipe bersama
 ├── deploy/
 │   ├── nginx.conf              # reverse proxy production
 │   └── README.deploy.md        # panduan deployment
-├── docs/                       # PRD, arsitektur, ERD, kontrak API, riset, UX
+├── docs/                       # PRD, arsitektur, ERD, kontrak API, riset, UX, KB
 │   ├── 01-master-prd.md … 07-ux-design.md
-│   └── prd/                    # prd01–prd05
+│   └── prd/                    # prd01–prd07
 ├── .github/
-│   ├── workflows/ci.yml        # lint → typecheck → unit → integration → build → audit
+│   ├── workflows/ci.yml        # 7 gate: lint → typecheck → unit → integration → build → audit → secret scan
 │   └── ISSUE_TEMPLATE/         # template issue & PR
 ├── .gitleaks.toml              # konfigurasi secret scanning
 ├── turbo.json
@@ -199,27 +235,29 @@ openlms/
 
 ## Sistem Role & RBAC
 
-**12 role standar** (keputusan RBAC [docs/prd/prd04.md §3.1]). Role adalah kumpulan **permission**, bukan sekadar label; wali kelas bukan role tersendiri melainkan scope override lewat `Class.homeroom_teacher_id`.
+**14 role standar** (keputusan RBAC [docs/prd/prd04.md §3.1](docs/prd/prd04.md), diperbarui per 2026-08-08: role BK, tambah `KAPRODI` & `AUDITOR` — sumber: `packages/database/prisma/schema.prisma` enum `Role`). Role adalah kumpulan **permission**, bukan sekadar label; wali kelas bukan role tersendiri melainkan scope override lewat `Class.homeroom_teacher_id`.
 
-| #   | Role                    | Deskripsi                                                                              | Scope default   |
-| --- | ----------------------- | -------------------------------------------------------------------------------------- | --------------- |
-| 1   | **SUPERADMIN**          | Admin sistem aplikasi sekolah — pengaturan, feature flags, RBAC, manajemen user, audit | SEKOLAH         |
-| 2   | **KEPSEK**              | Kepala sekolah — dashboard eksekutif, laporan, rekap payroll                           | SEKOLAH         |
-| 3   | **WAKEPSEK**            | Wakil kepala sekolah (kurikulum/kesiswaan) — pengawasan akademik & ujian               | SEKOLAH         |
-| 4   | **OPERATOR**            | Staf administrasi/TU — data induk, impor, undangan, verifikasi PPDB, surat             | SEKOLAH         |
-| 5   | **KEUANGAN**            | Staf keuangan — tagihan, pembayaran, denda, refund, rekonsiliasi, payroll              | SEKOLAH         |
-| 6   | **GURU**                | Pengajar mapel — materi, tugas, kuis, ujian, absensi, penilaian                        | KELAS           |
-| 7   | **GURU_BK**             | Guru bimbingan konseling — catatan konseling (field-level), kedisiplinan               | SEKOLAH / KELAS |
-| 8   | **SISWA**               | Peserta didik — materi, tugas, kuis, ujian, absensi, nilai, jadwal                     | SENDIRI + KELAS |
-| 9   | **WALI_MURID**          | Orang tua/wali — portal read-only: nilai, absensi, tagihan anak                        | SENDIRI         |
-| 10  | **CALON_SISWA**         | Pendaftar PPDB — formulir, upload dokumen, cek status                                  | SENDIRI         |
-| 11  | **PEMBIMBING_INDUSTRI** | Pembimbing PKL dari DUDI — jurnal PKL siswa bimbingan                                  | SENDIRI         |
-| 12  | **PENGUJI_EKSTERNAL**   | Penguji UKK dari industri — penilaian rubrik kompetensi                                | SENDIRI         |
+| #   | Role                    | Deskripsi                                                                                                                                          | Scope default   |
+| --- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 1   | **SUPERADMIN**          | Admin sistem aplikasi sekolah — pengaturan, feature flags, RBAC, manajemen user, audit                                                             | SEKOLAH         |
+| 2   | **KEPSEK**              | Kepala sekolah — dashboard eksekutif, laporan, rekap payroll                                                                                       | SEKOLAH         |
+| 3   | **AUDITOR**             | Tim audit sekolah — akses read-only luas: audit log, data siswa/nilai/keuangan/payroll/absensi/staf/aset, riwayat rollover; tanpa permission tulis | SEKOLAH         |
+| 4   | **WAKEPSEK**            | Wakil kepala sekolah (kurikulum/kesiswaan) — pengawasan akademik & ujian                                                                           | SEKOLAH         |
+| 5   | **KAPRODI**             | Kepala Program Keahlian SMK — baca kurikulum/jadwal/prodi, rekap nilai & rapor program, rekap absensi, disiplin, PKL & UKK                         | SEKOLAH / KELAS |
+| 6   | **OPERATOR**            | Staf administrasi/TU — data induk, impor, undangan, verifikasi PPDB, surat                                                                         | SEKOLAH         |
+| 7   | **KEUANGAN**            | Staf keuangan — tagihan, pembayaran, denda, refund, rekonsiliasi, payroll                                                                          | SEKOLAH         |
+| 8   | **GURU**                | Pengajar mapel — materi, tugas, kuis, ujian, absensi, penilaian                                                                                    | KELAS           |
+| 9   | **BK**                  | Guru bimbingan konseling — catatan konseling (field-level), kedisiplinan                                                                           | SEKOLAH / KELAS |
+| 10  | **SISWA**               | Peserta didik — materi, tugas, kuis, ujian, absensi, nilai, jadwal                                                                                 | SENDIRI + KELAS |
+| 11  | **WALI_MURID**          | Orang tua/wali — portal read-only: nilai, absensi, tagihan anak                                                                                    | SENDIRI         |
+| 12  | **CALON_SISWA**         | Pendaftar PPDB — formulir, upload dokumen, cek status                                                                                              | SENDIRI         |
+| 13  | **PEMBIMBING_INDUSTRI** | Pembimbing PKL dari DUDI — jurnal PKL siswa bimbingan                                                                                              | SENDIRI         |
+| 14  | **PENGUJI_EKSTERNAL**   | Penguji UKK dari industri — penilaian rubrik kompetensi                                                                                            | SENDIRI         |
 
-**Model RBAC** — tiga dimensi kontrol akses [docs/02-technical-architecture.md §4]:
+**Model RBAC** — tiga dimensi kontrol akses [docs/02-technical-architecture.md §4](docs/02-technical-architecture.md):
 
 1. **Permission-based**: aksi dikendalikan izin `resource:action[:scope]` (contoh: `payroll:read:school`, `grade:write:class`, `payslip:read:self`).
-2. **Role hierarchy**: role mewarisi permission dari hierarki; permission tambahan/dibatalkan via `RolePermission`.
+2. **Role hierarchy**: role mewarisi permission dari hierarki; permission tambahan/dibatalkan via `RolePermission` dan `UserPermissionOverride`.
 3. **Scope**: batas data — **SENDIRI**, **KELAS**, atau **SEKOLAH**.
 
 Otoritas role adalah tabel `UserRole` (bukan klaim JWT), sehingga perubahan role berlaku instan. SUPERADMIN dapat mengelola permission per role via UI `/superadmin/rbac`. Detail lengkap: [docs/04-api-contract.md §4](docs/04-api-contract.md) dan [docs/02-technical-architecture.md §4.3–4.5](docs/02-technical-architecture.md).
@@ -230,9 +268,11 @@ Otoritas role adalah tabel `UserRole` (bukan klaim JWT), sehingga perubahan role
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | **SUPERADMIN**                              | Admin sistem, feature flags, RBAC, branding, landing CMS, onboarding, maintenance mode, rollover, audit |
 | **KEPSEK / WAKEPSEK**                       | Dashboard eksekutif, pengawasan akademik & ujian, rekap                                                 |
+| **AUDITOR**                                 | Akses read-only luas: audit log, data siswa/nilai/keuangan/payroll/absensi/staf/aset, riwayat rollover  |
+| **KAPRODI**                                 | Baca kurikulum/jadwal/prodi, rekap nilai & rapor program, rekap absensi, disiplin, PKL & UKK            |
 | **OPERATOR**                                | Data induk siswa/guru/staf, impor Excel, undangan user, verifikasi PPDB                                 |
 | **KEUANGAN**                                | Tagihan & pembayaran, rekap, payroll run & slip                                                         |
-| **GURU / GURU_BK**                          | Kelas, materi, tugas, kuis, ujian, absensi QR, penilaian, konseling                                     |
+| **GURU / BK**                               | Kelas, materi, tugas, kuis, ujian, absensi QR, penilaian, konseling                                     |
 | **SISWA**                                   | Kelas, materi, tugas, kuis, ujian online, nilai, absensi, kalender                                      |
 | **WALI_MURID**                              | Portal read-only: nilai, absensi, tagihan anak                                                          |
 | **CALON_SISWA**                             | Pendaftaran PPDB & cek status                                                                           |
@@ -249,11 +289,11 @@ Otoritas role adalah tabel `UserRole` (bukan klaim JWT), sehingga perubahan role
 Panduan lengkap: [deploy/README.deploy.md](deploy/README.deploy.md).
 
 1. **Siapkan infrastruktur**: PostgreSQL 16 (wajib) dan Redis (opsional) — `docker compose up -d` / `docker compose --profile full up -d`.
-2. **Build & jalankan aplikasi**: `npm ci`, `npm run build`, lalu jalankan API (`:3001`) dan Web (`:3000`) sebagai service (systemd/PM2/docker). Catatan: Dockerfile aplikasi belum tersedia (lihat [prd05 G-62](docs/prd/prd05-development.md)); service `api`/`web` di `docker-compose.yml` dikomentari sampai Dockerfile dibuat.
+2. **Build & jalankan aplikasi**: `npm ci`, `npm run build`, lalu jalankan API (`:3001`) dan Web (`:3000`) sebagai service (systemd/PM2/docker). Catatan: Dockerfile aplikasi belum tersedia (lihat [prd05 G-62](docs/prd/prd05.md) dan [riview04 Rv4-10](docs/riview/riview04.md)); service `api`/`web` di `docker-compose.yml` dikomentari sampai Dockerfile dibuat.
 3. **Pasang reverse proxy**:
 
    ```bash
-   cp deploy/nginx.conf /etc/nginx/conf.d/openlms.conf
+   cp deploy/nginx.conf /etc/nginx/conf.d/opensis.conf
    nginx -t
    systemctl reload nginx
    ```
@@ -271,9 +311,9 @@ Praktik keamanan yang diterapkan di proyek (detail: [docs/02-technical-architect
 - **RBAC fail-closed**: `AuthGuard` global → `PermissionsGuard` (`@RequirePermission`, scope SENDIRI/KELAS/SEKOLAH) → `FeatureFlagGuard`. Fitur OFF ditolak di API, bukan hanya disembunyikan di UI.
 - **Anti-impersonation**: aktor dibaca dari `request.requestContext`, bukan header klien.
 - **Helmet** aktif di `main.ts`; CORS dibatasi `CORS_ORIGINS`; cookie `SameSite=Lax`.
-- **Rate limiting** login & API + security headers di Nginx (`deploy/nginx.conf`); aplikasi juga menegakkan rate limit per-IP/identitas (`RATE_LIMIT_*`).
-- **Audit trail**: `AuditLog` untuk perubahan data sensitif (nilai, absensi, pembayaran, data siswa).
-- **Storage lokal** (tanpa S3) dengan bucket per jenis dokumen dan akses berbasis RBAC scope.
+- **Rate limiting** login & API + security headers di Nginx (`deploy/nginx.conf`); aplikasi juga menegakkan rate limit per-IP/identitas (`RATE_LIMIT_*`) + brute-force lockout (5 gagal/15 menit).
+- **Audit trail**: `AuditLog` untuk perubahan data sensitif (nilai, absensi, pembayaran, data siswa); endpoint baca `GET /admin/change-logs` (SUPERADMIN/KEPSEK).
+- **Storage lokal** (tanpa S3) dengan bucket per jenis dokumen, validasi magic bytes/MIME, batas per-bucket, dan akses berbasis RBAC scope.
 - **Jangan pernah commit `.env`** (lihat `.gitignore` + `.gitleaks.toml`); ganti semua secret placeholder sebelum production.
 
 Lihat [SECURITY.md](SECURITY.md) untuk kebijakan keamanan dan cara melaporkan kerentanan.
@@ -283,12 +323,14 @@ Lihat [SECURITY.md](SECURITY.md) untuk kebijakan keamanan dan cara melaporkan ke
 ```bash
 npm run lint              # ESLint semua workspace
 npm run typecheck         # TypeScript --noEmit semua workspace
-npm run test:unit         # unit test
+npm run test:unit         # unit test (tanpa database)
 npm run test:integration  # integration test (butuh PostgreSQL)
 npm run audit             # npm audit --audit-level=high
 ```
 
-Pipeline CI (`.github/workflows/ci.yml`) menjalankan: lint → typecheck → unit → integration (dengan service PostgreSQL) → build → npm audit, pada setiap push ke `main` dan pull request. Panduan berkontribusi: [CONTRIBUTING.md](CONTRIBUTING.md).
+Status terkini: **estimasi ±2.000+ test hijau** (API unit ±1.900 — seed-data ~973 + 357 + 29 + dst, web Vitest **94 test**), catatan eksekusi 2026-08-08 ([docs/riview/riview04.md](docs/riview/riview04.md)); 5 suite pra-existing telah diperbaiki dan hijau di `NODE_ENV=production` tanpa env. Verifikasi akhir pipeline oleh tester dijalankan paralel — angka final menggantikan estimasi ini. Target roadmap **2.000+ test hijau dan coverage ≥ 80%** ([docs/prd/prd06.md](docs/prd/prd06.md)).
+
+Pipeline CI (`.github/workflows/ci.yml`) menjalankan **7 gate**: lint → typecheck → unit → integration (dengan service PostgreSQL) → build → npm audit → secret scan (gitleaks), pada setiap push ke `main` dan pull request. Panduan berkontribusi: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Perintah Umum (root)
 
@@ -300,16 +342,28 @@ Pipeline CI (`.github/workflows/ci.yml`) menjalankan: lint → typecheck → uni
 | `npm run typecheck`                                              | TypeScript `--noEmit` semua workspace |
 | `npm run test:unit`                                              | Unit test                             |
 | `npm run test:integration`                                       | Integration test (butuh PostgreSQL)   |
-| `npm run db:generate` / `db:migrate` / `db:seed` / `db:validate` | Prisma (via `@openlms/database`)      |
+| `npm run db:generate` / `db:migrate` / `db:seed` / `db:validate` | Prisma (via `@opensis/database`)      |
 | `npm run audit`                                                  | `npm audit` dengan ambang high        |
 
 ## Dokumentasi
 
-- `docs/01-master-prd.md` … `docs/07-ux-design.md` — PRD, arsitektur, ERD, kontrak API, rencana implementasi, riset, desain UX.
-- `docs/prd/prd01.md` … `docs/prd/prd05-development.md` — PRD terpisah (produk & development roadmap).
-- `docs/riview/` — laporan review berkala.
+- `docs/01-master-prd.md` … `docs/08-knowledge-base.md` — PRD, arsitektur, ERD, kontrak API, rencana implementasi, riset, desain UX, basis pengetahuan.
+- `docs/08-knowledge-base.md` — **Project Knowledge Base**: peta arsitektur, peta data, alur bisnis kritis, RBAC, realtime/queue/storage, status kesehatan.
+- `docs/prd/prd01.md` … `docs/prd/prd07.md` — PRD terpisah (produk & development roadmap).
+- `docs/riview/` — laporan review berkala (`riview01.md` … `riview04.md`).
 - `apps/api/src/modules/*/README.<modul>.md` — kontrak endpoint per modul.
 - Indeks dokumen: [docs/README.docs.md](docs/README.docs.md).
+
+## Roadmap
+
+Prioritas pengembangan (detail: [docs/prd/prd05.md](docs/prd/prd05.md) dan [docs/prd/prd06.md](docs/prd/prd06.md)):
+
+- **Performa & kapasitas**: target 1.500–2.000 pengguna ujian bersamaan (load test k6, p95 autosave < 300 ms), optimasi autosave, indeks hot-path.
+- **Keamanan**: proteksi CSRF penuh, rate limit upload, sanitasi konten landing, gate `DEMO_MODE`.
+- **Integritas data**: idempotensi pembayaran, payroll PAID transaksional, rollback rollover PPDB.
+- **Fitur bisnis**: e-Rapor dua-track Kurikulum Merdeka, ekspor Dapodik.
+- **Testing & kualitas**: kampanye 2.000+ test, coverage ≥ 80%, E2E Playwright, gate coverage di CI.
+- **Ops/infra**: Dockerfile aplikasi, backup/restore & drill, graceful shutdown.
 
 ## Lisensi
 

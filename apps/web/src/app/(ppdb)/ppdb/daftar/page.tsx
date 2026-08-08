@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type JSX, type ReactNode, type RefObject } from "react";
+
 import Link from "next/link";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import {
@@ -18,7 +19,7 @@ import {
   Progress,
   toast,
   IconCheck
-} from "@openlms/ui";
+} from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
 import { STORAGE_KEYS, safeGet, safeRemove, safeSet } from "@/lib/storage";
 
@@ -58,35 +59,35 @@ const PPDB_ACCEPT = ".jpg,.jpeg,.png,.pdf";
 
 type PpdFile = { name: string; size: number } | null;
 
-export default function PPDBDaftarPage(): React.JSX.Element {
-  const [step, setStep] = React.useState(0);
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [result, setResult] = React.useState<{ registrationNo: string } | null>(null);
+export default function PPDBDaftarPage(): JSX.Element {
+  const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ registrationNo: string } | null>(null);
 
-  const [form, setForm] = React.useState(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY_FORM);
 
   // File pendaftaran (R-17): KK/Akta wajib, Rapor opsional → ppdb-documents;
   // bukti persetujuan (consent) → ppdb-consents, wajib (ConsentProofDto.documentUrl).
-  const [kk, setKk] = React.useState<PpdFile>(null);
-  const [akta, setAkta] = React.useState<PpdFile>(null);
-  const [rapor, setRapor] = React.useState<PpdFile>(null);
-  const [consentProof, setConsentProof] = React.useState<PpdFile>(null);
-  const kkInput = React.useRef<HTMLInputElement>(null);
-  const aktaInput = React.useRef<HTMLInputElement>(null);
-  const raporInput = React.useRef<HTMLInputElement>(null);
-  const consentInput = React.useRef<HTMLInputElement>(null);
+  const [kk, setKk] = useState<PpdFile>(null);
+  const [akta, setAkta] = useState<PpdFile>(null);
+  const [rapor, setRapor] = useState<PpdFile>(null);
+  const [consentProof, setConsentProof] = useState<PpdFile>(null);
+  const kkInput = useRef<HTMLInputElement>(null);
+  const aktaInput = useRef<HTMLInputElement>(null);
+  const raporInput = useRef<HTMLInputElement>(null);
+  const consentInput = useRef<HTMLInputElement>(null);
 
   // Autosave draft lokal (G10) — sessionStorage via storage.ts (R-23):
   // draft berisi PII, jangan disimpan permanen; hilang saat tab ditutup.
-  React.useEffect(() => {
+  useEffect(() => {
     const t = window.setTimeout(() => {
       safeSet(STORAGE_KEYS.ppdbDraft, form, "session");
     }, 600);
     return () => window.clearTimeout(t);
   }, [form]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const raw = safeGet<typeof form>(STORAGE_KEYS.ppdbDraft, "session");
     if (raw) setForm((f) => ({ ...f, ...raw }));
   }, []);
@@ -104,7 +105,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
     setError(null);
   };
 
-  const next = (e: React.FormEvent): void => {
+  const next = (e: FormEvent): void => {
     e.preventDefault();
     setError(null);
     if (step === 0 && !form.fullName.trim()) {
@@ -128,7 +129,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
 
   /** Simpan metadata file terpilih + validasi ukuran (5MB) & tipe client-side. */
   const pickFile = (
-    input: React.RefObject<HTMLInputElement | null>,
+    input: RefObject<HTMLInputElement | null>,
     setter: (f: PpdFile) => void
   ): void => {
     const file = input.current?.files?.[0];
@@ -152,7 +153,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
     return res.path;
   };
 
-  const submit = async (e: React.FormEvent): Promise<void> => {
+  const submit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     if (!form.consent) {
       setError("Centang persetujuan data anak (wajib) sebelum mengirim.");
@@ -229,17 +230,17 @@ export default function PPDBDaftarPage(): React.JSX.Element {
 
   if (result) {
     return (
-      <main className="min-h-screen bg-neutral-50">
+      <main className="min-h-screen bg-background">
         <div className="mx-auto max-w-lg px-4 py-12">
           <Card>
             <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
               <IconCheck className="h-12 w-12 text-success-600" />
-              <h1 className="text-2xl font-bold text-neutral-900">Pendaftaran Terkirim</h1>
-              <p className="text-sm text-neutral-600">Simpan nomor pendaftaran Anda:</p>
-              <p className="rounded-lg bg-neutral-100 px-6 py-3 font-mono text-2xl font-bold text-neutral-900">
+              <h1 className="text-2xl font-bold text-foreground">Pendaftaran Terkirim</h1>
+              <p className="text-sm text-muted-foreground">Simpan nomor pendaftaran Anda:</p>
+              <p className="rounded-lg bg-muted px-6 py-3 font-mono text-2xl font-bold text-foreground">
                 {result.registrationNo}
               </p>
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-muted-foreground">
                 Gunakan nomor ini untuk cek status. Verifikasi dokumen oleh TU.
               </p>
               <Link href="/ppdb/status">
@@ -253,18 +254,18 @@ export default function PPDBDaftarPage(): React.JSX.Element {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
+    <main className="min-h-screen bg-background">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
-          <Link href="/ppdb" className="text-sm font-medium text-primary-600">
+          <Link href="/ppdb" className="text-sm font-medium text-primary">
             &larr; Halaman PPDB
           </Link>
-          <p className="text-lg font-bold text-primary-700">{APP_NAME}</p>
+          <p className="text-lg font-bold text-primary">{APP_NAME}</p>
         </div>
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-2xl font-bold text-neutral-900">Formulir Pendaftaran</h1>
+        <h1 className="text-2xl font-bold text-foreground">Formulir Pendaftaran</h1>
         <Steps steps={STEPS} current={step} className="mt-4" />
         <Progress value={(step / STEPS.length) * 100} className="my-4" />
 
@@ -381,7 +382,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
                       aria-describedby="kk-hint"
                       onChange={() => pickFile(kkInput, setKk)}
                     />
-                    <p id="kk-hint" className="text-xs text-neutral-500">
+                    <p id="kk-hint" className="text-xs text-muted-foreground">
                       {kk ? `Terpilih: ${kk.name}` : "Pilih file KK hasil scan/foto."}
                     </p>
                   </Field>
@@ -393,7 +394,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
                       aria-describedby="akta-hint"
                       onChange={() => pickFile(aktaInput, setAkta)}
                     />
-                    <p id="akta-hint" className="text-xs text-neutral-500">
+                    <p id="akta-hint" className="text-xs text-muted-foreground">
                       {akta ? `Terpilih: ${akta.name}` : "Pilih file Akta hasil scan/foto."}
                     </p>
                   </Field>
@@ -405,14 +406,14 @@ export default function PPDBDaftarPage(): React.JSX.Element {
                       aria-describedby="rapor-hint"
                       onChange={() => pickFile(raporInput, setRapor)}
                     />
-                    <p id="rapor-hint" className="text-xs text-neutral-500">
+                    <p id="rapor-hint" className="text-xs text-muted-foreground">
                       {rapor ? `Terpilih: ${rapor.name}` : "Pilih file rapor (jika ada)."}
                     </p>
                   </Field>
                 </>
               ) : (
                 <>
-                  <div className="space-y-2 rounded-md border border-neutral-200 bg-neutral-50 p-4 text-sm">
+                  <div className="space-y-2 rounded-md border border-border bg-background p-4 text-sm">
                     <p>
                       <strong>Calon:</strong> {form.fullName} (
                       {form.gender === "L" ? "Laki-laki" : "Perempuan"}) — {form.birthPlace},{" "}
@@ -435,19 +436,19 @@ export default function PPDBDaftarPage(): React.JSX.Element {
                       aria-describedby="consent-hint"
                       onChange={() => pickFile(consentInput, setConsentProof)}
                     />
-                    <p id="consent-hint" className="text-xs text-neutral-500">
+                    <p id="consent-hint" className="text-xs text-muted-foreground">
                       {consentProof
                         ? `Terpilih: ${consentProof.name}`
                         : "Upload scan formulir/KK yang ditandatangani sebagai bukti persetujuan."}
                     </p>
                   </Field>
-                  <label className="flex items-start gap-3 rounded-md border border-neutral-200 px-3 py-3">
+                  <label className="flex items-start gap-3 rounded-md border border-border px-3 py-3">
                     <Checkbox
                       checked={form.consent}
                       onChange={(e) => set("consent", e.target.checked)}
                       className="mt-1"
                     />
-                    <span className="text-sm text-neutral-700">
+                    <span className="text-sm text-foreground">
                       Saya sebagai orang tua/wali menyetujui pengolahan data anak (data pribadi)
                       oleh sekolah sesuai ketentuan UU PDP untuk keperluan pendaftaran. Persetujuan
                       ini direkam dengan waktu.
@@ -485,7 +486,7 @@ export default function PPDBDaftarPage(): React.JSX.Element {
           </CardContent>
         </Card>
         <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted-foreground">
             Draft tersimpan otomatis di tab ini (hilang saat tab ditutup).
           </p>
           <Button type="button" variant="ghost" size="sm" onClick={clearDraft}>
@@ -504,9 +505,9 @@ function Field({
 }: {
   label: string;
   required?: boolean;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  const id = React.useId();
+  children: ReactNode;
+}): JSX.Element {
+  const id = useId();
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>

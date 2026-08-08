@@ -13,10 +13,12 @@ jest.mock("../../src/modules/lms/lms-audit", () => ({
   ROLE_PRIORITY: [
     "SUPERADMIN",
     "KEPSEK",
+    "AUDITOR",
     "WAKEPSEK",
+    "KAPRODI",
     "OPERATOR",
     "KEUANGAN",
-    "GURU_BK",
+    "BK",
     "GURU",
     "SISWA",
     "WALI_MURID",

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useState, type JSX } from "react";
+
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
 import { useApi } from "@/lib/use-api";
@@ -15,6 +16,7 @@ import {
   TabPanel,
   Button,
   Input,
+  Select,
   Switch,
   Badge,
   Table,
@@ -28,7 +30,7 @@ import {
   toast,
   IconLock,
   IconDownload
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 interface AdminUser {
   id: string;
@@ -41,11 +43,27 @@ interface AdminUser {
   createdAt: string;
 }
 
-export default function SuperadminAdminSistemPage(): React.JSX.Element {
+// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
+const FLAG_KOLOM: { key: string; label: string }[] = [
+  { key: "key", label: "Key" },
+  { key: "kategori", label: "Kategori" },
+  { key: "status", label: "Status" },
+  { key: "aksi", label: "Aksi" }
+];
+
+const USER_KOLOM: { key: string; label: string }[] = [
+  { key: "username", label: "Username" },
+  { key: "nama", label: "Nama" },
+  { key: "role", label: "Role" },
+  { key: "status", label: "Status" },
+  { key: "aksi", label: "Aksi" }
+];
+
+export default function SuperadminAdminSistemPage(): JSX.Element {
   const { flags, setFlag, refresh } = useFeatureFlags(true);
-  const [tab, setTab] = React.useState("flags");
-  const [categoryFilter, setCategoryFilter] = React.useState("all");
-  const [search, setSearch] = React.useState("");
+  const [tab, setTab] = useState("flags");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   const users = useApi<{ items: AdminUser[]; total: number }>(
     () => api.get<{ items: AdminUser[]; total: number }>("/admin/users"),
@@ -59,13 +77,17 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
       (search.trim() === "" || f.key.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const resetPassword = async (username: string): Promise<void> => {
+  const resetPassword = async (user: AdminUser): Promise<void> => {
     if (DEMO_MODE) {
-      toast({ variant: "success", title: `Password sementara dibuat untuk ${username} (demo)` });
+      toast({
+        variant: "success",
+        title: `Password sementara dibuat untuk ${(user.fullName || user.username) ?? ""} (demo)`
+      });
       return;
     }
     try {
-      await api.post("/auth/password/reset", { username });
+      // ResetPasswordDto: userId wajib; newPassword opsional (di-generate server).
+      await api.post("/auth/reset-password", { userId: user.id });
       toast({ variant: "success", title: "Password sementara dikirim" });
     } catch {
       toast({ variant: "error", title: "Gagal reset password" });
@@ -74,7 +96,7 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-neutral-900">Admin Sistem</h1>
+      <h1 className="text-2xl font-bold text-foreground">Admin Sistem</h1>
 
       <Tabs
         tabs={[
@@ -105,18 +127,16 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              <select
+              <Select
                 aria-label="Filter kategori"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="h-11 rounded-md border border-neutral-300 bg-white px-3 text-base"
-              >
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c === "all" ? "Semua Kategori" : c}
-                  </option>
-                ))}
-              </select>
+                options={categories.map((c) => ({
+                  value: c,
+                  label: c === "all" ? "Semua Kategori" : c
+                }))}
+                className="w-48"
+              />
               <Input
                 aria-label="Cari flag"
                 placeholder="Cari flag..."
@@ -125,68 +145,55 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
                 className="max-w-xs"
               />
             </div>
-            <div className="overflow-x-auto rounded-md border border-neutral-200">
-              <table className="w-full min-w-full text-left text-sm">
-                <thead className="border-b border-neutral-200 bg-neutral-50">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 font-medium text-neutral-700">
-                      Key
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium text-neutral-700">
-                      Kategori
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium text-neutral-700">
-                      Status
-                    </th>
-                    <th scope="col" className="px-4 py-3 font-medium text-neutral-700">
-                      Aksi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {filtered.map((f) => (
-                    <tr key={f.key} className="hover:bg-neutral-50">
-                      <td className="px-4 py-3">
-                        <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
-                          {f.key}
-                        </code>
-                        {f.locked ? (
-                          <Badge variant="neutral" className="ml-2">
-                            <IconLock className="h-3 w-3" /> locked
-                          </Badge>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3 text-neutral-900">{f.category}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant={f.enabled ? "success" : "neutral"}>
-                          {f.enabled ? "ON" : "OFF"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        {f.locked || f.isSystem ? (
-                          <span className="text-xs text-neutral-500">
-                            Terkunci (system/ditunda)
-                          </span>
-                        ) : (
-                          <Switch
-                            checked={f.enabled}
-                            onCheckedChange={(v) => {
-                              setFlag(f.key, v);
-                              toast({
-                                variant: "info",
-                                title: `${f.key} ${v ? "diaktifkan" : "dinonaktifkan"}`,
-                                description: "Perubahan dicatat di AuditLog"
-                              });
-                            }}
-                            label={f.enabled ? "ON" : "OFF"}
-                          />
-                        )}
-                      </td>
-                    </tr>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {FLAG_KOLOM.map((k) => (
+                    <TableHead key={k.key}>{k.label}</TableHead>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((f) => (
+                  <TableRow key={f.key}>
+                    <TableCell>
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{f.key}</code>
+                      {f.locked ? (
+                        <Badge variant="neutral" className="ml-2">
+                          <IconLock className="h-3 w-3" /> locked
+                        </Badge>
+                      ) : null}
+                    </TableCell>
+                    <TableCell>{f.category}</TableCell>
+                    <TableCell>
+                      <Badge variant={f.enabled ? "success" : "neutral"}>
+                        {f.enabled ? "ON" : "OFF"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {f.locked || f.isSystem ? (
+                        <span className="text-xs text-muted-foreground">
+                          Terkunci (system/ditunda)
+                        </span>
+                      ) : (
+                        <Switch
+                          checked={f.enabled}
+                          onCheckedChange={(v) => {
+                            setFlag(f.key, v);
+                            toast({
+                              variant: "info",
+                              title: `${f.key} ${v ? "diaktifkan" : "dinonaktifkan"}`,
+                              description: "Perubahan dicatat di AuditLog"
+                            });
+                          }}
+                          label={f.enabled ? "ON" : "OFF"}
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </TabPanel>
@@ -215,18 +222,16 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Nama</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Aksi</TableHead>
+                      {USER_KOLOM.map((k) => (
+                        <TableHead key={k.key}>{k.label}</TableHead>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(users.data?.items ?? []).map((u) => (
                       <TableRow key={u.id}>
                         <TableCell>
-                          <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">
+                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                             {u.username ?? "-"}
                           </code>
                         </TableCell>
@@ -242,12 +247,12 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => void resetPassword(u.username as string)}
+                              onClick={() => void resetPassword(u)}
                             >
                               Reset Password
                             </Button>
                           ) : (
-                            <span className="text-xs text-neutral-500">tanpa username</span>
+                            <span className="text-xs text-muted-foreground">tanpa username</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -273,13 +278,11 @@ export default function SuperadminAdminSistemPage(): React.JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-neutral-300 bg-neutral-50 px-3 py-2">
-              <span className="font-medium text-neutral-700">
-                Status backup belum dikonfigurasi
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2">
+              <span className="font-medium text-foreground">Status backup belum dikonfigurasi</span>
               <Badge variant="warning">Perlu konfigurasi</Badge>
             </div>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               Fitur backup database belum terpasang pada instalasi ini. Konfigurasikan backup
               otomatis (mis. pg_dump terjadwal) sebelum mengeksekusi rollover. Setelah backup
               tersedia, status terakhir akan ditampilkan di sini.

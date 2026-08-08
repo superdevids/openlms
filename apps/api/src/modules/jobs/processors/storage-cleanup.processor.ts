@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { LocalStorageProvider } from "../../storage/local-storage.provider";
 import { BUCKET_POLICIES } from "../../storage/storage.constants";
 

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type ComponentProps, type JSX } from "react";
+
 import { cn } from "../lib/utils";
 
 export interface SelectOption {
@@ -13,10 +14,10 @@ export function Select({
   options,
   placeholder,
   ...props
-}: React.ComponentProps<"select"> & {
+}: ComponentProps<"select"> & {
   options?: SelectOption[];
   placeholder?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <select
       className={cn(

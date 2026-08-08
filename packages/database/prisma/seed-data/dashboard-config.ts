@@ -7,7 +7,7 @@
  * academic, briefcase, rocket, refresh, user.
  */
 
-import type { Role } from "@openlms/types";
+import type { Role } from "@opensis/types";
 
 export interface DashboardCardSeed {
   featureKey: string;
@@ -148,7 +148,7 @@ export const DASHBOARD_CARDS_BY_ROLE: Record<Role, DashboardCardSeed[]> = {
       requiredPermission: "exam:read:school"
     }
   ],
-  GURU_BK: [
+  BK: [
     {
       featureKey: "kelas",
       label: "Data Siswa",
@@ -285,6 +285,43 @@ export const DASHBOARD_CARDS_BY_ROLE: Record<Role, DashboardCardSeed[]> = {
       sectionOrder: 40
     }
   ],
+  KAPRODI: [
+    {
+      featureKey: "wakepsek",
+      label: "Akademik Program",
+      description: "Kurikulum, jadwal & rekap program keahlian",
+      icon: "academic",
+      href: "/admin/wakepsek",
+      sectionOrder: 10
+    },
+    {
+      featureKey: "kelas",
+      label: "Data Siswa",
+      description: "Siswa & kelas program keahlian",
+      icon: "database",
+      href: "/admin/operator",
+      sectionOrder: 20,
+      requiredPermission: "class:read:school"
+    },
+    {
+      featureKey: "penilaian",
+      label: "Rekap Nilai",
+      description: "Rapor, kompetensi & UKK",
+      icon: "grade",
+      href: "/admin/wakepsek",
+      sectionOrder: 30,
+      requiredPermission: "report:read:class"
+    },
+    {
+      featureKey: "absensi",
+      label: "Kehadiran",
+      description: "Rekap kehadiran lintas kelas",
+      icon: "qr",
+      href: "/admin/kepsek",
+      sectionOrder: 40,
+      requiredPermission: "attendance:rekap:school"
+    }
+  ],
   KEPSEK: [
     {
       featureKey: "kepsek",
@@ -319,6 +356,43 @@ export const DASHBOARD_CARDS_BY_ROLE: Record<Role, DashboardCardSeed[]> = {
       href: "/admin/keuangan",
       sectionOrder: 40,
       requiredPermission: "invoice:read:school"
+    }
+  ],
+  AUDITOR: [
+    {
+      featureKey: "audit",
+      label: "Audit Log",
+      description: "Log perubahan sistem",
+      icon: "file",
+      href: "/admin/kepsek/change-logs",
+      sectionOrder: 10,
+      requiredPermission: "audit:read:school"
+    },
+    {
+      featureKey: "data-induk",
+      label: "Data Sekolah",
+      description: "Data induk & kepegawaian",
+      icon: "database",
+      href: "/admin/operator",
+      sectionOrder: 20,
+      requiredPermission: "user:read:school"
+    },
+    {
+      featureKey: "keuangan",
+      label: "Keuangan",
+      description: "Tagihan & arus kas",
+      icon: "wallet",
+      href: "/admin/keuangan",
+      sectionOrder: 30,
+      requiredPermission: "invoice:read:school"
+    },
+    {
+      featureKey: "kepsek",
+      label: "Dashboard Eksekutif",
+      description: "KPI & tren sekolah",
+      icon: "briefcase",
+      href: "/admin/kepsek",
+      sectionOrder: 40
     }
   ],
   SUPERADMIN: [
@@ -421,7 +495,9 @@ export const DASHBOARD_CARDS_BY_ROLE: Record<Role, DashboardCardSeed[]> = {
 export const DASHBOARD_ROLES_TO_SEED: Role[] = [
   "SISWA",
   "GURU",
-  "GURU_BK",
+  "BK",
+  "KAPRODI",
+  "AUDITOR",
   "OPERATOR",
   "KEUANGAN",
   "WAKEPSEK",

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useCallback, useEffect, useState } from "react";
+
 import {
   readFeatureFlagsForDemo,
   writeFeatureFlagForDemo,
@@ -27,12 +28,12 @@ interface UseFeatureFlagsResult {
 }
 
 export function useFeatureFlags(allowRemote = true): UseFeatureFlagsResult {
-  const [flags, setFlags] = React.useState<FeatureFlag[]>(() => readFeatureFlagsForDemo());
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<unknown>(undefined);
-  const [tick, setTick] = React.useState(0);
+  const [flags, setFlags] = useState<FeatureFlag[]>(() => readFeatureFlagsForDemo());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(undefined);
+  const [tick, setTick] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     const load = async (): Promise<void> => {
       setLoading(true);
@@ -66,7 +67,7 @@ export function useFeatureFlags(allowRemote = true): UseFeatureFlagsResult {
     };
   }, [tick, allowRemote]);
 
-  const setFlag = React.useCallback((key: string, enabled: boolean): void => {
+  const setFlag = useCallback((key: string, enabled: boolean): void => {
     if (DEMO_MODE) {
       writeFeatureFlagForDemo(key, enabled);
       setFlags(readFeatureFlagsForDemo());
@@ -78,7 +79,7 @@ export function useFeatureFlags(allowRemote = true): UseFeatureFlagsResult {
       .catch(() => setError(new Error("Gagal menyimpan pengaturan fitur")));
   }, []);
 
-  const refresh = React.useCallback(() => setTick((t) => t + 1), []);
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
 
   return { flags, loading, error, setFlag, refresh };
 }

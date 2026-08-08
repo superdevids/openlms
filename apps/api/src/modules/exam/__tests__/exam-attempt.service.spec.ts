@@ -1,11 +1,11 @@
 import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prisma/client";
 import { ExamAttemptService } from "../exam-attempt.service";
 import { hashToken } from "../exam.util";
-import { prisma } from "@openlms/database";
+import { prisma } from "@opensis/database";
 import { EXAM_FORCE_SUBMIT_EVENT, EXAM_TICK_EVENT } from "../../notifications/notification-events";
 import type { RealtimeGateway } from "../../realtime/realtime.gateway";
 
-jest.mock("@openlms/database", () => ({
+jest.mock("@opensis/database", () => ({
   prisma: {
     $transaction: jest.fn(),
     exam: { updateMany: jest.fn() },

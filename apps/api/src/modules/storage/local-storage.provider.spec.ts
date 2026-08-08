@@ -23,7 +23,7 @@ describe("LocalStorageProvider", () => {
   let savedPath: string | null = null;
 
   beforeAll(async () => {
-    root = await mkdtemp(join(tmpdir(), "openlms-storage-"));
+    root = await mkdtemp(join(tmpdir(), "opensis-storage-"));
     process.env.STORAGE_LOCAL_DIR = root;
     process.env.STORAGE_MAX_BRANDING_MB = "1";
     process.env.STORAGE_MAX_MATERIALS_MB = "2";
@@ -58,7 +58,7 @@ describe("LocalStorageProvider", () => {
       buffer: pngOf(1024),
       originalname: "logo.png"
     });
-    expect(savedPath).toMatch(/^branding\/[0-9a-f-]{36}\.png$/);
+    expect(savedPath).toMatch(/^branding\/\d+-logo\.png$/);
     const full = join(root, savedPath!);
     await expect(readFile(full)).resolves.toBeTruthy();
   });
@@ -69,7 +69,7 @@ describe("LocalStorageProvider", () => {
       buffer: PDF_MAGIC,
       originalname: "bahan.pdf"
     });
-    expect(savedPath).toMatch(/^materials\/[0-9a-f-]{36}\.pdf$/);
+    expect(savedPath).toMatch(/^materials\/\d+-bahan\.pdf$/);
   });
 
   it("menolak file ber-isi PNG yang diklaim image/jpeg → magic mismatch (R-15)", async () => {

@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { type JSX } from "react";
+
 import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
@@ -14,7 +15,7 @@ import {
   CardTitle,
   Button,
   EmptyState
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 import { roleLabel } from "@/lib/roles";
 import { DEMO_INVOICES } from "@/lib/demo";
@@ -22,11 +23,21 @@ import { formatRupiah } from "@/lib/format";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 
-export default function AdminDashboardPage(): React.JSX.Element {
+export default function AdminDashboardPage(): JSX.Element {
   const { user } = useAuth();
   const role = user?.primaryRole ?? user?.roles[0];
   const invoices = useApi<{ amount: number; paid: number; status: string }[]>(
-    () => api.get("/invoices"),
+    async () => {
+      const rows =
+        await api.get<
+          Array<{ amount: number | string; paidAmount: number | string; status: string }>
+        >("/finance/invoices");
+      return rows.map((r) => ({
+        amount: Number(r.amount),
+        paid: Number(r.paidAmount),
+        status: r.status
+      }));
+    },
     [],
     { fallbackData: DEMO_INVOICES }
   );
@@ -36,8 +47,8 @@ export default function AdminDashboardPage(): React.JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Beranda Admin</h1>
-        <p className="text-sm text-neutral-600">Peran aktif: {role ? roleLabel(role) : "-"}</p>
+        <h1 className="text-2xl font-bold text-foreground">Beranda Admin</h1>
+        <p className="text-sm text-muted-foreground">Peran aktif: {role ? roleLabel(role) : "-"}</p>
       </div>
 
       <DashboardCards
@@ -63,8 +74,8 @@ export default function AdminDashboardPage(): React.JSX.Element {
 
       <section aria-label="Ringkasan keuangan">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-900">Keuangan</h2>
-          <Link href="/admin/keuangan" className="text-sm font-medium text-primary-600">
+          <h2 className="text-lg font-semibold text-foreground">Keuangan</h2>
+          <Link href="/admin/keuangan" className="text-sm font-medium text-primary">
             Lihat semua
           </Link>
         </div>
@@ -158,13 +169,13 @@ function Kpi({
   label: string;
   value: string;
   hint?: string;
-}): React.JSX.Element {
+}): JSX.Element {
   return (
     <Card>
       <CardContent>
-        <p className="text-sm text-neutral-600">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-neutral-500">{hint}</p> : null}
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
+        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );

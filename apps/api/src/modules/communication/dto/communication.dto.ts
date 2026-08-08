@@ -1,5 +1,5 @@
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, MinLength } from "class-validator";
-import { ROLE_VALUES } from "@openlms/types";
+import { ROLE_VALUES } from "@opensis/types";
 import type { LetterType } from "../official-letter.service";
 
 export class CreateAnnouncementDto {

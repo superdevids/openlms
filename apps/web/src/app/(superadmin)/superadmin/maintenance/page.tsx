@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
+
 import { api, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import { APP_NAME } from "@/lib/constants";
@@ -17,7 +18,7 @@ import {
   Switch,
   Textarea,
   toast
-} from "@openlms/ui";
+} from "@opensis/ui";
 
 /**
  * Halaman Maintenance (SUPERADMIN) — /superadmin/maintenance.
@@ -49,19 +50,19 @@ function formatTanggal(value: string | null): string {
   }
 }
 
-export default function SuperadminMaintenancePage(): React.JSX.Element {
+export default function SuperadminMaintenancePage(): JSX.Element {
   const statusApi = useApi<MaintenanceStatus>((signal) =>
     api.get<MaintenanceStatus>("/admin/system/maintenance", { signal })
   );
 
-  const [enabled, setEnabled] = React.useState(false);
-  const [message, setMessage] = React.useState("");
-  const [eta, setEta] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const synced = React.useRef(false);
+  const [enabled, setEnabled] = useState(false);
+  const [message, setMessage] = useState("");
+  const [eta, setEta] = useState("");
+  const [saving, setSaving] = useState(false);
+  const synced = useRef(false);
 
   // Sinkronkan form dari status terbaru (hanya sekali saat data dimuat).
-  React.useEffect(() => {
+  useEffect(() => {
     if (!synced.current && statusApi.data) {
       setEnabled(statusApi.data.maintenanceEnabled);
       setMessage(statusApi.data.message ?? "");
@@ -103,8 +104,8 @@ export default function SuperadminMaintenancePage(): React.JSX.Element {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">Mode Maintenance</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-bold text-foreground">Mode Maintenance</h1>
+        <p className="text-sm text-muted-foreground">
           Aktifkan mode pemeliharaan global untuk seluruh aplikasi. Endpoint publik terpilih
           (health, status sistem, konten landing) tetap berfungsi. Perubahan tercatat di Audit Log.
         </p>
@@ -151,7 +152,7 @@ export default function SuperadminMaintenancePage(): React.JSX.Element {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="maintenance-eta">
-              ETA (perkiraan selesai) <span className="text-neutral-400">— opsional</span>
+              ETA (perkiraan selesai) <span className="text-muted-foreground">— opsional</span>
             </Label>
             <Input
               id="maintenance-eta"
@@ -171,7 +172,7 @@ export default function SuperadminMaintenancePage(): React.JSX.Element {
               </p>
             ) : null}
           </div>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             Terakhir diperbarui: {formatTanggal(statusApi.data?.updatedAt ?? null)}
             {statusApi.data?.updatedBy ? ` oleh ${statusApi.data.updatedBy}` : ""}
           </p>
@@ -179,13 +180,13 @@ export default function SuperadminMaintenancePage(): React.JSX.Element {
       </Card>
 
       <section aria-labelledby="maintenance-preview-title">
-        <h2 id="maintenance-preview-title" className="text-lg font-semibold text-neutral-900">
+        <h2 id="maintenance-preview-title" className="text-lg font-semibold text-foreground">
           Pratinjau Halaman Maintenance
         </h2>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           Tampilan yang dilihat pengguna saat mode maintenance aktif.
         </p>
-        <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-950 p-6 text-white">
+        <div className="mt-4 overflow-hidden rounded-xl border border-border bg-neutral-950 p-6 text-white">
           <div className="mx-auto max-w-md text-center">
             <div
               className="mx-auto flex h-10 w-10 items-center justify-center rounded-full"

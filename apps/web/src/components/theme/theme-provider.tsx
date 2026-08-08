@@ -1,12 +1,13 @@
 "use client";
 
-import * as React from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
+
 import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
 
 /**
  * ThemeProvider — dark mode class-based (audit R-01).
  * - theme: pilihan user ("light" | "dark" | "system"), default "system".
- * - Persist ke localStorage via storage.ts (key openlms_theme).
+ * - Persist ke localStorage via storage.ts (key opensis_theme).
  * - Terapkan documentElement.classList.toggle("dark", ...) + style.colorScheme.
  * - Saat "system": listen matchMedia("(prefers-color-scheme: dark)").
  * - No-FOUC script di layout.tsx sudah menerapkan class sebelum React; provider
@@ -22,7 +23,7 @@ interface ThemeContextValue {
   setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = React.createContext<ThemeContextValue | null>(null);
+const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const SYSTEM_QUERY = "(prefers-color-scheme: dark)";
 
@@ -43,16 +44,16 @@ function readStoredTheme(): Theme | null {
   return stored === "light" || stored === "dark" || stored === "system" ? stored : null;
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
-  const [theme, setThemeState] = React.useState<Theme>(() => readStoredTheme() ?? "system");
-  const [resolvedTheme, setResolvedTheme] = React.useState<ResolvedTheme>(() => {
+export function ThemeProvider({ children }: { children: ReactNode }): JSX.Element {
+  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme() ?? "system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
     const stored = readStoredTheme();
     if (stored === "light" || stored === "dark") return stored;
     return systemResolved();
   });
 
   // Ikuti perubahan preferensi OS hanya saat theme = "system".
-  React.useEffect(() => {
+  useEffect(() => {
     if (theme !== "system") return;
     const mq = window.matchMedia(SYSTEM_QUERY);
     const onChange = (): void => setResolvedTheme(mq.matches ? "dark" : "light");
@@ -62,17 +63,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
   }, [theme]);
 
   // Terapkan .dark + colorScheme setiap resolvedTheme berubah.
-  React.useEffect(() => {
+  useEffect(() => {
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
-  const setTheme = React.useCallback((next: Theme): void => {
+  const setTheme = useCallback((next: Theme): void => {
     setThemeState(next);
     setResolvedTheme(next === "system" ? systemResolved() : next);
     safeSet(STORAGE_KEYS.theme, next);
   }, []);
 
-  const value = React.useMemo<ThemeContextValue>(
+  const value = useMemo<ThemeContextValue>(
     () => ({ theme, resolvedTheme, setTheme }),
     [theme, resolvedTheme, setTheme]
   );
@@ -81,7 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
 }
 
 export function useTheme(): ThemeContextValue {
-  const ctx = React.useContext(ThemeContext);
+  const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error("useTheme harus dipakai di dalam <ThemeProvider>");
   return ctx;
 }
