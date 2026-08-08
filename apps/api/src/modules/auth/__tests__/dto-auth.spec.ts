@@ -88,6 +88,27 @@ describe("DTO Auth", () => {
       });
     });
 
+    it("username dengan karakter tidak aman ditolak", async () => {
+      await expectDtoInvalid(
+        InvitationDto,
+        { username: "budi guru", fullName: "Budi", role: "GURU" },
+        { property: "username", constraint: "matches" }
+      );
+      await expectDtoInvalid(
+        InvitationDto,
+        { username: "../../etc", fullName: "Budi", role: "GURU" },
+        { property: "username", constraint: "matches" }
+      );
+    });
+
+    it("username terlalu panjang ditolak", async () => {
+      await expectDtoInvalid(
+        InvitationDto,
+        { username: "a".repeat(51), fullName: "Budi", role: "GURU" },
+        { property: "username", constraint: "maxLength" }
+      );
+    });
+
     it.each([
       [{ ...VALID_INVITATION, email: "bukan-email" }, "email", "isEmail"],
       [{ ...VALID_INVITATION, email: 123 }, "email", "isEmail"],

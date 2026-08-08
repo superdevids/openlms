@@ -34,6 +34,26 @@ describe("buildCsv", () => {
     expect(csv).toContain('"catatan ""penting"""');
     expect(csv.endsWith("\r\n")).toBe(true);
   });
+
+  it("mencegah CSV formula injection (=, +, -, @) dengan prefix apostrof", () => {
+    const csv = buildCsv(
+      [['=HYPERLINK("http://evil","klik")', "+SUM(A1:A2)", "-cmd|' /C calc'", "@cmd", "normal"]],
+      ["A"]
+    );
+    expect(csv).toContain("'=HYPERLINK(");
+    expect(csv).toContain("'+SUM");
+    expect(csv).toContain("'-cmd");
+    expect(csv).toContain("'@cmd");
+    // nilai normal tidak berubah
+    expect(csv).toContain(",normal");
+  });
+
+  it("nilai formula yang mengandung koma tetap tervalidasi CSV", () => {
+    const csv = buildCsv([["=IF(1,2,3)"]], ["A"]);
+    // prefiks apostrof + tetap di-quote karena mengandung koma
+    expect(csv).toContain("'=IF");
+    expect(csv).toContain(",");
+  });
 });
 
 describe("buildSimplePdf", () => {

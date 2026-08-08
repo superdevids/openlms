@@ -16,15 +16,6 @@ export const FINANCE_INVOICE_TYPES = [
 
 export type FinanceInvoiceType = (typeof FINANCE_INVOICE_TYPES)[number];
 
-/** Tipe yang sudah ada di enum schema.prisma (bisa langsung insert Prisma). */
-export const SCHEMA_INVOICE_TYPES = [
-  "SPP",
-  "UANG_KEGIATAN",
-  "UANG_DAFTAR",
-  "UANG_SERAGAM",
-  "LAINNYA"
-] as const;
-
 /** Header Idempotency-Key (prd04 §5.F.2, tek-04 §1.7). */
 export const IDEMPOTENCY_HEADER = "idempotency-key";
 

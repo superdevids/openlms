@@ -69,9 +69,9 @@ describe("PpdbService edge", () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it("register membuat registration_no berformat PPDB-YYYYMMDD-XXXX", async () => {
+  it("register membuat registration_no berformat PPDB-YYYYMMDD-16hex (CSPRNG)", async () => {
     const applicant = await service.register({ ...BASE, consent: CONSENT });
-    expect(applicant.registration_no).toMatch(/^PPDB-\d{8}-[A-Z0-9]{4}$/);
+    expect(applicant.registration_no).toMatch(/^PPDB-\d{8}-[A-F0-9]{16}$/);
   });
 
   it("track pendaftar tidak ditemukan -> 404", async () => {

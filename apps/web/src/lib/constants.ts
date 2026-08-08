@@ -21,27 +21,6 @@ export const APP_NAME: string = process.env.NEXT_PUBLIC_APP_NAME ?? DEFAULT_APP_
 export const API_BASE_FALLBACK = "http://localhost:3001";
 export const API_TIMEOUT_MS = 3000;
 
-/** Urutan default section landing (hero → tentang → piagam → kontak). */
-export const LANDING_DEFAULT_SECTION_ORDER = [
-  "hero",
-  "statistik",
-  "sambutan-kepsek",
-  "tentang",
-  "visi-misi",
-  "piagam",
-  "struktur-organisasi",
-  "program-keahlian",
-  "ekstrakurikuler",
-  "prestasi",
-  "agenda",
-  "fasilitas",
-  "galeri",
-  "testimoni",
-  "faq",
-  "ppdb-cta",
-  "kontak"
-] as const;
-
 // ============================================================
 // Branding fallback (offline / API mati) — identitas opensis default.
 // ============================================================

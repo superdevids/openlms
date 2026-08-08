@@ -1,6 +1,6 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import type { PrismaClient } from "@opensis/database";
-import { LandingService, slugify } from "./landing.service";
+import { LandingService, isSafeUrl, slugify } from "./landing.service";
 
 const ACTOR = "usr_admin1";
 const IP = "127.0.0.1";
@@ -66,6 +66,23 @@ function createMockPrisma() {
 }
 
 describe("LandingService", () => {
+  describe("isSafeUrl", () => {
+    it("menerima http/https dan path relatif", () => {
+      expect(isSafeUrl("https://example.com")).toBe(true);
+      expect(isSafeUrl("http://example.com/x")).toBe(true);
+      expect(isSafeUrl("/ppdb")).toBe(true);
+      expect(isSafeUrl("/berita/slug")).toBe(true);
+    });
+    it("menolak javascript:, data: dan protokol lain", () => {
+      expect(isSafeUrl("javascript:alert(1)")).toBe(false);
+      expect(isSafeUrl("JaVaScRiPt:alert(1)")).toBe(false);
+      expect(isSafeUrl("data:text/html,<script>x</script>")).toBe(false);
+      expect(isSafeUrl("ftp://example.com")).toBe(false);
+      expect(isSafeUrl("")).toBe(false);
+      expect(isSafeUrl("   ")).toBe(false);
+    });
+  });
+
   describe("slugify", () => {
     it("mengubah judul menjadi slug huruf kecil", () => {
       expect(slugify("PPDB Tahun Ajaran 2026/2027 Resmi Dibuka!")).toBe(
@@ -176,6 +193,63 @@ describe("LandingService", () => {
       expect(auditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ action: "UPDATE" }) })
       );
+    });
+
+    it("menolak linkUrl javascript: dengan BadRequestException", async () => {
+      const { prisma } = createMockPrisma();
+      const service = new LandingService(prisma);
+
+      await expect(
+        service.upsertLandingContent(
+          "hero",
+          { title: "Hero", body: "x", linkUrl: "javascript:alert(1)" },
+          ACTOR,
+          IP
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it("menolak social URL tidak aman di extra", async () => {
+      const { prisma } = createMockPrisma();
+      const service = new LandingService(prisma);
+
+      await expect(
+        service.upsertLandingContent(
+          "kontak",
+          {
+            title: "Kontak",
+            body: "x",
+            extra: { instagram: "javascript:alert(1)" }
+          },
+          ACTOR,
+          IP
+        )
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it("menerima social URL http/https dan path relatif", async () => {
+      const { prisma, landingContent, auditLog } = createMockPrisma();
+      landingContent.findUnique.mockResolvedValue(null);
+      landingContent.create.mockResolvedValue(landingRow({ id: "land_kontak" }));
+      const service = new LandingService(prisma);
+
+      const result = await service.upsertLandingContent(
+        "kontak",
+        {
+          title: "Kontak",
+          body: "x",
+          linkUrl: "/ppdb",
+          extra: {
+            instagram: "https://instagram.com/sekola",
+            mapsEmbedUrl: "https://maps.google.com/embed?q=x"
+          }
+        },
+        ACTOR,
+        IP
+      );
+
+      expect(result.id).toBe("land_kontak");
+      expect(auditLog.create).toHaveBeenCalled();
     });
   });
 

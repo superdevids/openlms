@@ -519,5 +519,25 @@ describe("DTO LMS", () => {
     it("ExportGradesDto semua opsional", async () => {
       await expectDtoValid(ExportGradesDto, { classId: "c1", studentId: "s1", semester: "GANJIL" });
     });
+    it("ExportGradesDto semester format valid dengan slash diterima", async () => {
+      await expectDtoValid(ExportGradesDto, { semester: "2025/2026" });
+    });
+    it("ExportGradesDto semester menolak path traversal", async () => {
+      await expectDtoInvalid(
+        ExportGradesDto,
+        { semester: "../../../x" },
+        { property: "semester", constraint: "matches" }
+      );
+      await expectDtoInvalid(
+        ExportGradesDto,
+        { semester: "GANJIL\\..\\.." },
+        { property: "semester", constraint: "matches" }
+      );
+      await expectDtoInvalid(
+        ExportGradesDto,
+        { semester: "x".repeat(33) },
+        { property: "semester", constraint: "matches" }
+      );
+    });
   });
 });

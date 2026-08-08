@@ -197,6 +197,30 @@ describe("AuthService.login", () => {
       service.login({ emailOrUsername: "ghost", password: "x" }, { requestId: "req_test" })
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
+
+  it("user tidak ditemukan → audit LOGIN_FAILED_UNKNOWN + IP tercatat", async () => {
+    (prismaMock.user as { findFirst: jest.Mock }).findFirst.mockResolvedValue(null);
+    const auditCreate = prismaMock.auditLog as { create: jest.Mock };
+
+    await expect(
+      service.login(
+        { emailOrUsername: "ghost", password: "x" },
+        { requestId: "req_test", ip: "1.2.3.4" }
+      )
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(auditCreate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: "LOGIN",
+          actor_id: null,
+          entity_id: "ghost",
+          ip_address: "1.2.3.4",
+          after: { reason: "LOGIN_FAILED_UNKNOWN" }
+        })
+      })
+    );
+  });
 });
 
 describe("AuthService.resetPasswordByOperator & me", () => {
