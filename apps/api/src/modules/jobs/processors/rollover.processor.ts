@@ -16,9 +16,11 @@ export interface RolloverExecutePayload {
 
 /**
  * RolloverProcessor — eksekusi rollover tahun ajaran.
- * Idempoten via RolloverRun.idempotency_key: bila run dengan key sama sudah
- * dalam status RUNNING/DONE/ROLLED_BACK/FAILED, job dilewati. Eksekusi
- * diteruskan ke RolloverService (alur preview → run → rollback yang sudah ada).
+ * Idempoten via RolloverRun.idempotency_key: job HANYA dilewati untuk status
+ * terminal/eksklusif (RUNNING/DONE/ROLLED_BACK). DRAFT (belum pre-check),
+ * PREVIEW (siap eksekusi), dan FAILED (resume) diteruskan ke RolloverService
+ * (alur preview → run → rollback yang sudah ada). Eksekusi diteruskan ke
+ * RolloverService yang mengunci status secara atomik (optimistic lock).
  */
 @Injectable()
 export class RolloverProcessor {
@@ -36,9 +38,12 @@ export class RolloverProcessor {
     const existing = await prisma.rolloverRun.findUnique({
       where: { idempotency_key: input.idempotencyKey }
     });
-    if (existing && existing.status !== "DRAFT") {
+    // Skip HANYA status terminal/eksklusif. PREVIEW dan FAILED WAJIB diproses
+    // (execute menyala precheck, FAILED = resume); DRAFT juga diproses agar
+    // service bisa memberi error yang jelas bila pre-check belum dijalankan.
+    if (existing && ["RUNNING", "DONE", "ROLLED_BACK"].includes(existing.status)) {
       this.logger.log(
-        `rollover.execute ${input.runId}: sudah ${existing.status} (idempotent), dilewati`
+        `rollover.execute ${input.runId}: sudah ${existing.status} (terminal/eksklusif), dilewati`
       );
       return;
     }

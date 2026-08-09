@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Ilustrasi buku dan topi kelulusan">
+  <defs>
+    <linearGradient id="landing-about-school-circle" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eff6ff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="landing-about-school-cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <circle cx="160" cy="160" r="150" fill="url(#landing-about-school-circle)"/>
+  <circle cx="160" cy="160" r="150" fill="none" stroke="#bfdbfe" stroke-width="3"/>
+  <path d="M78 176 L160 122 L242 176 L160 230 Z" fill="url(#landing-about-school-cap)"/>
+  <path d="M78 176 L160 230 L242 176 L160 188 Z" fill="#0ea5e9"/>
+  <path d="M242 176 L160 188 L160 206 L242 194 Z" fill="#1e40af"/>
+  <path d="M78 176 L160 188 L160 206 L78 194 Z" fill="#1e40af"/>
+  <rect x="152" y="108" width="16" height="22" rx="3" fill="#f59e0b"/>
+  <path d="M168 112 L200 122 L168 132 Z" fill="#ef4444"/>
+  <rect x="86" y="216" width="148" height="26" rx="6" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <rect x="96" y="224" width="40" height="5" rx="2.5" fill="#bfdbfe"/>
+  <rect x="146" y="224" width="52" height="5" rx="2.5" fill="#bfdbfe"/>
+  <rect x="208" y="224" width="16" height="5" rx="2.5" fill="#bfdbfe"/>
+</svg>

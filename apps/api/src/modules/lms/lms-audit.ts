@@ -1,6 +1,9 @@
+import { Logger } from "@nestjs/common";
 import { AuditAction, Prisma, Role } from "@prisma/client";
 import { prisma } from "@opensis/database";
 import { notifyAuditChange } from "../realtime/realtime.gateway";
+
+const logger = new Logger("LmsAudit");
 
 /** Minimal konteks aktor — dipenuhi RequestContext (auth.guard) dan ActorContext (modul). */
 export interface AuditActorContext {
@@ -84,7 +87,15 @@ export async function writeAudit(params: AuditParams): Promise<void> {
       action: params.action,
       createdAt: row.created_at.toISOString()
     });
-  } catch {
-    // jangan gagalkan mutasi karena audit
+  } catch (error) {
+    // jangan gagalkan mutasi karena audit, tapi jangan senyap: kegagalan
+    // menulis AuditLog (compliance) wajib tercatat ke log error.
+    logger.error("writeAudit gagal", {
+      action: params.action,
+      entity: params.entity,
+      entityId: params.entityId,
+      actorId: params.ctx.userId === "system" ? null : params.ctx.userId,
+      error: error instanceof Error ? error.message : String(error)
+    });
   }
 }

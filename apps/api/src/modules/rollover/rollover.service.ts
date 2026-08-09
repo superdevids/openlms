@@ -3,6 +3,8 @@
  *
  * State machine RolloverRun: DRAFT -> PREVIEW -> RUNNING -> DONE/FAILED,
  * FAILED -> (resume execute) ; DONE -> ROLLED_BACK (window 7 hari, pristine).
+ * RUNNING basi (proses crash, updated_at > 10 menit) diklaim ulang otomatis
+ * menjadi FAILED agar bisa di-resume — lihat execute().
  *
  * Strategi job: BullMQ belum terpasang di workspace ini, jadi execute berjalan
  * SEQUENTIAL dengan transaksi per langkah (state di step_state) dan dapat
@@ -96,6 +98,9 @@ interface RolloverStepState {
     ppdbEnrolledIds: string[];
   };
 }
+
+/** Ambang RUNNING basi (ms) — proses rollover yang berhenti > ambang diklaim ulang. */
+const STALE_RUNNING_MS = 10 * 60 * 1000;
 
 function defaultPrefs(): RolloverPreferences {
   return {
@@ -324,10 +329,18 @@ export class RolloverService {
   /** T4/T5 — execute: terapkan rencana, resume dari FAILED, konsisten dgn dry-run. */
   async execute(runId: string, actorId: string): Promise<RolloverRun> {
     const run = await this.getRun(runId);
-    if (run.status === "DONE" || run.status === "ROLLED_BACK" || run.status === "RUNNING") {
+    const staleRunning =
+      run.status === "RUNNING" &&
+      run.updated_at != null &&
+      Date.now() - run.updated_at.getTime() > STALE_RUNNING_MS;
+    if (
+      run.status === "DONE" ||
+      run.status === "ROLLED_BACK" ||
+      (run.status === "RUNNING" && !staleRunning)
+    ) {
       throw new ConflictException(`Rollover tidak dapat dieksekusi dari status ${run.status}`);
     }
-    if (run.status !== "PREVIEW" && run.status !== "FAILED") {
+    if (run.status !== "PREVIEW" && run.status !== "FAILED" && !staleRunning) {
       throw new ConflictException("Jalankan pre-check dan dry-run terlebih dahulu");
     }
     if (!run.new_academic_year_id) throw new ConflictException("Tahun ajaran baru belum dibuat");
@@ -343,6 +356,43 @@ export class RolloverService {
     if (!storedPlan || JSON.stringify(storedPlan) !== JSON.stringify(plan)) {
       throw new ConflictException(
         "Hasil promosi berubah sejak dry-run; ulangi dry-run sebelum execute"
+      );
+    }
+
+    // Reklaim RUNNING basi (proses crash > 10 menit): tandai FAILED dahulu agar
+    // claim atomik di bawah dapat melanjutkan (resume) dari status FAILED.
+    // Update kondisional (status RUNNING + updated_at lama) mencegah menimpa
+    // run yang memang masih aktif berjalan oleh executor lain.
+    if (staleRunning) {
+      const staleCutoff = new Date(Date.now() - STALE_RUNNING_MS);
+      const reclaimed = await this.db.rolloverRun.updateMany({
+        where: { id: run.id, status: "RUNNING", updated_at: { lt: staleCutoff } },
+        data: {
+          status: "FAILED",
+          step_state: {
+            ...state,
+            error: "RUNNING basi (proses terhenti > 10 menit) — diklaim ulang otomatis"
+          } as unknown as Prisma.InputJsonValue
+        }
+      });
+      if (reclaimed.count === 0) {
+        throw new ConflictException("Rollover sedang berjalan (status tidak basi)");
+      }
+    }
+
+    // Optimistic lock: klaim run dari PREVIEW/FAILED → RUNNING SECARA ATOMIK
+    // (updateMany dengan kondisi status = cek-then-update dalam satu statement).
+    // Dua executor yang memproses run sama tidak bisa dua-duanya menang; yang
+    // kalah mendapat count 0 dan dilempar ConflictException (bukan menimpa
+    // status milik executor lain). Wajib SEBELUM try — kegagalan klaim tidak
+    // boleh memicu penulisan status FAILED di catch.
+    const claimed = await this.db.rolloverRun.updateMany({
+      where: { id: run.id, status: { in: ["PREVIEW", "FAILED"] } },
+      data: { status: "RUNNING", executed_by: actorId, executed_at: new Date() }
+    });
+    if (claimed.count === 0) {
+      throw new ConflictException(
+        "Rollover sedang berjalan atau status tidak valid untuk dieksekusi"
       );
     }
 
@@ -392,10 +442,8 @@ export class RolloverService {
     };
 
     try {
-      await this.db.rolloverRun.update({
-        where: { id: run.id },
-        data: { status: "RUNNING", executed_by: actorId, executed_at: new Date() }
-      });
+      // Status sudah diklaim RUNNING oleh optimistic lock di atas; langkah
+      // pertama (close-source) memakai step_state untuk resume dari FAILED.
 
       // 1. Tutup sumber sementara (CLOSING) — previousSourceStatus disimpan.
       currentStep = "close-source";

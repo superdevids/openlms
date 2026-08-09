@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { Invoice, PaymentStatus } from "@prisma/client";
 import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
@@ -13,7 +18,26 @@ import { isBlank } from "../dto/finance.dto";
  * - invoice_no unik per sekolah, format INV-{tahun}-{urutan:5}.
  * - status dihitung dari total pembayaran terverifikasi (PENDING/PARTIAL/PAID/OVERDUE/CARRIED_OVER).
  * - carry-over: tagihan lama dipindah ke tahun ajaran baru (original_invoice_id).
+ * - Scope baca (SEC-002): aktor scope SEKOLAH (invoice:read:school) boleh baca
+ *   semua; SISWA/WALI_MURID hanya tagihan milik sendiri/anak (ParentStudentLink).
  */
+
+/** Aktor pemanggil invoice — subset RequestContext (auth.guard). */
+export interface InvoiceActor {
+  userId: string;
+  roles: string[];
+  classIds: string[];
+}
+
+/** Role dengan invoice:read:school (seed permissions.ts — SUPERADMIN/OPERATOR/KEUANGAN/WAKEPSEK/KEPSEK/AUDITOR). */
+const INVOICE_SCHOOL_READ_ROLES = new Set([
+  "SUPERADMIN",
+  "OPERATOR",
+  "KEUANGAN",
+  "WAKEPSEK",
+  "KEPSEK",
+  "AUDITOR"
+]);
 
 export interface CreateInvoiceInput {
   studentId: string;
@@ -169,13 +193,24 @@ export class InvoiceService {
     return result.count;
   }
 
-  async findById(id: string): Promise<InvoiceWithPayments> {
+  async findById(id: string, actor: InvoiceActor): Promise<InvoiceWithPayments> {
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: { payments: true }
     });
     if (!invoice) {
       throw new NotFoundException("Tagihan tidak ditemukan");
+    }
+    if (!this.isSchoolScoped(actor)) {
+      const allowed = await this.resolveAllowedStudentIds(actor);
+      if (!allowed.includes(invoice.student_id)) {
+        throw new ForbiddenException({
+          error: {
+            code: "FORBIDDEN",
+            message: "Anda tidak memiliki akses ke tagihan ini"
+          }
+        });
+      }
     }
     return invoice;
   }
@@ -187,11 +222,34 @@ export class InvoiceService {
       status?: string;
       period?: string;
       academicYear?: string;
-    } = {}
+    } = {},
+    actor: InvoiceActor
   ): Promise<Array<Invoice & { outstanding: Decimal; paidAmount: Decimal }>> {
+    const schoolScoped = this.isSchoolScoped(actor);
+    let studentFilter: { student_id: string } | { student_id: { in: string[] } } | undefined;
+    if (schoolScoped) {
+      if (query.studentId) studentFilter = { student_id: query.studentId };
+    } else {
+      // SISWA/WALI_MURID: paksa scope ke diri sendiri/anak (ParentStudentLink).
+      const allowed = await this.resolveAllowedStudentIds(actor);
+      if (query.studentId) {
+        if (!allowed.includes(query.studentId)) {
+          throw new ForbiddenException({
+            error: {
+              code: "FORBIDDEN",
+              message: "Anda tidak memiliki akses ke tagihan siswa ini"
+            }
+          });
+        }
+        studentFilter = { student_id: query.studentId };
+      } else {
+        studentFilter = { student_id: { in: allowed } };
+      }
+    }
+
     const invoices = await prisma.invoice.findMany({
       where: {
-        ...(query.studentId ? { student_id: query.studentId } : {}),
+        ...(studentFilter ?? {}),
         ...(query.type ? { type: query.type as never } : {}),
         ...(query.period ? { period: query.period } : {}),
         ...(query.academicYear ? { academic_year: query.academicYear } : {})
@@ -222,14 +280,17 @@ export class InvoiceService {
   }
 
   /** Rekap status bulanan per siswa (prd04 §5.F.1). */
-  async monthlySummary(period: string): Promise<{
+  async monthlySummary(
+    period: string,
+    actor: InvoiceActor
+  ): Promise<{
     total: number;
     paid: number;
     partial: number;
     overdue: number;
     outstanding: Decimal;
   }> {
-    const invoices = await this.list({ period });
+    const invoices = await this.list({ period }, actor);
     const outstanding = invoices.reduce((s, i) => s.plus(i.outstanding), new Decimal(0));
     return {
       total: invoices.length,
@@ -249,9 +310,10 @@ export class InvoiceService {
   async carryOver(
     invoiceId: string,
     targetAcademicYear: string,
-    createdBy: string
+    createdBy: string,
+    actor: InvoiceActor
   ): Promise<Invoice> {
-    const source = await this.findById(invoiceId);
+    const source = await this.findById(invoiceId, actor);
     const existing = await prisma.invoice.findFirst({
       where: { original_invoice_id: source.id, academic_year: targetAcademicYear }
     });
@@ -315,5 +377,26 @@ export class InvoiceService {
         }
       })
     ]);
+  }
+
+  /** Aktor scope SEKOLAH (punya invoice:read:school). */
+  private isSchoolScoped(actor: InvoiceActor): boolean {
+    return actor.roles.some((r) => INVOICE_SCHOOL_READ_ROLES.has(r));
+  }
+
+  /** Student id yang sah diakses aktor SENDIRI: diri sendiri (SISWA) + anak (WALI_MURID via ParentStudentLink). */
+  private async resolveAllowedStudentIds(actor: InvoiceActor): Promise<string[]> {
+    const allowed = new Set<string>();
+    if (actor.roles.includes("SISWA")) {
+      allowed.add(actor.userId);
+    }
+    if (actor.roles.includes("WALI_MURID")) {
+      const links = await prisma.parentStudentLink.findMany({
+        where: { parent: { user_id: actor.userId } },
+        select: { student_id: true }
+      });
+      for (const link of links) allowed.add(link.student_id);
+    }
+    return [...allowed];
   }
 }

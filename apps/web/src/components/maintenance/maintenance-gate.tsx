@@ -38,11 +38,28 @@ type GateState = "checking" | "up" | "maintenance";
  * Path yang dikecualikan dari gerbang (public + kontrol maintenance):
  * - "/" (landing home), "/berita", "/berita/*" — publik, konten dari
  *   /public/landing (allowlist API).
+ * - Seluruh halaman landing baru: /tentang, /program-keahlian, /fasilitas,
+ *   /ekstrakurikuler, /prestasi, /galeri, /testimoni, /faq, /kontak — sama
+ *   publik, konten dari /public/landing. String didaftarkan sekarang agar
+ *   gerbang tetap lolos saat halaman masing-masing rampung oleh task lain.
  * - "/superadmin/maintenance" — kontrol ON/OFF mode maintenance.
  */
 function isExemptPath(pathname: string): boolean {
   if (pathname === "/") return true;
   if (pathname === "/berita" || pathname.startsWith("/berita/")) return true;
+  if (
+    pathname === "/tentang" ||
+    pathname === "/program-keahlian" ||
+    pathname === "/fasilitas" ||
+    pathname === "/ekstrakurikuler" ||
+    pathname === "/prestasi" ||
+    pathname === "/galeri" ||
+    pathname === "/testimoni" ||
+    pathname === "/faq" ||
+    pathname === "/kontak"
+  ) {
+    return true;
+  }
   if (pathname === "/superadmin/maintenance") return true;
   return false;
 }

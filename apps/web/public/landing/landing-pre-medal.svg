@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Medali prestasi">
+  <defs>
+    <linearGradient id="preMedalBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="preMedalGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#preMedalBg)"/>
+  <path d="M96 34 L74 96" stroke="#fde68a" stroke-width="9" stroke-linecap="round" opacity="0.9"/>
+  <path d="M104 34 L126 96" stroke="#fde68a" stroke-width="9" stroke-linecap="round" opacity="0.9"/>
+  <circle cx="100" cy="120" r="42" fill="url(#preMedalGold)"/>
+  <circle cx="100" cy="120" r="42" fill="none" stroke="#fff7ed" stroke-width="4" opacity="0.35"/>
+  <path d="M86 122 l10 10 l20 -24" fill="none" stroke="#92400e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

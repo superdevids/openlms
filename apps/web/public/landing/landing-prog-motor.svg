@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="progMotor" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dc2626"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" rx="28" fill="url(#progMotor)"/>
+  <circle cx="60" cy="52" r="22" fill="#ffffff" opacity="0.12"/>
+  <circle cx="340" cy="250" r="30" fill="#ffffff" opacity="0.1"/>
+  <rect x="40" y="216" width="320" height="12" rx="6" fill="#0f172a" opacity="0.35"/>
+  <path d="M110 196 h180 a34 34 0 1 1 -66 0 h-48 a34 34 0 1 1 -66 0 z" fill="#fef2f2"/>
+  <circle cx="140" cy="200" r="26" fill="#1e293b"/>
+  <circle cx="140" cy="200" r="10" fill="#cbd5e1"/>
+  <circle cx="270" cy="200" r="26" fill="#1e293b"/>
+  <circle cx="270" cy="200" r="10" fill="#cbd5e1"/>
+  <path d="M140 200 L200 150 h40 l34 50" stroke="#7f1d1d" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect x="196" y="140" width="44" height="12" rx="6" fill="#fbbf24"/>
+  <circle cx="208" cy="146" r="4" fill="#1e293b"/>
+  <path d="M236 152 v-14 l16 -10" stroke="#7f1d1d" stroke-width="8" stroke-linecap="round" fill="none"/>
+</svg>

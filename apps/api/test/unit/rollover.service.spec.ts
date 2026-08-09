@@ -95,6 +95,7 @@ describe("RolloverService", () => {
         where.id === "year-2025" ? SOURCE_YEAR : TARGET_YEAR
     );
     mockFn(db, "rolloverRun", "findUnique").mockImplementation(async () => run);
+    mockFn(db, "rolloverRun", "updateMany").mockResolvedValue({ count: 1 });
     mockFn(db, "rolloverRun", "update").mockImplementation(
       async ({ data }: { data: Partial<RolloverRun> }) => {
         run = { ...run, ...data };
@@ -189,6 +190,19 @@ describe("RolloverService", () => {
       // data berubah: siswa sekarang tanpa nilai -> rencana jadi REPEATED
       mockFn(db, "grade", "findMany").mockResolvedValue([]);
       await expect(service.execute("run-1", "user-admin")).rejects.toThrow(ConflictException);
+    });
+
+    it("execute menolak bila claim atomik gagal (count 0) -> 409 tanpa menimpa status", async () => {
+      await service.dryRun("run-1");
+      // Simulasi run sudah diklaim executor lain (mis. status RUNNING/status berubah):
+      // updateMany kondisional tidak mengubah baris -> count 0.
+      mockFn(db, "rolloverRun", "updateMany").mockResolvedValue({ count: 0 });
+      await expect(service.execute("run-1", "user-admin")).rejects.toThrow(ConflictException);
+      // Jangan menulis FAILED di atas status milik executor lain.
+      expect(mockFn(db, "rolloverRun", "update")).not.toHaveBeenCalledWith({
+        where: { id: "run-1" },
+        data: expect.objectContaining({ status: "FAILED" })
+      });
     });
   });
 

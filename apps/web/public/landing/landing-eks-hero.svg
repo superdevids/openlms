@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="eksBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#d946ef"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" rx="28" fill="url(#eksBg)"/>
+  <circle cx="54" cy="54" r="24" fill="#ffffff" opacity="0.12"/>
+  <circle cx="350" cy="240" r="38" fill="#ffffff" opacity="0.1"/>
+  <g>
+    <path d="M168 58 h24 v36 h-24 z" fill="#fde047"/>
+    <path d="M168 58 a14 14 0 0 1 -28 0 z M192 58 a14 14 0 0 0 28 0 z" fill="#fde047"/>
+    <rect x="170" y="94" width="20" height="6" rx="3" fill="#facc15"/>
+    <rect x="166" y="100" width="28" height="28" rx="6" fill="#facc15"/>
+  </g>
+  <circle cx="236" cy="176" r="7" fill="#f0abfc"/>
+  <path d="M242 176 V120 L272 128 V172" stroke="#f0abfc" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <circle cx="272" cy="172" r="7" fill="#f0abfc"/>
+  <circle cx="286" cy="228" r="20" fill="#fbbf24"/>
+  <path d="M272 216 a28 28 0 0 1 28 24" stroke="#b45309" stroke-width="3" fill="none"/>
+  <path d="M286 208 a28 28 0 0 1 0 40" stroke="#b45309" stroke-width="3" fill="none"/>
+  <circle cx="120" cy="140" r="16" fill="#ffffff"/>
+  <path d="M120 160 v34 M120 180 h18 v14 M120 180 h-18 v14" stroke="#ffffff" stroke-width="8" stroke-linecap="round" fill="none"/>
+</svg>

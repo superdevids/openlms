@@ -784,6 +784,8 @@ model Question {
 
   @@index([tags]) // GIN
   @@index([subject_id])
+  @@index([exam_package_id]) // PERF-01: hot path ambil soal per paket ujian (start attempt)
+  @@index([quiz_id]) // PERF-01: hot path ambil soal per kuis (kuis harian)
   @@map("question")
 }
 
@@ -891,6 +893,7 @@ model Invoice {
   payments         Payment[]
 
   @@unique([invoice_no])
+  @@unique([student_id, type, period]) // REL-003: anti double-fire tagihan (SPP per periode)
   @@index([student_id, status, due_date]) // tagihan per siswa + jatuh tempo
   @@index([academic_year])
   @@map("invoice")
@@ -999,6 +1002,7 @@ model ExamPackage {
   questions Question[]
   attempts  ExamAttempt[]
 
+  @@index([exam_id]) // PERF-01: hot path paket per ujian (start attempt)
   @@map("exam_package")
 }
 
@@ -1057,6 +1061,7 @@ model ExamAttempt {
   answer_logs  ExamAnswerLog[]
 
   @@unique([exam_session_id, student_id]) // satu siswa satu attempt per sesi
+  @@unique([exam_session_id, token_used]) // PERF-05: token sesi sekali pakai (anti 2x)
   @@index([status, submitted_at]) // rekap status attempt ujian
   @@map("exam_attempt")
 }

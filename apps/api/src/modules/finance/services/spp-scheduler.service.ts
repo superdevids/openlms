@@ -2,13 +2,13 @@ import { Injectable, Logger } from "@nestjs/common";
 import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { money } from "../calculator/money";
-import { endOfMonth, monthPeriod } from "../finance.constants";
-import { InvoiceService } from "./invoice.service";
+import { endOfMonth, INVOICE_NO_PREFIX, monthPeriod } from "../finance.constants";
 
 /**
  * SppSchedulerService — penjadwalan SPP bulanan otomatis (prd04 §5.F.1).
  * Job IDEMPOTEN per periode: kunci = student_id + period. Dijalankan ulang
- * tidak menduplikasi tagihan (cek eksistensi SPP periode tsb per siswa).
+ * tidak menduplikasi tagihan (cek eksistensi SPP periode tsb per siswa +
+ * unique (student_id, type, period) di schema + skipDuplicates saat insert).
  */
 
 export interface SppSchedulerResult {
@@ -22,8 +22,6 @@ export interface SppSchedulerResult {
 @Injectable()
 export class SppSchedulerService {
   private readonly logger = new Logger(SppSchedulerService.name);
-
-  constructor(private readonly invoiceService: InvoiceService) {}
 
   /**
    * Generate tagihan SPP bulanan untuk seluruh siswa aktif.
@@ -64,19 +62,28 @@ export class SppSchedulerService {
     const targetDue = dueDate ?? endOfMonth(targetPeriod);
 
     // Batch create (bukan loop create serial) — satu createMany untuk seluruh
-    // siswa yang belum punya tagihan SPP periode ini (idempoten per periode).
-    const generated = missing.length
-      ? await this.invoiceService.createManyForStudents(
-          missing.map((s) => s.id),
-          {
-            type: "SPP",
-            period: targetPeriod,
-            amount: nominal,
-            dueDate: targetDue,
-            academicYear: targetYear,
-            createdBy
-          }
-        )
+    // siswa yang belum punya tagihan SPP periode ini. skipDuplicates: true
+    // adalah jaring pengaman race (scheduler paralel / jalur tulis lain) —
+    // baris yang melanggar unique (student_id, type, period) atau invoice_no
+    // di-skip oleh Postgres; generated dihitung dari result.count, bukan
+    // panjang array input.
+    const year = new Date().getFullYear();
+    const count = await prisma.invoice.count({
+      where: { invoice_no: { startsWith: `${INVOICE_NO_PREFIX}-${year}-` } }
+    });
+    const data = missing.map((student, index) => ({
+      student_id: student.id,
+      invoice_no: `${INVOICE_NO_PREFIX}-${year}-${String(count + 1 + index).padStart(5, "0")}`,
+      type: "SPP" as const,
+      period: targetPeriod,
+      amount: nominal,
+      discount: new Decimal(0),
+      due_date: targetDue,
+      academic_year: targetYear,
+      created_by: createdBy
+    }));
+    const generated = data.length
+      ? (await prisma.invoice.createMany({ data, skipDuplicates: true })).count
       : 0;
     const skipped = students.length - generated;
 

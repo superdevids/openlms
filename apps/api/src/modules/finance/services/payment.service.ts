@@ -1,5 +1,11 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { Payment, PaymentStatus, Prisma } from "@prisma/client";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
+import { Payment, PaymentStatus, Prisma, type PrismaClient } from "@prisma/client";
 import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { computeInvoiceTotals } from "../calculator/invoice-status";
@@ -151,14 +157,15 @@ export class PaymentService {
     if (!payment) {
       throw new NotFoundException("Pembayaran tidak ditemukan");
     }
-    if (payment.status !== "PENDING") {
-      throw new BadRequestException(`Pembayaran sudah ${payment.status}`);
-    }
 
     const nextStatus: PaymentStatus = approved ? "PAID" : "CANCELLED";
+    // Optimistic lock: klaim status PENDING secara ATOMIK di dalam transaksi.
+    // updateMany dengan where status menjadikan cek-then-update satu statement —
+    // dua verify bersamaan hanya satu yang menang; yang kalah dapat count 0
+    // → ConflictException (bukan status nondeterministik/notifikasi ganda).
     const updated = await prisma.$transaction(async (tx) => {
-      const p = await tx.payment.update({
-        where: { id: paymentId },
+      const claimed = await tx.payment.updateMany({
+        where: { id: paymentId, status: "PENDING" },
         data: {
           status: nextStatus,
           verified_by: verifiedBy,
@@ -166,6 +173,16 @@ export class PaymentService {
           note: note ?? payment.note
         }
       });
+      if (claimed.count === 0) {
+        throw new ConflictException("Payment sudah diverifikasi atau status berubah");
+      }
+      const p = await tx.payment.findUnique({
+        where: { id: paymentId },
+        include: { invoice: true }
+      });
+      if (!p) {
+        throw new NotFoundException("Pembayaran tidak ditemukan");
+      }
       await tx.auditLog.create({
         data: {
           actor_id: verifiedBy,
@@ -176,13 +193,16 @@ export class PaymentService {
           after: { status: nextStatus, note: note ?? null }
         }
       });
+      // Recompute status invoice DI DALAM transaksi yang sama agar konsisten
+      // dengan status payment terbaru (tidak ada jendela status tidak sinkron).
+      await this.recomputeInvoiceStatus(p.invoice_id, tx);
       return p;
     });
 
-    // Hitung ulang status invoice induk setelah verifikasi.
-    await this.recomputeInvoiceStatus(payment.invoice_id);
+    // Notifikasi HANYA setelah transaksi commit sukses — verify yang kalah
+    // race (ConflictException) atau commit gagal tidak memicu notifikasi.
     if (approved) {
-      await this.notifyInvoicePaid(updated, payment.invoice);
+      await this.notifyInvoicePaid(updated, updated.invoice);
     }
     return updated;
   }
@@ -227,9 +247,16 @@ export class PaymentService {
       .reduce((sum, p) => sum.plus(p.amount), ZERO);
   }
 
-  /** Hitung ulang status invoice dari total pembayaran PAID (Prisma tx aman). */
-  async recomputeInvoiceStatus(invoiceId: string): Promise<void> {
-    const invoice = await prisma.invoice.findUnique({
+  /**
+   * Hitung ulang status invoice dari total pembayaran PAID.
+   * `client` default ke prisma global; verify() melewatkan TransactionClient
+   * agar recompute berjalan DALAM transaksi yang sama dengan update payment.
+   */
+  async recomputeInvoiceStatus(
+    invoiceId: string,
+    client: Prisma.TransactionClient | PrismaClient = prisma
+  ): Promise<void> {
+    const invoice = await client.invoice.findUnique({
       where: { id: invoiceId },
       include: { payments: true }
     });
@@ -243,7 +270,7 @@ export class PaymentService {
       dueDate: invoice.due_date,
       now: new Date()
     });
-    await prisma.invoice.update({
+    await client.invoice.update({
       where: { id: invoiceId },
       data: { status: totals.status }
     });

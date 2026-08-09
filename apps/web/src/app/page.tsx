@@ -15,6 +15,7 @@ import {
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { LandingFooter } from "@/components/landing/landing-footer";
+import { LandingImage } from "@/components/landing/landing-image";
 import { brandingApiUrl, type BrandingView } from "@/lib/api-client";
 import { safeUrl } from "@/lib/safe-url";
 import {
@@ -107,6 +108,12 @@ function str(record: Record<string, unknown> | null | undefined, key: string): s
   return typeof v === "string" ? v : "";
 }
 
+/** Ekstrak tahun ajaran (20xx/20xx) dari judul PPDB, mis. "PPDB 2026/2027". */
+function extractSchoolYear(title: string | null | undefined): string | null {
+  const m = title?.match(/\b(20\d{2})\/(20\d{2})\b/);
+  return m ? `${m[1]}/${m[2]}` : null;
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const b = await getBranding();
   return {
@@ -136,6 +143,7 @@ export default async function HomePage(): Promise<JSX.Element> {
   const ppdbCta = findSection(landing.sections, "ppdb-cta");
   const kontak = findSection(landing.sections, "kontak");
   const berita = landing.berita.slice(0, 6);
+  const heroYear = extractSchoolYear(ppdbCta?.title) ?? "2026/2027";
 
   const heroStats = extraOf(hero, "stats");
   const statistikStats = extraOf(statistik, "stats");
@@ -183,54 +191,72 @@ export default async function HomePage(): Promise<JSX.Element> {
         <section className="relative overflow-hidden bg-brand-primary text-white">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-accent opacity-30 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-32 -left-16 h-72 w-72 rounded-full bg-brand-secondary opacity-40 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-primary via-brand-primary to-brand-secondary opacity-60" />
           <div className="relative mx-auto max-w-6xl px-4 py-20 sm:py-28">
-            <StaggerContainer className="max-w-2xl">
-              {hero?.subtitle ? (
+            <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+              <StaggerContainer className="max-w-2xl">
                 <StaggerItem>
-                  <Badge variant="primary" className="mb-4 bg-white/15 text-white">
-                    {hero.subtitle}
-                  </Badge>
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {hero?.subtitle ? (
+                      <Badge variant="primary" className="bg-white/15 text-white">
+                        {hero.subtitle}
+                      </Badge>
+                    ) : null}
+                    <Badge variant="primary" className="bg-white/15 text-white">
+                      Tahun Ajaran {heroYear}
+                    </Badge>
+                  </div>
                 </StaggerItem>
-              ) : null}
-              <StaggerItem>
-                <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
-                  {branding.appName}
-                </h1>
-              </StaggerItem>
-              <StaggerItem>
-                <p className="mt-3 text-lg font-medium text-white/90">
-                  {branding.tagline ?? hero?.title ?? "LMS & SIS Sekolah"}
-                </p>
-              </StaggerItem>
-              {hero?.body ? (
                 <StaggerItem>
-                  <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85">
-                    {hero.body}
+                  <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+                    {branding.appName}
+                  </h1>
+                </StaggerItem>
+                <StaggerItem>
+                  <p className="mt-3 text-lg font-medium text-white/90">
+                    {branding.tagline ?? hero?.title ?? "LMS & SIS Sekolah"}
                   </p>
                 </StaggerItem>
-              ) : null}
-              <StaggerItem>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link href="/ppdb">
-                    <Button
-                      size="lg"
-                      className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
-                    >
-                      {hero?.linkLabel ?? "Daftar PPDB"}
-                    </Button>
-                  </Link>
-                  <Link href="/berita">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-white/60 bg-transparent text-white hover:bg-white/10"
-                    >
-                      Lihat Berita
-                    </Button>
-                  </Link>
-                </div>
-              </StaggerItem>
-            </StaggerContainer>
+                {hero?.body ? (
+                  <StaggerItem>
+                    <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85">
+                      {hero.body}
+                    </p>
+                  </StaggerItem>
+                ) : null}
+                <StaggerItem>
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <Link href="/ppdb">
+                      <Button
+                        size="lg"
+                        className="bg-card font-bold text-brand-primary shadow-lg hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
+                      >
+                        {ppdbCta?.title ?? hero?.linkLabel ?? "Daftar PPDB"}
+                      </Button>
+                    </Link>
+                    <Link href="/berita">
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="border-white/60 bg-transparent text-white hover:bg-white/10"
+                      >
+                        Lihat Berita
+                      </Button>
+                    </Link>
+                  </div>
+                </StaggerItem>
+              </StaggerContainer>
+
+              {/* Ilustrasi lokal (same-origin, aman CSP img-src 'self') */}
+              <FadeInUp className="hidden lg:block" delay={0.15}>
+                <img
+                  src="/landing/landing-hero-school.svg"
+                  alt="Ilustrasi gedung sekolah"
+                  className="mx-auto w-full max-w-md"
+                  loading="lazy"
+                />
+              </FadeInUp>
+            </div>
 
             {/* Stats strip */}
             {heroStats.length > 0 ? (
@@ -655,17 +681,11 @@ export default async function HomePage(): Promise<JSX.Element> {
                 return (
                   <StaggerItem key={str(g, "title")} className="h-full">
                     <Card className="h-full">
-                      {src ? (
-                        <img
-                          src={src}
-                          alt={str(g, "title")}
-                          className="h-40 w-full rounded-t-xl object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-40 items-center justify-center rounded-t-xl bg-muted text-4xl font-bold text-brand-primary/40">
-                          {str(g, "title").slice(0, 1).toUpperCase()}
-                        </div>
-                      )}
+                      <LandingImage
+                        src={src}
+                        alt={str(g, "title")}
+                        className="h-40 w-full rounded-t-xl object-cover"
+                      />
                       <CardContent className="p-4">
                         <p className="text-sm font-medium text-foreground">{str(g, "title")}</p>
                         {str(g, "category") || str(g, "date") ? (
@@ -736,7 +756,7 @@ export default async function HomePage(): Promise<JSX.Element> {
             {berita.length > 0 ? (
               <Link href="/berita">
                 <Button variant="outline" size="sm">
-                  Semua Berita
+                  Lihat Semua
                 </Button>
               </Link>
             ) : null}
@@ -757,7 +777,7 @@ export default async function HomePage(): Promise<JSX.Element> {
                   <Link href={`/berita/${item.slug}`} className="block h-full">
                     <Card className="h-full transition-colors hover:border-brand-primary">
                       {item.coverImagePath ? (
-                        <img
+                        <LandingImage
                           src={item.coverImagePath}
                           alt={item.title}
                           className="h-40 w-full rounded-t-xl object-cover"
@@ -865,18 +885,27 @@ export default async function HomePage(): Promise<JSX.Element> {
                       ))}
                     </dl>
                   ) : null}
-                  {ppdbCtaLink ? (
-                    <div className="mt-8">
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    {ppdbCtaLink ? (
                       <Link href={ppdbCtaLink}>
                         <Button
                           size="lg"
-                          className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
+                          className="bg-card font-bold text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
                         >
                           {ppdbCta.linkLabel ?? "Daftar Sekarang"}
                         </Button>
                       </Link>
-                    </div>
-                  ) : null}
+                    ) : null}
+                    <Link href="/ppdb/status">
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="border-white/60 bg-transparent text-white hover:bg-white/10"
+                      >
+                        Cek Status Pendaftaran
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </FadeInUp>

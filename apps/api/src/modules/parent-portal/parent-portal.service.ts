@@ -46,13 +46,31 @@ export class ParentPortalService {
     return this.db.parentGuardian.findFirst({ where: { user_id: userId } });
   }
 
+  /**
+   * Link anak — hanya wali (ParentGuardian) MILIK aktor yang boleh menautkan,
+   * dan hanya siswa aktif ber-role SISWA yang sah ditautkan (SEC-001).
+   * TODO: mekanisme persetujuan resmi (allowlist dibuat OPERATOR) masih
+   * mengikuti; saat ini pembatasan berbasis role siswa aktif.
+   */
   async linkChild(input: LinkChildInput, actor: AuditActorContext): Promise<ParentStudentLink> {
-    const parent = await this.db.parentGuardian.findUnique({
-      where: { id: input.parentGuardianId }
+    // Cek kepemilikan wali (throws 403 bila bukan milik aktor) — hasilnya tidak dipakai.
+    await this.resolveOwnedParent(input.parentGuardianId, actor.userId);
+    const student = await this.db.user.findUnique({
+      where: { id: input.studentId },
+      include: { roles: true }
     });
-    if (!parent) throw new NotFoundException("ParentGuardian tidak ditemukan");
-    const student = await this.db.user.findUnique({ where: { id: input.studentId } });
     if (!student) throw new NotFoundException("Siswa tidak ditemukan");
+    if (
+      !student.is_active ||
+      !student.roles.some((r) => r.role === "SISWA" && r.status === "ACTIVE")
+    ) {
+      throw new ForbiddenException({
+        error: {
+          code: "FORBIDDEN",
+          message: "Hanya siswa aktif (role SISWA) yang dapat ditautkan"
+        }
+      });
+    }
 
     const existing = await this.db.parentStudentLink.findUnique({
       where: {
@@ -85,7 +103,9 @@ export class ParentPortalService {
     return link;
   }
 
-  async listChildren(parentGuardianId: string) {
+  /** Daftar anak — hanya ParentGuardian milik aktor (SEC-001). */
+  async listChildren(parentGuardianId: string, actor: AuditActorContext) {
+    await this.resolveOwnedParent(parentGuardianId, actor.userId);
     return this.db.parentStudentLink.findMany({
       where: { parent_id: parentGuardianId },
       include: { student: { select: { id: true, full_name: true, email: true, phone: true } } }
@@ -93,8 +113,8 @@ export class ParentPortalService {
   }
 
   /** Izin anak: daftar consent data anak yang tercatat. */
-  async getChildConsents(parentGuardianId: string, studentId: string) {
-    await this.assertChildAccess(parentGuardianId, studentId);
+  async getChildConsents(parentGuardianId: string, studentId: string, actor: AuditActorContext) {
+    await this.assertChildAccess(parentGuardianId, studentId, actor);
     return this.db.parentalConsent.findMany({
       where: { student_id: studentId },
       orderBy: { granted_at: "desc" }
@@ -102,8 +122,12 @@ export class ParentPortalService {
   }
 
   /** Ringkasan nilai/absensi/tagihan anak (read-only, scope SENDIRI). */
-  async getStudentOverview(parentGuardianId: string, studentId: string): Promise<ParentOverview> {
-    await this.assertChildAccess(parentGuardianId, studentId);
+  async getStudentOverview(
+    parentGuardianId: string,
+    studentId: string,
+    actor: AuditActorContext
+  ): Promise<ParentOverview> {
+    await this.assertChildAccess(parentGuardianId, studentId, actor);
     const student = await this.db.user.findUnique({ where: { id: studentId } });
     if (!student) throw new NotFoundException("Siswa tidak ditemukan");
 
@@ -130,10 +154,34 @@ export class ParentPortalService {
     };
   }
 
-  /** Scope SENDIRI: parent hanya boleh akses anak yang terhubung. */
-  private async assertChildAccess(parentGuardianId: string, studentId: string): Promise<void> {
+  /** ParentGuardian milik aktor — WAJIB: parent.user_id === actor.userId (SEC-001). */
+  private async resolveOwnedParent(
+    parentGuardianId: string,
+    actorUserId: string
+  ): Promise<{ id: string }> {
+    const parent = await this.db.parentGuardian.findFirst({
+      where: { id: parentGuardianId, user_id: actorUserId }
+    });
+    if (!parent) {
+      throw new ForbiddenException({
+        error: {
+          code: "FORBIDDEN",
+          message: "Anda tidak memiliki akses ke data wali ini (bukan akun Anda)"
+        }
+      });
+    }
+    return parent;
+  }
+
+  /** Scope SENDIRI: parent hanya boleh akses anak yang terhubung (SEC-001). */
+  private async assertChildAccess(
+    parentGuardianId: string,
+    studentId: string,
+    actor: AuditActorContext
+  ): Promise<void> {
+    const parent = await this.resolveOwnedParent(parentGuardianId, actor.userId);
     const link = await this.db.parentStudentLink.findFirst({
-      where: { parent_id: parentGuardianId, student_id: studentId }
+      where: { parent_id: parent.id, student_id: studentId }
     });
     if (!link) {
       throw new ForbiddenException({

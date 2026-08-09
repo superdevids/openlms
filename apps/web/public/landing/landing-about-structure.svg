@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="Ilustrasi bagan struktur organisasi">
+  <defs>
+    <linearGradient id="landing-about-structure-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eff6ff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+    <linearGradient id="landing-about-structure-node" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" rx="40" fill="url(#landing-about-structure-bg)"/>
+  <rect x="96" y="40" width="128" height="56" rx="14" fill="url(#landing-about-structure-node)"/>
+  <circle cx="126" cy="68" r="9" fill="#93c5fd"/>
+  <rect x="122" y="61" width="8" height="14" rx="4" fill="#ffffff"/>
+  <rect x="112" y="54" width="8" height="14" rx="4" fill="#ffffff" opacity="0.8"/>
+  <rect x="132" y="54" width="8" height="14" rx="4" fill="#ffffff" opacity="0.8"/>
+  <line x1="160" y1="96" x2="160" y2="126" stroke="#93c5fd" stroke-width="4"/>
+  <line x1="160" y1="126" x2="70" y2="162" stroke="#93c5fd" stroke-width="4"/>
+  <line x1="160" y1="126" x2="160" y2="162" stroke="#93c5fd" stroke-width="4"/>
+  <line x1="160" y1="126" x2="250" y2="162" stroke="#93c5fd" stroke-width="4"/>
+  <rect x="20" y="166" width="100" height="52" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <circle cx="52" cy="192" r="9" fill="#bfdbfe"/>
+  <rect x="70" y="188" width="38" height="6" rx="3" fill="#93c5fd"/>
+  <rect x="110" y="166" width="100" height="52" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <circle cx="142" cy="192" r="9" fill="#bfdbfe"/>
+  <rect x="160" y="188" width="38" height="6" rx="3" fill="#93c5fd"/>
+  <rect x="200" y="166" width="100" height="52" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/>
+  <circle cx="232" cy="192" r="9" fill="#bfdbfe"/>
+  <rect x="250" y="188" width="38" height="6" rx="3" fill="#93c5fd"/>
+  <line x1="70" y1="218" x2="70" y2="238" stroke="#93c5fd" stroke-width="4"/>
+  <line x1="160" y1="218" x2="160" y2="238" stroke="#93c5fd" stroke-width="4"/>
+  <line x1="250" y1="218" x2="250" y2="238" stroke="#93c5fd" stroke-width="4"/>
+  <rect x="20" y="242" width="100" height="46" rx="12" fill="#bfdbfe"/>
+  <rect x="110" y="242" width="100" height="46" rx="12" fill="#bfdbfe"/>
+  <rect x="200" y="242" width="100" height="46" rx="12" fill="#bfdbfe"/>
+</svg>

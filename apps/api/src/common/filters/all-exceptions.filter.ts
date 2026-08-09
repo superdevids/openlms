@@ -1,4 +1,12 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger
+} from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { Response } from "express";
 import type { ApiErrorBody, ErrorCode } from "@opensis/types";
 import { REQUEST_ID_HEADER } from "../constants";
@@ -42,6 +50,8 @@ const EXPLICIT_CODES = new Set<ErrorCode>([
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -95,6 +105,46 @@ export class AllExceptionsFilter implements ExceptionFilter {
           });
         }
       }
+    }
+
+    // Error Prisma: mapping ke HTTP yang tepat (sebelumnya race create →
+    // P2002 → 500 generik). Pesan GENERIK ke klien — detail query/constraint
+    // tidak pernah dibocorkan; detail lengkap dicatat server-side (pino).
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      switch (exception.code) {
+        case "P2002":
+          status = HttpStatus.CONFLICT;
+          code = "CONFLICT";
+          message = "Data yang sama sudah tercatat";
+          break;
+        case "P2025":
+          status = HttpStatus.NOT_FOUND;
+          code = "NOT_FOUND";
+          message = "Data tidak ditemukan";
+          break;
+        case "P2003":
+          status = HttpStatus.CONFLICT;
+          code = "CONFLICT";
+          message = "Operasi ditolak karena data masih dipakai entitas lain";
+          break;
+        default:
+          // Kode Prisma lain (koneksi, timeout, dst.) → fallback INTERNAL.
+          break;
+      }
+      this.logger.error(
+        { requestId, prismaCode: exception.code },
+        exception.stack ?? exception.message,
+        AllExceptionsFilter.name
+      );
+    } else if (exception instanceof Prisma.PrismaClientValidationError) {
+      status = HttpStatus.BAD_REQUEST;
+      code = "VALIDATION_ERROR";
+      message = "Data yang dikirim tidak valid";
+      this.logger.error(
+        { requestId, prismaError: "PrismaClientValidationError" },
+        exception.stack ?? exception.message,
+        AllExceptionsFilter.name
+      );
     }
 
     // Tanpa PII: hanya userId/module via logging, bukan di body error

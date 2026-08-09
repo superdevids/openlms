@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Gelembung percakapan">
+  <defs>
+    <linearGradient id="faqChatBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#faqChatBg)"/>
+  <g transform="translate(100 92)">
+    <rect x="-56" y="-32" width="112" height="64" rx="16" fill="#ffffff"/>
+    <path d="M-38 32 l-12 16 6 -16 z" fill="#ffffff"/>
+    <path d="M-32 -6 h64" stroke="#1d4ed8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M-32 14 h40" stroke="#93c5fd" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

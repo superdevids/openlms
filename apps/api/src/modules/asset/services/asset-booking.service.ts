@@ -1,5 +1,12 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException
+} from "@nestjs/common";
 import { AssetBooking } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@opensis/database";
 import { AssetStore } from "../asset.store";
 import { ASSET_STORE } from "../asset.constants";
@@ -10,6 +17,14 @@ import { AssetService } from "./asset.service";
  * Prisma-backed (model AssetBooking ada). Cek BENTROK jadwal:
  * booking APPROVED/PENDING lain pada aset sama yang tumpang tindih
  * waktu -> ditolak.
+ *
+ * PERF-04 (race double-booking): book() memakai row lock
+ * `SELECT ... FOR UPDATE` pada baris asset dalam SATU transaksi bersama cek
+ * bentrok + insert. Dua permintaan simultan untuk aset sama di-serialize:
+ * yang kedua menunggu lock, lalu melihat booking PENDING yang baru dibuat
+ * pertama dan ditolak. Trade-off vs exclusion constraint btree_gist
+ * (CREATE EXTENSION tidak bisa jalan dalam transaksi migrasi Prisma)
+ * didokumentasikan di prisma/migrations/20260809000000_audit_fixes.
  */
 
 /** Bentrok bila startA < endB dan startB < endA. */
@@ -25,6 +40,9 @@ export interface BookAssetInput {
   purpose: string;
 }
 
+/** Client Prisma atau TransactionClient — keduanya punya assetBooking.findMany. */
+type BookingQueryClient = Pick<Prisma.TransactionClient, "assetBooking">;
+
 @Injectable()
 export class AssetBookingService {
   constructor(
@@ -34,10 +52,19 @@ export class AssetBookingService {
 
   /** Cek bentrok terhadap booking PENDING/APPROVED lain (murni, tanpa DB). */
   async findConflicts(assetId: string, startAt: Date, endAt: Date): Promise<AssetBooking[]> {
+    return this.findConflictsIn(prisma, assetId, startAt, endAt);
+  }
+
+  private async findConflictsIn(
+    client: BookingQueryClient,
+    assetId: string,
+    startAt: Date,
+    endAt: Date
+  ): Promise<AssetBooking[]> {
     if (startAt >= endAt) {
       throw new BadRequestException("startAt harus sebelum endAt");
     }
-    const existing = await prisma.assetBooking.findMany({
+    const existing = await client.assetBooking.findMany({
       where: {
         asset_id: assetId,
         status: { in: ["PENDING", "APPROVED"] }
@@ -47,24 +74,45 @@ export class AssetBookingService {
   }
 
   async book(input: BookAssetInput): Promise<AssetBooking> {
-    const asset = await this.assets.findById(input.assetId);
-    if (asset.status === "RETIRED") {
-      throw new BadRequestException("Aset RETIRED tidak bisa dipinjam");
-    }
-    const conflicts = await this.findConflicts(input.assetId, input.startAt, input.endAt);
-    if (conflicts.length > 0) {
-      throw new BadRequestException(`Bentrok jadwal: ${conflicts.map((c) => c.id).join(", ")}`);
-    }
-    const booking = await prisma.assetBooking.create({
-      data: {
-        asset_id: input.assetId,
-        booked_by: input.bookedBy,
-        start_at: input.startAt,
-        end_at: input.endAt,
-        purpose: input.purpose,
-        status: "PENDING"
+    const booking = await prisma.$transaction(async (tx) => {
+      // PERF-04: lock baris asset (FOR UPDATE) — serialize pemesanan simultan
+      // untuk aset yang sama; cek bentrok + insert berada dalam transaksi yang
+      // sama sehingga race double-booking tidak terjadi.
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM asset WHERE id = ${input.assetId} FOR UPDATE
+      `;
+      if (locked.length === 0) {
+        throw new NotFoundException("Aset tidak ditemukan");
+      }
+      const asset = await this.assets.findById(input.assetId);
+      if (asset.status === "RETIRED") {
+        throw new BadRequestException("Aset RETIRED tidak bisa dipinjam");
+      }
+      const conflicts = await this.findConflictsIn(tx, input.assetId, input.startAt, input.endAt);
+      if (conflicts.length > 0) {
+        throw new BadRequestException(`Bentrok jadwal: ${conflicts.map((c) => c.id).join(", ")}`);
+      }
+      try {
+        return await tx.assetBooking.create({
+          data: {
+            asset_id: input.assetId,
+            booked_by: input.bookedBy,
+            start_at: input.startAt,
+            end_at: input.endAt,
+            purpose: input.purpose,
+            status: "PENDING"
+          }
+        });
+      } catch (err) {
+        // Exclusion constraint (23P01) / unique P2002 / raw query P2010 →
+        // konflik jadwal dijamin DB; jangan bocor detail stack ke client.
+        if (this.isConstraintViolation(err)) {
+          throw new ConflictException("Slot sudah dibooking");
+        }
+        throw err;
       }
     });
+
     await this.store.appendAuditLog({
       actorId: input.bookedBy,
       actorRole: null,
@@ -143,5 +191,15 @@ export class AssetBookingService {
       where: assetId ? { asset_id: assetId } : {},
       orderBy: { start_at: "asc" }
     });
+  }
+
+  /** Deteksi error constraint DB: exclusion (SQLSTATE 23P01) / Prisma P2002 / P2010. */
+  private isConstraintViolation(err: unknown): boolean {
+    const e = err as { code?: string; cause?: { code?: string } | undefined } | undefined;
+    if (!e) return false;
+    if (e.code === "P2002" || e.code === "P2010" || e.code === "23P01") return true;
+    // Prisma membungkus error driver di `cause` untuk beberapa kode (mis. P2010).
+    const causeCode = e.cause?.code;
+    return causeCode === "23P01" || causeCode === "P2002";
   }
 }

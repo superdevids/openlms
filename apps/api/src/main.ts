@@ -16,6 +16,13 @@ const isProduction = process.env.NODE_ENV === "production";
 async function bootstrap(): Promise<void> {
   if (isProduction) {
     allowedOrigins(); // fail-fast saat boot bila CORS_ORIGINS kosong di production
+    // CFG-02 fail-fast: cookie JWT wajib Secure di production (HTTPS) —
+    // tanpa ini flag Secure mati dan cookie bisa di-hijack lewat jaringan.
+    if (process.env.COOKIE_SECURE !== "true") {
+      throw new Error(
+        "FATAL: COOKIE_SECURE wajib 'true' di production (HTTPS). Set COOKIE_SECURE=true di .env."
+      );
+    }
   }
   // bodyParser express dimatikan; dipasang manual di bawah dengan limit eksplisit.
   // Upload file TIDAK terpengaruh: multer (FileInterceptor) mem-parsing multipart

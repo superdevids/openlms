@@ -19,7 +19,12 @@ jest.mock("@opensis/database", () => ({
       update: jest.fn()
     },
     question: { findMany: jest.fn(), findUnique: jest.fn() },
-    examAnswerLog: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn() },
+    examAnswerLog: {
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      createMany: jest.fn()
+    },
     enrollment: { findFirst: jest.fn() },
     classSubject: { findFirst: jest.fn() },
     grade: { upsert: jest.fn() }
@@ -31,7 +36,7 @@ describe("ExamAttemptService", () => {
 
   const mockAttemptFindUnique = prisma.examAttempt.findUnique as jest.Mock;
   const mockAttemptUpdate = prisma.examAttempt.update as jest.Mock;
-  const mockLogCreate = prisma.examAnswerLog.create as jest.Mock;
+  const mockLogCreateMany = prisma.examAnswerLog.createMany as jest.Mock;
   const mockGradeUpsert = prisma.grade.upsert as jest.Mock;
   const mockEmitToExam = jest.fn();
   const mockRealtime = { emitToExam: mockEmitToExam } as unknown as RealtimeGateway;
@@ -77,15 +82,15 @@ describe("ExamAttemptService", () => {
       );
       expect(result.duplicated).toBe(1);
       expect(result.saved).toBe(0);
-      expect(mockLogCreate).not.toHaveBeenCalled();
+      expect(mockLogCreateMany).not.toHaveBeenCalled();
     });
 
-    it("batch baru menyimpan log append-only dengan key per soal", async () => {
+    it("batch baru menyimpan log append-only dengan key per soal (createMany)", async () => {
       mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
       mockGuruTeachesS1();
       (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }, { id: "q2" }]);
       (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([]);
-      mockLogCreate.mockResolvedValue({ id: "log2", answer: "B" });
+      mockLogCreateMany.mockResolvedValue({ count: 2 });
 
       const result = await service.saveAnswers(
         "att1",
@@ -100,19 +105,24 @@ describe("ExamAttemptService", () => {
         "127.0.0.1"
       );
       expect(result.duplicated).toBe(0);
-      expect(result.saved).toBe(2);
-      const createArg = mockLogCreate.mock.calls[0]?.[0] as {
-        data: { attempt_id: string; question_id: string; idempotency_key: string; saved_at: Date };
+      expect(result.saved).toBe(2); // dari createMany result.count
+      expect(mockLogCreateMany).toHaveBeenCalledTimes(1);
+      const createArg = mockLogCreateMany.mock.calls[0]?.[0] as {
+        data: Array<{ attempt_id: string; question_id: string; idempotency_key: string }>;
+        skipDuplicates: boolean;
       };
-      expect(createArg.data.attempt_id).toBe("att1");
-      expect(createArg.data.question_id).toBe("q1");
-      expect(createArg.data.idempotency_key).toBe("key-2:q1");
-      expect(createArg.data.saved_at).toBeInstanceOf(Date);
-      const createArg2 = mockLogCreate.mock.calls[1]?.[0] as {
-        data: { question_id: string; idempotency_key: string };
-      };
-      expect(createArg2.data.question_id).toBe("q2");
-      expect(createArg2.data.idempotency_key).toBe("key-2:q2");
+      expect(createArg.skipDuplicates).toBe(true);
+      expect(createArg.data).toHaveLength(2);
+      expect(createArg.data[0]).toMatchObject({
+        attempt_id: "att1",
+        question_id: "q1",
+        idempotency_key: "key-2:q1",
+        is_auto_saved: true
+      });
+      expect(createArg.data[1]).toMatchObject({
+        question_id: "q2",
+        idempotency_key: "key-2:q2"
+      });
     });
 
     it("menolak soal yang bukan milik paket attempt", async () => {
@@ -129,7 +139,7 @@ describe("ExamAttemptService", () => {
           "127.0.0.1"
         )
       ).rejects.toThrow("tidak termasuk paket attempt ini");
-      expect(mockLogCreate).not.toHaveBeenCalled();
+      expect(mockLogCreateMany).not.toHaveBeenCalled();
     });
 
     it("GURU tanpa keanggotaan kelas siswa → 403 (anti-IDOR lintas kelas)", async () => {
@@ -145,7 +155,7 @@ describe("ExamAttemptService", () => {
           "127.0.0.1"
         )
       ).rejects.toThrow("di luar kelas yang diampu");
-      expect(mockLogCreate).not.toHaveBeenCalled();
+      expect(mockLogCreateMany).not.toHaveBeenCalled();
     });
   });
 
@@ -398,6 +408,28 @@ describe("ExamAttemptService", () => {
           "10.0.0.1"
         )
       ).rejects.toThrow("satu attempt per sesi");
+    });
+
+    it("unique violation saat create (P2002) → 409 Token sesi sudah dipakai (PERF-05)", async () => {
+      (prisma.examSession.findUnique as jest.Mock).mockResolvedValue(mockSession());
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
+      // Kedua guard fast-fail lolos (null) — simulasi race: dua start() paralel
+      // dengan token sama sama-sama lolos cek, insert pertama sukses, yang
+      // kedua kena unique (exam_session_id, token_used) → P2002.
+      (prisma.examAttempt.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.examPackage.findMany as jest.Mock).mockResolvedValue([
+        { id: "pkg1", name: "Paket A", total_score: 100, shuffle_options: true }
+      ]);
+      (prisma.examAttempt.create as jest.Mock).mockRejectedValue({ code: "P2002" });
+
+      await expect(
+        service.start(
+          "sess1",
+          { student_id: "s2", access_token: validPlain },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
+          "10.0.0.4"
+        )
+      ).rejects.toThrow("Token sesi sudah dipakai");
     });
 
     it("GURU tidak mengajar kelas siswa → start ditolak (anti-IDOR lintas kelas)", async () => {

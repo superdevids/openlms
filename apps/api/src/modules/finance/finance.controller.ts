@@ -35,7 +35,7 @@ import {
   SppSchedulerDto,
   VerifyPaymentDto
 } from "./dto/finance.dto";
-import { InvoiceService } from "./services/invoice.service";
+import { InvoiceService, type InvoiceActor } from "./services/invoice.service";
 import { PaymentService } from "./services/payment.service";
 import { SppSchedulerService } from "./services/spp-scheduler.service";
 import { LateFeeService } from "./services/late-fee.service";
@@ -72,6 +72,14 @@ export class FinanceController {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
     return user.id;
+  }
+
+  /** Aktor untuk scope invoice (SEC-002): userId + roles + classIds dari AuthGuard. */
+  private actor(user: AuthUser | undefined): InvoiceActor {
+    if (!user) {
+      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
+    }
+    return { userId: user.id, roles: user.roles, classIds: user.classIds };
   }
 
   // ---------- Invoice ----------
@@ -111,14 +119,14 @@ export class FinanceController {
 
   @Get("invoices")
   @RequirePermission("invoice:read:school", "invoice:read:self")
-  listInvoices(@Query() query: InvoiceQueryDto) {
-    return this.invoices.list(query);
+  listInvoices(@Query() query: InvoiceQueryDto, @CurrentUser() user: AuthUser | undefined) {
+    return this.invoices.list(query, this.actor(user));
   }
 
   @Get("invoices/:id")
   @RequirePermission("invoice:read:school", "invoice:read:self")
-  getInvoice(@Param("id") id: string) {
-    return this.invoices.findById(id);
+  getInvoice(@Param("id") id: string, @CurrentUser() user: AuthUser | undefined) {
+    return this.invoices.findById(id, this.actor(user));
   }
 
   @Post("invoices/:id/carry-over")
@@ -128,8 +136,8 @@ export class FinanceController {
     @Body() body: { academicYear: string },
     @CurrentUser() user: AuthUser | undefined
   ) {
-    const userId = this.actorId(user);
-    return this.invoices.carryOver(id, body.academicYear, userId);
+    const actor = this.actor(user);
+    return this.invoices.carryOver(id, body.academicYear, actor.userId, actor);
   }
 
   @Delete("invoices/:id")
@@ -171,10 +179,10 @@ export class FinanceController {
 
   @Get("invoices/summary/monthly")
   @RequirePermission("invoice:read:school", "cashflow:read:school")
-  monthlySummary(@Query("period") period?: string) {
+  monthlySummary(@Query("period") period?: string, @CurrentUser() user?: AuthUser) {
     const p =
       period ?? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-    return this.invoices.monthlySummary(p);
+    return this.invoices.monthlySummary(p, this.actor(user));
   }
 
   // ---------- Payment ----------
@@ -221,7 +229,14 @@ export class FinanceController {
 
   @Get("payments/invoice/:invoiceId")
   @RequirePermission("invoice:read:school", "invoice:read:self")
-  paymentHistory(@Param("invoiceId") invoiceId: string) {
+  async paymentHistory(
+    @Param("invoiceId") invoiceId: string,
+    @CurrentUser() user: AuthUser | undefined
+  ) {
+    const actor = this.actor(user);
+    // SEC-002: validasi kepemilikan invoice dulu (403 bila bukan milik aktor/anak)
+    // sebelum riwayat pembayaran dikembalikan.
+    await this.invoices.findById(invoiceId, actor);
     return this.payments.history(invoiceId);
   }
 

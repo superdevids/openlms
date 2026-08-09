@@ -166,18 +166,29 @@ export class ExamAttemptService {
         dto.device_info ? { initial: dto.device_info, activities: [] } : { activities: [] }
       ) as Prisma.InputJsonValue;
 
-      const attempt = await tx.examAttempt.create({
-        data: {
-          exam_session_id: sessionId,
-          student_id: studentId,
-          exam_package_id: pkg.id,
-          token_used: tokenHash,
-          started_at: now,
-          status: AttemptStatus.IN_PROGRESS,
-          device_info: deviceInfo,
-          ip_address: ip ?? null
+      // PERF-05: unique (exam_session_id, token_used) di schema adalah jaring
+      // pengaman race — dua start() paralel dengan token sama bisa lolos kedua
+      // guard findFirst di atas; salah satunya gagal di sini dengan P2002.
+      let attempt;
+      try {
+        attempt = await tx.examAttempt.create({
+          data: {
+            exam_session_id: sessionId,
+            student_id: studentId,
+            exam_package_id: pkg.id,
+            token_used: tokenHash,
+            started_at: now,
+            status: AttemptStatus.IN_PROGRESS,
+            device_info: deviceInfo,
+            ip_address: ip ?? null
+          }
+        });
+      } catch (err) {
+        if (this.isUniqueViolation(err)) {
+          throw new ConflictException("Token sesi sudah dipakai");
         }
-      });
+        throw err;
+      }
 
       const questions = await tx.question.findMany({ where: { exam_package_id: pkg.id } });
       const ordered = seededShuffle(attempt.id, questions);
@@ -278,21 +289,25 @@ export class ExamAttemptService {
       });
       const existingKeys = new Set(existingLogs.map((l) => l.idempotency_key));
 
-      let saved = 0;
-      for (const { item, key } of entries) {
-        if (existingKeys.has(key)) continue;
-        await tx.examAnswerLog.create({
-          data: {
-            attempt_id: attemptId,
-            question_id: item.question_id,
-            answer: item.answer ?? null,
-            is_auto_saved: true,
-            saved_at: new Date(),
-            idempotency_key: key
-          }
-        });
-        saved += 1;
-      }
+      // PERF-06: satu createMany untuk seluruh entri baru (bukan loop create
+      // serial N insert). skipDuplicates: true memakai unique
+      // (attempt_id, idempotency_key) di schema — duplikat yang lolos filter
+      // (race concurrent autosave) di-skip oleh Postgres; saved dihitung dari
+      // result.count, bukan panjang array.
+      const toCreate = entries
+        .filter(({ key }) => !existingKeys.has(key))
+        .map(({ item, key }) => ({
+          attempt_id: attemptId,
+          question_id: item.question_id,
+          answer: item.answer ?? null,
+          is_auto_saved: true,
+          saved_at: new Date(),
+          idempotency_key: key
+        }));
+      const saved =
+        toCreate.length > 0
+          ? (await tx.examAnswerLog.createMany({ data: toCreate, skipDuplicates: true })).count
+          : 0;
       return { saved, duplicated: entries.length - saved };
     });
   }
@@ -660,6 +675,11 @@ export class ExamAttemptService {
 
   private isExpired(startedAt: Date, durationMin: number): boolean {
     return Date.now() > startedAt.getTime() + durationMin * 60000;
+  }
+
+  /** Deteksi error unique constraint Prisma (P2002) — dipakai start() (PERF-05). */
+  private isUniqueViolation(err: unknown): boolean {
+    return (err as { code?: string } | undefined)?.code === "P2002";
   }
 
   /**

@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException
 } from "@nestjs/common";
@@ -66,6 +67,8 @@ export interface MeResult {
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaClient,
     private readonly scopeResolver: ScopeResolver
@@ -314,6 +317,11 @@ export class AuthService {
         locked_until: null
       }
     });
+    // SEC-007: reset password → semua sesi lama mati (revoke seluruh refresh token aktif).
+    await this.prisma.refreshToken.updateMany({
+      where: { user_id: target.id, revoked_at: null },
+      data: { revoked_at: new Date() }
+    });
     await this.audit(
       actorId,
       undefined,
@@ -351,6 +359,11 @@ export class AuthService {
         failed_login_attempts: 0,
         locked_until: null
       }
+    });
+    // SEC-007: ganti password → semua sesi lama mati (revoke seluruh refresh token aktif).
+    await this.prisma.refreshToken.updateMany({
+      where: { user_id: userId, revoked_at: null },
+      data: { revoked_at: new Date() }
     });
     await this.audit(
       userId,
@@ -412,8 +425,16 @@ export class AuthService {
           ip_address: ip
         }
       });
-    } catch {
-      // jangan gagalkan alur login/reset karena audit
+    } catch (error) {
+      // jangan gagalkan alur login/reset karena audit, tapi jangan senyap:
+      // hilangnya peristiwa compliance (login/lockout/reset) wajib tercatat.
+      this.logger.error("auditLog gagal", {
+        action,
+        entity,
+        entityId,
+        ipAddress: ip,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 }

@@ -1,16 +1,17 @@
 /**
  * ParentPortalController — portal wali murid.
  * RBAC: seluruh route WALI_MURID (guard scope SENDIRI: report:read:self /
- * user:write:self). Identitas user dari request.requestContext (AuthGuard),
- * bukan header.
+ * user:write:self). Identitas user dari @CurrentUser (AuthGuard), bukan header.
  */
-import { Body, Controller, Get, Param, Post, Req, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UnauthorizedException } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { ParentPortalService } from "./parent-portal.service";
 import { EnsureParentDto, LinkChildDto } from "./dto/parent-portal.dto";
-import type { AuthenticatedRequest } from "../../common/auth.guard";
+import type { AuthUser } from "../../common/auth.guard";
+import { CurrentUser } from "../../common/current-user.decorator";
 import { RequirePermission } from "../../common/require-permission.decorator";
 import { Roles } from "../../common/roles.decorator";
+import type { AuditActorContext } from "../lms/lms-audit";
 
 @Controller("parent-portal")
 export class ParentPortalController {
@@ -19,15 +20,15 @@ export class ParentPortalController {
   @Post("me")
   @Roles(Role.WALI_MURID)
   @RequirePermission("user:write:self")
-  ensureParent(@Req() req: AuthenticatedRequest, @Body() dto: EnsureParentDto) {
-    return this.parentPortalService.ensureParent(this.actorId(req), dto.fullName, dto.phone);
+  ensureParent(@CurrentUser() user: AuthUser | undefined, @Body() dto: EnsureParentDto) {
+    return this.parentPortalService.ensureParent(this.actor(user).userId, dto.fullName, dto.phone);
   }
 
   @Get("me")
   @Roles(Role.WALI_MURID)
   @RequirePermission("report:read:self")
-  getMyParent(@Req() req: AuthenticatedRequest) {
-    return this.parentPortalService.getMyParentGuardian(this.actorId(req));
+  getMyParent(@CurrentUser() user: AuthUser | undefined) {
+    return this.parentPortalService.getMyParentGuardian(this.actor(user).userId);
   }
 
   @Post(":parentGuardianId/children")
@@ -36,7 +37,7 @@ export class ParentPortalController {
   linkChild(
     @Param("parentGuardianId") parentGuardianId: string,
     @Body() dto: LinkChildDto,
-    @Req() req: AuthenticatedRequest
+    @CurrentUser() user: AuthUser | undefined
   ) {
     return this.parentPortalService.linkChild(
       {
@@ -44,15 +45,18 @@ export class ParentPortalController {
         studentId: dto.studentId,
         relationship: dto.relationship
       },
-      { userId: this.actorId(req), roles: this.actorRoles(req) }
+      this.actor(user)
     );
   }
 
   @Get(":parentGuardianId/children")
   @Roles(Role.WALI_MURID)
   @RequirePermission("report:read:self")
-  listChildren(@Param("parentGuardianId") parentGuardianId: string) {
-    return this.parentPortalService.listChildren(parentGuardianId);
+  listChildren(
+    @Param("parentGuardianId") parentGuardianId: string,
+    @CurrentUser() user: AuthUser | undefined
+  ) {
+    return this.parentPortalService.listChildren(parentGuardianId, this.actor(user));
   }
 
   @Get(":parentGuardianId/children/:studentId/overview")
@@ -60,9 +64,14 @@ export class ParentPortalController {
   @RequirePermission("report:read:self")
   getStudentOverview(
     @Param("parentGuardianId") parentGuardianId: string,
-    @Param("studentId") studentId: string
+    @Param("studentId") studentId: string,
+    @CurrentUser() user: AuthUser | undefined
   ) {
-    return this.parentPortalService.getStudentOverview(parentGuardianId, studentId);
+    return this.parentPortalService.getStudentOverview(
+      parentGuardianId,
+      studentId,
+      this.actor(user)
+    );
   }
 
   @Get(":parentGuardianId/children/:studentId/consents")
@@ -70,24 +79,16 @@ export class ParentPortalController {
   @RequirePermission("report:read:self")
   getChildConsents(
     @Param("parentGuardianId") parentGuardianId: string,
-    @Param("studentId") studentId: string
+    @Param("studentId") studentId: string,
+    @CurrentUser() user: AuthUser | undefined
   ) {
-    return this.parentPortalService.getChildConsents(parentGuardianId, studentId);
+    return this.parentPortalService.getChildConsents(parentGuardianId, studentId, this.actor(user));
   }
 
-  private actorId(req: AuthenticatedRequest): string {
-    const ctx = req.requestContext;
-    if (!ctx) {
+  private actor(user: AuthUser | undefined): AuditActorContext {
+    if (!user) {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
-    return ctx.userId;
-  }
-
-  private actorRoles(req: AuthenticatedRequest): string[] {
-    const ctx = req.requestContext;
-    if (!ctx) {
-      throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
-    }
-    return ctx.roles;
+    return { userId: user.id, roles: user.roles };
   }
 }

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Kamera galeri">
+  <defs>
+    <linearGradient id="galHeroBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#1e3a8a"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="44" fill="url(#galHeroBg)"/>
+  <g transform="translate(100 96)">
+    <rect x="-54" y="-40" width="30" height="22" rx="7" fill="#e0e7ff"/>
+    <rect x="-56" y="-24" width="112" height="72" rx="14" fill="#ffffff"/>
+    <rect x="-56" y="-24" width="112" height="26" rx="13" fill="#dbeafe"/>
+    <circle cx="0" cy="6" r="19" fill="#1d4ed8"/>
+    <circle cx="0" cy="6" r="9" fill="#bfdbfe"/>
+    <circle cx="36" cy="-8" r="4.5" fill="#93c5fd"/>
+  </g>
+</svg>

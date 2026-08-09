@@ -1,4 +1,4 @@
-import { HttpStatus, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, HttpStatus, UnauthorizedException } from "@nestjs/common";
 import type { PrismaClient } from "@opensis/database";
 import { AuthService } from "./auth.service";
 import { LOGIN_FAIL_LIMIT } from "./auth.constants";
@@ -221,6 +221,29 @@ describe("AuthService.login", () => {
       })
     );
   });
+
+  it("audit gagal → logger.error dipanggil (REL-009: tidak senyap)", async () => {
+    const user = await makeUser();
+    (prismaMock.user as { findFirst: jest.Mock }).findFirst.mockResolvedValue(user);
+    (prismaMock.user as { update: jest.Mock }).update.mockResolvedValue(user);
+    (prismaMock.auditLog as { create: jest.Mock }).create.mockRejectedValue(new Error("DB down"));
+
+    const errorSpy = jest
+      .spyOn((service as unknown as { logger: { error: jest.Mock } }).logger, "error")
+      .mockImplementation(() => undefined);
+
+    const result = await service.login(
+      { emailOrUsername: "admin", password: "rahasia123" },
+      { requestId: "req_test" }
+    );
+
+    expect(result.user.id).toBe("u1");
+    expect(errorSpy).toHaveBeenCalledWith(
+      "auditLog gagal",
+      expect.objectContaining({ action: "LOGIN", entity: "user", entityId: "u1" })
+    );
+    errorSpy.mockRestore();
+  });
 });
 
 describe("AuthService.resetPasswordByOperator & me", () => {
@@ -269,11 +292,92 @@ describe("AuthService.resetPasswordByOperator & me", () => {
     );
   });
 
+  it("reset password: semua refresh token aktif di-revoke (SEC-007)", async () => {
+    (prismaMock.user as { findUnique: jest.Mock }).findUnique.mockResolvedValue(baseUser);
+    (prismaMock.user as { update: jest.Mock }).update.mockResolvedValue({
+      ...baseUser,
+      must_change_password: true
+    });
+    const revoke = prismaMock.refreshToken as { updateMany: jest.Mock };
+    revoke.updateMany.mockClear();
+
+    await service.resetPasswordByOperator("actor1", { userId: "u1" });
+
+    expect(revoke.updateMany).toHaveBeenCalledWith({
+      where: { user_id: "u1", revoked_at: null },
+      data: { revoked_at: expect.any(Date) }
+    });
+  });
+
   it("me: profil + roles + scope", async () => {
     (prismaMock.user as { findUnique: jest.Mock }).findUnique.mockResolvedValue(baseUser);
     const result = await service.me("u1", "req_me");
     expect(result.roles).toContain("SUPERADMIN");
     expect(result.classIds).toEqual(["c1"]);
     expect(result.homeroomClassId).toBe("c2");
+  });
+});
+
+describe("AuthService.changePassword", () => {
+  let prismaMock: ReturnType<typeof makePrismaMock>;
+  let service: AuthService;
+  const scopeResolverMock = {
+    resolve: jest.fn().mockResolvedValue({ classIds: [], homeroomClassId: null })
+  };
+
+  const makeUser = async (overrides: Record<string, unknown> = {}) => ({
+    id: "u1",
+    email: "admin@opensis.local",
+    username: "admin",
+    password_hash: await hashPassword("rahasia123"),
+    must_change_password: true,
+    failed_login_attempts: 0,
+    full_name: "Admin",
+    is_active: true,
+    last_login_at: null,
+    phone: null,
+    avatar_url: null,
+    roles: [{ role: "SUPERADMIN", status: "ACTIVE" }],
+    ...overrides
+  });
+
+  beforeEach(() => {
+    prismaMock = makePrismaMock();
+    (prismaMock.auditLog as { create: jest.Mock }).create.mockResolvedValue({});
+    service = new AuthService(prismaMock as unknown as PrismaClient, scopeResolverMock as never);
+  });
+
+  it("ganti password: semua refresh token aktif di-revoke (SEC-007)", async () => {
+    const user = await makeUser();
+    (prismaMock.user as { findUnique: jest.Mock }).findUnique.mockResolvedValue(user);
+    (prismaMock.user as { update: jest.Mock }).update.mockResolvedValue(user);
+    const revoke = prismaMock.refreshToken as { updateMany: jest.Mock };
+    revoke.updateMany.mockClear();
+
+    const result = await service.changePassword("u1", {
+      currentPassword: "rahasia123",
+      newPassword: "baruRahasia456"
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(revoke.updateMany).toHaveBeenCalledWith({
+      where: { user_id: "u1", revoked_at: null },
+      data: { revoked_at: expect.any(Date) }
+    });
+  });
+
+  it("password saat ini salah → BadRequestException tanpa revoke", async () => {
+    const user = await makeUser();
+    (prismaMock.user as { findUnique: jest.Mock }).findUnique.mockResolvedValue(user);
+    const revoke = prismaMock.refreshToken as { updateMany: jest.Mock };
+    revoke.updateMany.mockClear();
+
+    await expect(
+      service.changePassword("u1", {
+        currentPassword: "salah",
+        newPassword: "baruRahasia456"
+      })
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(revoke.updateMany).not.toHaveBeenCalled();
   });
 });
