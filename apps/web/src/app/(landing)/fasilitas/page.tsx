@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
-import { cache } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -19,65 +18,24 @@ import {
   type IconProps
 } from "@opensis/ui";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
-import {
-  API_BASE_FALLBACK,
-  API_TIMEOUT_MS,
-  APP_NAME,
-  FALLBACK_LANDING,
-  type LandingPageData,
-  type LandingSection
-} from "@/lib/constants";
+import { getFacilities, type FacilityItem } from "@/lib/landing-pages";
+import { APP_NAME } from "@/lib/constants";
 
 /**
- * Fasilitas — GET /public/landing (publik), section "fasilitas".
- * Grid 8 sarana dengan ikon besar + hover premium, blok fasilitas unggulan,
- * dan alasan memilih fasilitas sekolah. ISR 30s.
+ * Fasilitas — GET /public/facilities (publik, per-halaman) via helper
+ * lib/landing-pages.ts. Grid sarana dengan ikon besar + hover premium,
+ * blok fasilitas unggulan, dan alasan memilih fasilitas sekolah. ISR 30s,
+ * fallback aman (items kosong → empty state).
  */
 
 export const revalidate = 30;
 
-/** URL absolut /api/v1/public/landing untuk fetch server-side. */
-function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
-  if (base.endsWith("/api/v1")) return `${base}${path}`;
-  return `${base}/api/v1${path}`;
-}
-
-const getLanding = cache(async (): Promise<LandingPageData> => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    try {
-      const res = await fetch(landingApiUrl("/public/landing"), {
-        next: { revalidate: 30 },
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error(`landing ${res.status}`);
-      return (await res.json()) as LandingPageData;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return FALLBACK_LANDING;
-  }
-});
-
-function findSection(sections: LandingSection[], slug: string): LandingSection | undefined {
-  return sections.find((s) => s.slug === slug);
-}
-
-/** Aksesor aman untuk `extra` per slug. */
-function extraOf(section: LandingSection | undefined, key: string): Array<Record<string, unknown>> {
-  const value = section?.extra?.[key];
-  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
-}
-
-function str(record: Record<string, unknown> | null | undefined, key: string): string {
+function str(record: FacilityItem | null | undefined, key: "title" | "desc" | "icon"): string {
   const v = record?.[key];
   return typeof v === "string" ? v : "";
 }
 
-/** Peta ikon dari nilai `icon` di data landing (fallback IconBook). */
+/** Peta ikon dari nilai `icon` di data fasilitas (fallback IconBook). */
 const ICON_MAP: Record<string, (props: IconProps) => JSX.Element> = {
   database: IconDatabase,
   book: IconBook,
@@ -125,25 +83,23 @@ const REASON_ITEMS: Array<{
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "fasilitas");
+  const facilities = await getFacilities();
   return {
-    title: `${section?.title ?? "Fasilitas"} — ${APP_NAME}`,
-    description: section?.subtitle ?? "Sarana dan prasarana pendukung pembelajaran."
+    title: `${facilities.title || "Fasilitas"} — ${APP_NAME}`,
+    description: "Sarana dan prasarana pendukung pembelajaran."
   };
 }
 
 export default async function FasilitasPage(): Promise<JSX.Element> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "fasilitas");
-  const items = extraOf(section, "items");
+  const facilities = await getFacilities();
+  const items = facilities.items;
 
   const chips: string[] = [`${items.length} Fasilitas`];
   if (items.some((f) => str(f, "title").toLowerCase().includes("wifi"))) chips.push("Area WiFi");
   if (items.some((f) => /lab|bengkel/i.test(str(f, "title")))) chips.push("Lab & Bengkel");
 
   const highlighted = HIGHLIGHT_TITLES.map((t) => items.find((f) => str(f, "title") === t)).filter(
-    (f): f is Record<string, unknown> => Boolean(f)
+    (f): f is FacilityItem => Boolean(f)
   );
   const unggulan = highlighted.length >= 2 ? highlighted : items.slice(0, 3);
 
@@ -170,28 +126,25 @@ export default async function FasilitasPage(): Promise<JSX.Element> {
                   <span aria-hidden="true" className="mx-2">
                     /
                   </span>
-                  <span className="text-white">{section?.title ?? "Fasilitas"}</span>
+                  <span className="text-white">{facilities.title || "Fasilitas"}</span>
                 </nav>
               </StaggerItem>
               <StaggerItem>
-                {section?.subtitle ? (
-                  <Badge variant="primary" className="mt-4 bg-white/15 text-white">
-                    {section.subtitle}
-                  </Badge>
-                ) : null}
+                <Badge variant="primary" className="mt-4 bg-white/15 text-white">
+                  Sarana &amp; prasarana pendukung
+                </Badge>
               </StaggerItem>
               <StaggerItem>
                 <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-                  {section?.title ?? "Fasilitas Sekolah"}
+                  {facilities.title || "Fasilitas Sekolah"}
                 </h1>
               </StaggerItem>
-              {section?.body ? (
-                <StaggerItem>
-                  <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
-                    {section.body}
-                  </p>
-                </StaggerItem>
-              ) : null}
+              <StaggerItem>
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
+                  Fasilitas belajar yang memadai untuk mendukung proses pembelajaran yang nyaman dan
+                  berkualitas.
+                </p>
+              </StaggerItem>
               <StaggerItem>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link href="/kontak">
@@ -262,9 +215,11 @@ export default async function FasilitasPage(): Promise<JSX.Element> {
                         <IconComp className="h-7 w-7" aria-hidden="true" />
                       </span>
                       <h3 className="mt-4 text-lg font-bold text-foreground">{str(f, "title")}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                        {str(f, "desc")}
-                      </p>
+                      {str(f, "desc") ? (
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {str(f, "desc")}
+                        </p>
+                      ) : null}
                     </CardContent>
                   </Card>
                 </StaggerItem>
@@ -272,7 +227,26 @@ export default async function FasilitasPage(): Promise<JSX.Element> {
             })}
           </StaggerContainer>
         </section>
-      ) : null}
+      ) : (
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+          <FadeInUp>
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-primary-800">
+                  <IconBook className="h-7 w-7" aria-hidden="true" />
+                </span>
+                <p className="text-base font-semibold text-foreground">
+                  Data fasilitas belum tersedia
+                </p>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  Operator sekolah dapat mengisinya melalui menu Landing Page di aplikasi. Silakan
+                  kembali lagi nanti.
+                </p>
+              </CardContent>
+            </Card>
+          </FadeInUp>
+        </section>
+      )}
 
       {/* Fasilitas unggulan */}
       {unggulan.length > 0 ? (
@@ -307,9 +281,11 @@ export default async function FasilitasPage(): Promise<JSX.Element> {
                             <h3 className="text-lg font-bold text-foreground">{title}</h3>
                             <Badge variant="primary">Unggulan</Badge>
                           </div>
-                          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                            {note}
-                          </p>
+                          {note ? (
+                            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                              {note}
+                            </p>
+                          ) : null}
                         </div>
                       </CardContent>
                     </Card>

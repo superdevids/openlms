@@ -14,14 +14,17 @@ import {
  * - Status dibaca dari cache MaintenanceService (TTL 5 dtk) — TIDAK hit DB per request.
  * - maintenance_enabled → 503 JSON format standar { error: { code: "MAINTENANCE", ... } }
  *   + header Retry-After (dari ETA bila parseable, else 300 dtk).
- * - Allowlist (harus SELALU bekerja): /api/v1/health, /api/v1/public/system-status,
- *   /api/v1/public/landing* (landing page statis), dan /api/v1/admin/system/maintenance
- *   (agar SUPERADMIN tetap bisa mematikan mode lewat UI; otorisasi tetap di guard).
+ * - Allowlist (harus SELALU bekerja): /api/v1/health, /api/v1/public/*
+ *   (semua endpoint publik per-halaman landing + system-status — web mengecualikan
+ *   10 rute landing saat maintenance ON, data fallback tidak boleh 503), dan
+ *   /api/v1/admin/system/maintenance (agar SUPERADMIN tetap bisa mematikan mode
+ *   lewat UI; otorisasi tetap di guard).
  * - DB/status error → fail-open (next) supaya outage DB tidak memblokir seluruh API.
  */
 
 const ALLOWLIST_PREFIXES = [
   `/${GLOBAL_PREFIX}/health`,
+  `/${GLOBAL_PREFIX}/public/`,
   `/${GLOBAL_PREFIX}/public/system-status`,
   `/${GLOBAL_PREFIX}/public/landing`,
   `/${GLOBAL_PREFIX}/admin/system/maintenance`

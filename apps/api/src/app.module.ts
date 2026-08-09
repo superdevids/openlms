@@ -30,6 +30,7 @@ import { RealtimeModule } from "./modules/realtime/realtime.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { BrandingModule } from "./modules/branding/branding.module";
 import { LandingModule } from "./modules/landing/landing.module";
+import { PublicContentModule } from "./modules/public-content/public-content.module";
 import { RbacAdminModule } from "./modules/rbac-admin/rbac-admin.module";
 import { QueueModule } from "./modules/queue/queue.module";
 import { JobsModule } from "./modules/jobs/jobs.module";
@@ -75,6 +76,7 @@ import { UsersAdminModule } from "./modules/users-admin/users-admin.module";
     StorageModule, // penyimpanan file lokal + signed URL (Fase 2)
     BrandingModule, // identitas visual aplikasi (/app/branding, Socket.IO branding:changed)
     LandingModule, // konten landing page publik (/public/landing, /admin/landing)
+    PublicContentModule, // endpoint publik per-halaman landing (/public/programs, /public/facilities, ...)
     RbacAdminModule, // CRUD RBAC SUPERADMIN (/rbac/*) — controller menyusul
     QueueModule, // antrean job opsional (BullMQ bila REDIS_URL, else in-process)
     JobsModule, // processor job + cron SPP bulanan (@nestjs/schedule)

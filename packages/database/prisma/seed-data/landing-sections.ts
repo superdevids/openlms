@@ -8,7 +8,8 @@
  * - visi-misi: { visi, misi: string[] }
  * - piagam: body teks (NPSN, akreditasi, tahun pendirian)
  * - struktur-organisasi: groups: [{ title, items: [{ name, position }] }]
- * - program-keahlian: programs: [{ title, desc, icon, kompetensi[], mitra_dudi[], prospek[] }]
+ * - program-keahlian: programs: [{ code, title, desc, icon, kompetensi[], mitra_dudi[], prospek[] }]
+ *   (code = Prodi.code, dipakai endpoint publik /public/programs untuk melengkapi data Prodi)
  * - ekstrakurikuler: items: [{ title, desc, icon, schedule, pembina, kuota }]
  * - prestasi: items: [{ title, level, year, field, coach, description }]
  * - agenda: items: [{ title, date, time, location, desc }]
@@ -206,6 +207,7 @@ export const LANDING_SECTIONS_SEED: LandingSectionSeed[] = [
     extra: {
       programs: [
         {
+          code: "TKJ",
           title: "Teknik Komputer & Jaringan",
           desc: "Instalasi jaringan, administrasi server, dan keamanan siber dasar.",
           icon: "database",
@@ -219,6 +221,7 @@ export const LANDING_SECTIONS_SEED: LandingSectionSeed[] = [
           prospek: ["Teknisi Jaringan", "Network Administrator", "Teknisi Komputer"]
         },
         {
+          code: "RPL",
           title: "Rekayasa Perangkat Lunak",
           desc: "Pengembangan aplikasi web, mobile, dan basis data.",
           icon: "file",
@@ -232,6 +235,7 @@ export const LANDING_SECTIONS_SEED: LandingSectionSeed[] = [
           prospek: ["Web Developer", "Mobile Developer", "QA Engineer"]
         },
         {
+          code: "TKR",
           title: "Teknik Kendaraan Ringan",
           desc: "Perawatan dan perbaikan kendaraan ringan.",
           icon: "settings",
@@ -245,6 +249,7 @@ export const LANDING_SECTIONS_SEED: LandingSectionSeed[] = [
           prospek: ["Teknisi Otomotif", "Mekanik", "Wirausaha bengkel"]
         },
         {
+          code: "AKL",
           title: "Akuntansi & Keuangan",
           desc: "Pembukuan, perpajakan, dan pengelolaan keuangan usaha.",
           icon: "wallet",
@@ -258,6 +263,7 @@ export const LANDING_SECTIONS_SEED: LandingSectionSeed[] = [
           prospek: ["Staf Akuntansi", "Operator Pajak", "Bendahara Usaha"]
         },
         {
+          code: "MM",
           title: "Multimedia",
           desc: "Desain grafis, animasi, dan produksi konten digital.",
           icon: "camera",
@@ -271,6 +277,7 @@ export const LANDING_SECTIONS_SEED: LandingSectionSeed[] = [
           prospek: ["Desainer Grafis", "Video Editor", "Animator"]
         },
         {
+          code: "TSM",
           title: "Teknik Sepeda Motor",
           desc: "Perawatan dan perbaikan sepeda motor.",
           icon: "settings",

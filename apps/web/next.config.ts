@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           {
             key: "Content-Security-Policy",
-            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src ${scriptSrc}; connect-src 'self' ws: wss:`
+            value: `default-src 'self'; frame-src https://www.google.com https://maps.google.com; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src ${scriptSrc}; connect-src 'self' ws: wss:`
           }
         ]
       }

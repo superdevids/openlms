@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
-import { cache } from "react";
 import Link from "next/link";
 import {
   Badge,
@@ -11,7 +10,6 @@ import {
   IconCalendar,
   IconCamera,
   IconChart,
-  IconCheck,
   IconFlag,
   IconGrade,
   IconRocket,
@@ -19,80 +17,59 @@ import {
   type IconProps
 } from "@opensis/ui";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
-import {
-  API_BASE_FALLBACK,
-  API_TIMEOUT_MS,
-  APP_NAME,
-  FALLBACK_LANDING,
-  type LandingPageData,
-  type LandingSection
-} from "@/lib/constants";
+import { getExtracurriculars, type ExtracurricularPageItem } from "@/lib/landing-pages";
+import { APP_NAME } from "@/lib/constants";
 
 /**
- * Ekstrakurikuler — GET /public/landing (publik), section "ekstrakurikuler".
- * Kartu ekskul dengan badge jadwal + pembina + kuota, dikelompokkan ke
- * "Akhir Pekan" dan "Hari Sekolah" berdasarkan jadwal. ISR 30s.
+ * Ekstrakurikuler — GET /public/extracurriculars (publik, per-halaman).
+ * Data nyata dari tabel Extracurricular (seed). Kartu ekskul dengan badge
+ * jadwal (array {day, time}) + pembina, dikelompokkan ke "Akhir Pekan" dan
+ * "Hari Sekolah" berdasarkan jadwal. ISR 30s, fallback aman (array kosong →
+ * empty state "Data sedang disiapkan") bila tabel belum di-seed / API mati.
+ * Fetch via helper lib/landing-pages.ts (getExtracurriculars) — satu sumber
+ * fetch + timeout agar tidak menggantung saat build.
  */
 
 export const revalidate = 30;
 
-/** URL absolut /api/v1/public/landing untuk fetch server-side. */
-function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
-  if (base.endsWith("/api/v1")) return `${base}${path}`;
-  return `${base}/api/v1${path}`;
+interface ScheduleEntry {
+  day: string;
+  time: string;
 }
 
-const getLanding = cache(async (): Promise<LandingPageData> => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    try {
-      const res = await fetch(landingApiUrl("/public/landing"), {
-        next: { revalidate: 30 },
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error(`landing ${res.status}`);
-      return (await res.json()) as LandingPageData;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return FALLBACK_LANDING;
-  }
-});
-
-function findSection(sections: LandingSection[], slug: string): LandingSection | undefined {
-  return sections.find((s) => s.slug === slug);
+/** Parse schedule JSON ({ day, time }[]) dengan aman — non-array → []. */
+function parseSchedule(schedule: unknown): ScheduleEntry[] {
+  if (!Array.isArray(schedule)) return [];
+  return schedule.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const rec = entry as Record<string, unknown>;
+    const day = typeof rec.day === "string" ? rec.day : "";
+    const time = typeof rec.time === "string" ? rec.time : "";
+    if (!day && !time) return [];
+    return [{ day, time }];
+  });
 }
 
-/** Aksesor aman untuk `extra` per slug. */
-function extraOf(section: LandingSection | undefined, key: string): Array<Record<string, unknown>> {
-  const value = section?.extra?.[key];
-  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
+function isWeekend(entries: ScheduleEntry[]): boolean {
+  return entries.some((e) => /sabtu|minggu/i.test(e.day));
 }
 
-function str(record: Record<string, unknown> | null | undefined, key: string): string {
-  const v = record?.[key];
-  return typeof v === "string" ? v : "";
-}
-
-/** Peta ikon dari nilai `icon` di data landing (fallback IconBook). */
-const ICON_MAP: Record<string, (props: IconProps) => JSX.Element> = {
-  flag: IconFlag,
-  chart: IconChart,
-  rocket: IconRocket,
-  camera: IconCamera,
-  grade: IconGrade,
-  book: IconBook
+/** Peta ikon per nama ekskul (data API tidak membawa icon). Fallback IconBook. */
+const ICON_BY_NAME: Record<string, (props: IconProps) => JSX.Element> = {
+  Pramuka: IconFlag,
+  Paskibra: IconFlag,
+  Futsal: IconChart,
+  Basket: IconChart,
+  Robotik: IconRocket,
+  "Seni Tari": IconCamera,
+  "Paduan Suara": IconGrade,
+  "English Club": IconBook,
+  Rohis: IconBook,
+  PMR: IconGrade
 };
 
 function iconFor(name: string): (props: IconProps) => JSX.Element {
-  return ICON_MAP[name] ?? IconBook;
-}
-
-function isWeekend(schedule: string): boolean {
-  return /sabtu|minggu/i.test(schedule);
+  return ICON_BY_NAME[name] ?? IconBook;
 }
 
 const BENEFIT_ITEMS: Array<{
@@ -109,29 +86,23 @@ const BENEFIT_ITEMS: Array<{
   }
 ];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "ekstrakurikuler");
-  return {
-    title: `${section?.title ?? "Ekstrakurikuler"} — ${APP_NAME}`,
-    description: section?.subtitle ?? "Wadah pengembangan bakat dan minat peserta didik."
-  };
-}
+export const metadata: Metadata = {
+  title: `Ekstrakurikuler — ${APP_NAME}`,
+  description: "Wadah pengembangan bakat dan minat peserta didik."
+};
 
 export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "ekstrakurikuler");
-  const items = extraOf(section, "items");
+  const items = await getExtracurriculars();
 
-  const weekendItems = items.filter((e) => isWeekend(str(e, "schedule")));
-  const weekdayItems = items.filter((e) => !isWeekend(str(e, "schedule")));
-  const pembinaCount = new Set(items.map((e) => str(e, "pembina")).filter(Boolean)).size;
+  const weekendItems = items.filter((e) => isWeekend(parseSchedule(e.schedule)));
+  const weekdayItems = items.filter((e) => !isWeekend(parseSchedule(e.schedule)));
+  const pembinaCount = new Set(items.map((e) => e.coachName).filter(Boolean)).size;
 
   const groups: Array<{
     title: string;
     desc: string;
     icon: (props: IconProps) => JSX.Element;
-    list: Array<Record<string, unknown>>;
+    list: ExtracurricularPageItem[];
   }> = [
     {
       title: "Akhir Pekan",
@@ -170,28 +141,25 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
                   <span aria-hidden="true" className="mx-2">
                     /
                   </span>
-                  <span className="text-white">{section?.title ?? "Ekstrakurikuler"}</span>
+                  <span className="text-white">Ekstrakurikuler</span>
                 </nav>
               </StaggerItem>
               <StaggerItem>
-                {section?.subtitle ? (
-                  <Badge variant="primary" className="mt-4 bg-white/15 text-white">
-                    {section.subtitle}
-                  </Badge>
-                ) : null}
+                <Badge variant="primary" className="mt-4 bg-white/15 text-white">
+                  Wadah pengembangan bakat &amp; minat
+                </Badge>
               </StaggerItem>
               <StaggerItem>
                 <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-                  {section?.title ?? "Ekstrakurikuler"}
+                  Ekstrakurikuler
                 </h1>
               </StaggerItem>
-              {section?.body ? (
-                <StaggerItem>
-                  <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
-                    {section.body}
-                  </p>
-                </StaggerItem>
-              ) : null}
+              <StaggerItem>
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
+                  Beragam kegiatan ekstrakurikuler untuk mengembangkan bakat, minat, dan karakter
+                  peserta didik di luar jam pelajaran.
+                </p>
+              </StaggerItem>
               <StaggerItem>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link href="/kontak">
@@ -256,7 +224,7 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
             </h2>
             <p className="mt-2 max-w-2xl text-base text-muted-foreground">
               Semua kegiatan dibimbing oleh pembina berpengalaman dan terbuka untuk setiap peserta
-              didik sesuai kuota yang tersedia.
+              didik.
             </p>
           </FadeInUp>
 
@@ -280,7 +248,7 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
                   </FadeInUp>
                   <StaggerContainer className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                     {group.list.map((e) => (
-                      <StaggerItem key={str(e, "title")} className="h-full">
+                      <StaggerItem key={e.id} className="h-full">
                         <EkskulCard item={e} />
                       </StaggerItem>
                     ))}
@@ -290,7 +258,24 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
             })}
           </div>
         </section>
-      ) : null}
+      ) : (
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+          <FadeInUp>
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-primary-800">
+                  <IconBook className="h-7 w-7" aria-hidden="true" />
+                </span>
+                <p className="text-base font-semibold text-foreground">Data sedang disiapkan</p>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  Daftar ekstrakurikuler belum tersedia. Operator sekolah dapat menambahkannya
+                  melalui menu kesiswaan di aplikasi. Silakan kembali lagi nanti.
+                </p>
+              </CardContent>
+            </Card>
+          </FadeInUp>
+        </section>
+      )}
 
       {/* Kenapa ikut ekskul */}
       {BENEFIT_ITEMS.length > 0 ? (
@@ -376,12 +361,9 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
   );
 }
 
-function EkskulCard({ item }: { item: Record<string, unknown> }): JSX.Element {
-  const title = str(item, "title");
-  const IconComp = iconFor(str(item, "icon"));
-  const schedule = str(item, "schedule");
-  const pembina = str(item, "pembina");
-  const kuota = str(item, "kuota");
+function EkskulCard({ item }: { item: ExtracurricularPageItem }): JSX.Element {
+  const IconComp = iconFor(item.name);
+  const schedule = parseSchedule(item.schedule);
 
   return (
     <Card className="group flex h-full flex-col border-border transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary hover:shadow-xl">
@@ -390,33 +372,48 @@ function EkskulCard({ item }: { item: Record<string, unknown> }): JSX.Element {
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-800 transition-transform duration-300 group-hover:scale-110">
             <IconComp className="h-6 w-6" aria-hidden="true" />
           </span>
-          {schedule ? (
+          {schedule.length > 0 ? (
             <Badge variant="info" className="max-w-[55%] whitespace-normal text-left leading-snug">
-              {schedule}
+              {schedule[0].day}
+              {schedule.length > 1 ? ` +${schedule.length - 1}` : ""}
             </Badge>
-          ) : null}
+          ) : (
+            <Badge variant="neutral">Jadwal menyusul</Badge>
+          )}
         </div>
-        <h3 className="mt-4 text-lg font-bold text-foreground">{title}</h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
-          {str(item, "desc")}
-        </p>
+        <h3 className="mt-4 text-lg font-bold text-foreground">{item.name}</h3>
+        {item.description ? (
+          <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+            {item.description}
+          </p>
+        ) : null}
         <div className="mt-4 space-y-2 border-t border-border pt-3 text-sm">
-          {schedule ? (
+          {schedule.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {schedule.map((s) => (
+                <span
+                  key={`${s.day}-${s.time}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground"
+                >
+                  <IconCalendar
+                    className="h-3.5 w-3.5 shrink-0 text-brand-primary"
+                    aria-hidden="true"
+                  />
+                  {s.day}
+                  {s.time ? ` · ${s.time}` : ""}
+                </span>
+              ))}
+            </div>
+          ) : (
             <p className="flex items-center gap-2 text-muted-foreground">
               <IconCalendar className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
-              {schedule}
+              Jadwal menyusul
             </p>
-          ) : null}
-          {pembina ? (
+          )}
+          {item.coachName ? (
             <p className="flex items-center gap-2 text-muted-foreground">
               <IconUser className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
-              {pembina}
-            </p>
-          ) : null}
-          {kuota ? (
-            <p className="flex items-center gap-2 text-muted-foreground">
-              <IconCheck className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
-              Kuota: {kuota}
+              {item.coachName}
             </p>
           ) : null}
         </div>

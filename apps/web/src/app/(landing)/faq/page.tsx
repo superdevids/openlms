@@ -1,79 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cache, type JSX } from "react";
+import type { JSX } from "react";
+
 import { Accordion, AccordionItem, Badge, Button, Card, CardContent } from "@opensis/ui";
 import { FadeInUp } from "@/components/landing/motion";
-import {
-  API_BASE_FALLBACK,
-  API_TIMEOUT_MS,
-  APP_NAME,
-  FALLBACK_LANDING,
-  type LandingPageData,
-  type LandingSection
-} from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
+import { getFaqs } from "@/lib/landing-pages";
 
 /**
- * Halaman FAQ — GET /public/landing (publik), section slug "faq".
- * ISR 30s — konten berubah hanya via superadmin; fallback FALLBACK_LANDING.
+ * Halaman FAQ mandiri — GET /public/faqs (publik, cache 300s).
+ * ISR 30s; fallback struktur kosong bila API mati / section belum diterbitkan.
  */
 
 export const revalidate = 30;
 
-function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
-  if (base.endsWith("/api/v1")) return `${base}${path}`;
-  return `${base}/api/v1${path}`;
-}
-
-const getLanding = cache(async (): Promise<LandingPageData> => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    try {
-      const res = await fetch(landingApiUrl("/public/landing"), {
-        next: { revalidate: 30 },
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error(`landing ${res.status}`);
-      return (await res.json()) as LandingPageData;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return FALLBACK_LANDING;
-  }
-});
-
-function findSection(sections: LandingSection[], slug: string): LandingSection | undefined {
-  return sections.find((s) => s.slug === slug);
-}
-
-function extraOf(section: LandingSection | undefined, key: string): Array<Record<string, unknown>> {
-  const value = section?.extra?.[key];
-  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
-}
-
-function str(record: Record<string, unknown> | null | undefined, key: string): string {
-  const v = record?.[key];
-  return typeof v === "string" ? v : "";
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "faq");
+  const faqs = await getFaqs();
   return {
-    title: `${section?.title ?? "Pertanyaan Umum"} — ${APP_NAME}`,
-    description: section?.subtitle ?? "Jawaban atas pertanyaan yang sering diajukan."
+    title: `${faqs.title || "Pertanyaan Umum"} — ${APP_NAME}`,
+    description: "Jawaban atas pertanyaan yang sering diajukan."
   };
 }
 
 export default async function FaqPage(): Promise<JSX.Element> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "faq");
-  const faqItems = extraOf(section, "faq");
+  const faqs = await getFaqs();
 
   return (
-    <div>
+    <div className="bg-background">
       {/* Hero */}
       <section className="relative overflow-hidden bg-brand-primary text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-accent opacity-30 blur-3xl" />
@@ -86,25 +39,16 @@ export default async function FaqPage(): Promise<JSX.Element> {
             <h1 className="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl">
               Pertanyaan yang Sering Diajukan
             </h1>
-            {section?.subtitle ? (
-              <p className="mt-3 text-lg font-medium text-white/90">{section.subtitle}</p>
-            ) : null}
-            <div className="mt-8 flex flex-wrap gap-3">
+            <p className="mt-3 text-lg font-medium text-white/90">
+              Informasi seputar pendaftaran, pembelajaran, dan layanan sekolah.
+            </p>
+            <div className="mt-8">
               <Link href="/kontak">
                 <Button
                   size="lg"
                   className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
                 >
                   Hubungi Kami
-                </Button>
-              </Link>
-              <Link href="/ppdb">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/60 bg-transparent text-white hover:bg-white/10"
-                >
-                  Daftar PPDB
                 </Button>
               </Link>
             </div>
@@ -125,7 +69,7 @@ export default async function FaqPage(): Promise<JSX.Element> {
         </FadeInUp>
 
         <div className="mt-8">
-          {faqItems.length === 0 ? (
+          {faqs.items.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-sm text-muted-foreground">
                 Belum ada pertanyaan yang dimuat. Silakan kembali lagi nanti.
@@ -133,9 +77,9 @@ export default async function FaqPage(): Promise<JSX.Element> {
             </Card>
           ) : (
             <Accordion>
-              {faqItems.map((f) => (
-                <AccordionItem key={str(f, "question")} title={str(f, "question")}>
-                  <p className="whitespace-pre-line leading-relaxed">{str(f, "answer")}</p>
+              {faqs.items.map((f) => (
+                <AccordionItem key={f.question || f.answer} title={f.question}>
+                  <p className="whitespace-pre-line leading-relaxed">{f.answer}</p>
                 </AccordionItem>
               ))}
             </Accordion>

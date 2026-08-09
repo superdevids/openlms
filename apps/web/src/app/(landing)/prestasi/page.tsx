@@ -1,63 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cache, type JSX } from "react";
+import type { JSX } from "react";
+
 import { Badge, Button } from "@opensis/ui";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
-import { PrestasiSection, type PrestasiItem } from "@/components/landing/prestasi-section";
-import {
-  API_BASE_FALLBACK,
-  API_TIMEOUT_MS,
-  APP_NAME,
-  FALLBACK_LANDING,
-  type LandingPageData,
-  type LandingSection
-} from "@/lib/constants";
+import { PrestasiGrid } from "@/components/landing/prestasi-grid";
+import { APP_NAME } from "@/lib/constants";
+import { getAchievements } from "@/lib/landing-pages";
 
 /**
- * Halaman prestasi — GET /public/landing (publik), section slug "prestasi".
- * ISR 30s — konten berubah hanya via superadmin; fallback FALLBACK_LANDING.
+ * Halaman prestasi mandiri — GET /public/achievements (publik, cache 300s).
+ * ISR 30s; fallback array kosong bila API mati atau tabel belum di-seed.
  */
 
 export const revalidate = 30;
-
-function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
-  if (base.endsWith("/api/v1")) return `${base}${path}`;
-  return `${base}/api/v1${path}`;
-}
-
-const getLanding = cache(async (): Promise<LandingPageData> => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    try {
-      const res = await fetch(landingApiUrl("/public/landing"), {
-        next: { revalidate: 30 },
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error(`landing ${res.status}`);
-      return (await res.json()) as LandingPageData;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return FALLBACK_LANDING;
-  }
-});
-
-function findSection(sections: LandingSection[], slug: string): LandingSection | undefined {
-  return sections.find((s) => s.slug === slug);
-}
-
-function extraOf(section: LandingSection | undefined, key: string): Array<Record<string, unknown>> {
-  const value = section?.extra?.[key];
-  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
-}
-
-function str(record: Record<string, unknown> | null | undefined, key: string): string {
-  const v = record?.[key];
-  return typeof v === "string" ? v : "";
-}
 
 const LEVEL_RANK: Record<string, number> = {
   INTERNASIONAL: 4,
@@ -67,26 +23,25 @@ const LEVEL_RANK: Record<string, number> = {
   SEKOLAH: 0
 };
 
+function formatTanggal(value: string | null): string {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "prestasi");
   return {
-    title: `${section?.title ?? "Prestasi"} — ${APP_NAME}`,
-    description: section?.subtitle ?? "Capaian juara peserta didik dan guru sekolah."
+    title: `Prestasi — ${APP_NAME}`,
+    description:
+      "Capaian juara peserta didik dan guru sekolah di tingkat kabupaten hingga internasional."
   };
 }
 
 export default async function PrestasiPage(): Promise<JSX.Element> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "prestasi");
-  const items: PrestasiItem[] = extraOf(section, "items").map((p) => ({
-    title: str(p, "title"),
-    level: str(p, "level"),
-    year: str(p, "year"),
-    field: str(p, "field"),
-    coach: str(p, "coach"),
-    description: str(p, "description")
-  }));
+  const items = await getAchievements();
 
   const highlights = [...items]
     .sort(
@@ -96,7 +51,7 @@ export default async function PrestasiPage(): Promise<JSX.Element> {
     .slice(0, 3);
 
   return (
-    <div>
+    <div className="bg-background">
       {/* Hero */}
       <section className="relative overflow-hidden bg-brand-primary text-white">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-accent opacity-30 blur-3xl" />
@@ -109,9 +64,28 @@ export default async function PrestasiPage(): Promise<JSX.Element> {
             <h1 className="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl">
               Prestasi Sekolah
             </h1>
-            {section?.subtitle ? (
-              <p className="mt-3 text-lg font-medium text-white/90">{section.subtitle}</p>
-            ) : null}
+            <p className="mt-3 text-lg font-medium text-white/90">
+              Kebanggaan warga sekolah dari tingkat kabupaten hingga internasional.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/kontak">
+                <Button
+                  size="lg"
+                  className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
+                >
+                  Hubungi Kami
+                </Button>
+              </Link>
+              <Link href="/ppdb">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/60 bg-transparent text-white hover:bg-white/10"
+                >
+                  Daftar PPDB
+                </Button>
+              </Link>
+            </div>
           </FadeInUp>
           <FadeInUp delay={0.1} className="hidden shrink-0 lg:block">
             <img src="/landing/landing-pre-hero.svg" alt="" className="h-44 w-44" />
@@ -119,7 +93,7 @@ export default async function PrestasiPage(): Promise<JSX.Element> {
         </div>
       </section>
 
-      {/* Highlight 2-3 prestasi terbaik */}
+      {/* Highlight 3 prestasi terbaik */}
       {highlights.length > 0 ? (
         <section className="border-b border-border bg-card py-8">
           <div className="mx-auto max-w-6xl px-4">
@@ -129,29 +103,32 @@ export default async function PrestasiPage(): Promise<JSX.Element> {
               </p>
             </FadeInUp>
             <StaggerContainer className="mt-4 grid gap-4 sm:grid-cols-3">
-              {highlights.map((h) => (
-                <StaggerItem key={h.title} className="h-full">
-                  <div className="flex h-full flex-col rounded-xl border border-brand-primary/20 bg-background p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-success-700 px-2.5 py-0.5 text-xs font-medium text-white">
-                        {h.level || "Umum"}
-                      </span>
-                      {h.year ? (
-                        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
-                          {h.year}
+              {highlights.map((h) => {
+                const tanggal = formatTanggal(h.date);
+                return (
+                  <StaggerItem key={h.id || h.title} className="h-full">
+                    <div className="flex h-full flex-col rounded-xl border border-brand-primary/20 bg-background p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-success-700 px-2.5 py-0.5 text-xs font-medium text-white">
+                          {h.level || "Umum"}
                         </span>
+                        {tanggal ? (
+                          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
+                            {tanggal}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 font-semibold text-foreground">{h.title}</p>
+                      {h.studentName ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {h.studentName}
+                          {h.extracurricularName ? ` • ${h.extracurricularName}` : ""}
+                        </p>
                       ) : null}
                     </div>
-                    <p className="mt-2 font-semibold text-foreground">{h.title}</p>
-                    {h.field ? (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {h.field}
-                        {h.coach ? ` • ${h.coach}` : ""}
-                      </p>
-                    ) : null}
-                  </div>
-                </StaggerItem>
-              ))}
+                  </StaggerItem>
+                );
+              })}
             </StaggerContainer>
           </div>
         </section>
@@ -166,7 +143,7 @@ export default async function PrestasiPage(): Promise<JSX.Element> {
           </p>
         </FadeInUp>
         <div className="mt-6">
-          <PrestasiSection items={items} />
+          <PrestasiGrid items={items} />
         </div>
       </section>
 

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import type { JSX } from "react";
-import { cache } from "react";
 import Link from "next/link";
 import {
   Accordion,
@@ -26,72 +25,25 @@ import {
   type IconProps
 } from "@opensis/ui";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
-import {
-  API_BASE_FALLBACK,
-  API_TIMEOUT_MS,
-  APP_NAME,
-  FALLBACK_LANDING,
-  type LandingPageData,
-  type LandingSection
-} from "@/lib/constants";
+import { getPrograms, type ProgramPageItem } from "@/lib/landing-pages";
+import { APP_NAME } from "@/lib/constants";
 
 /**
- * Program Keahlian — GET /public/landing (publik), section "program-keahlian".
- * Bento grid asimetris: 6 prodi (2 featured besar + 4 ringkas), rincian
- * kompetensi per prodi via Accordion, dan CTA PPDB. ISR 30s.
+ * Program Keahlian — GET /public/programs (publik, per-halaman).
+ * Data nyata dari tabel Prodi + pelengkap LandingContent (kompetensi, mitra
+ * DUDI, prospek) via helper lib/landing-pages.ts. Bento grid asimetris:
+ * 6 prodi (2 featured besar + 4 ringkas), rincian kompetensi via Accordion,
+ * dan CTA PPDB. ISR 30s, fallback aman (array kosong → empty state).
  */
 
 export const revalidate = 30;
 
-/** URL absolut /api/v1/public/landing untuk fetch server-side. */
-function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
-  if (base.endsWith("/api/v1")) return `${base}${path}`;
-  return `${base}/api/v1${path}`;
+/** Aksesor array-of-string yang aman. */
+function strArr(value: string[] | null | undefined): string[] {
+  return Array.isArray(value) ? value.filter((x): x is string => typeof x === "string") : [];
 }
 
-const getLanding = cache(async (): Promise<LandingPageData> => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    try {
-      const res = await fetch(landingApiUrl("/public/landing"), {
-        next: { revalidate: 30 },
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error(`landing ${res.status}`);
-      return (await res.json()) as LandingPageData;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return FALLBACK_LANDING;
-  }
-});
-
-function findSection(sections: LandingSection[], slug: string): LandingSection | undefined {
-  return sections.find((s) => s.slug === slug);
-}
-
-/** Aksesor aman untuk `extra` per slug. */
-function extraOf(section: LandingSection | undefined, key: string): Array<Record<string, unknown>> {
-  const value = section?.extra?.[key];
-  return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : [];
-}
-
-function str(record: Record<string, unknown> | null | undefined, key: string): string {
-  const v = record?.[key];
-  return typeof v === "string" ? v : "";
-}
-
-/** Aksesor array-of-string yang aman (kompetensi / prospek / mitra). */
-function strArr(record: Record<string, unknown> | null | undefined, key: string): string[] {
-  const v = record?.[key];
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is string => typeof x === "string");
-}
-
-/** Peta ikon dari nilai `icon` di data landing (fallback IconBook). */
+/** Peta ikon dari nilai `icon` di data program (fallback IconBook). */
 const ICON_MAP: Record<string, (props: IconProps) => JSX.Element> = {
   database: IconDatabase,
   file: IconFile,
@@ -106,45 +58,38 @@ const ICON_MAP: Record<string, (props: IconProps) => JSX.Element> = {
   refresh: IconRefresh
 };
 
-function iconFor(name: string): (props: IconProps) => JSX.Element {
-  return ICON_MAP[name] ?? IconBook;
+function iconFor(name: string | null | undefined): (props: IconProps) => JSX.Element {
+  return (name ? ICON_MAP[name] : undefined) ?? IconBook;
 }
 
-/** Ilustrasi lokal per nama prodi — fallback null saat prodi baru belum digambar. */
+/** Ilustrasi lokal per kode prodi — fallback null saat prodi baru belum digambar. */
 const PROGRAM_IMG: Record<string, string> = {
-  "Teknik Komputer & Jaringan": "/landing/landing-prog-network.svg",
-  "Rekayasa Perangkat Lunak": "/landing/landing-prog-code.svg",
-  "Teknik Kendaraan Ringan": "/landing/landing-prog-auto.svg",
-  "Akuntansi & Keuangan": "/landing/landing-prog-finance.svg",
-  Multimedia: "/landing/landing-prog-media.svg",
-  "Teknik Sepeda Motor": "/landing/landing-prog-motor.svg"
+  TKJ: "/landing/landing-prog-network.svg",
+  RPL: "/landing/landing-prog-code.svg",
+  TKR: "/landing/landing-prog-auto.svg",
+  AKL: "/landing/landing-prog-finance.svg",
+  MM: "/landing/landing-prog-media.svg",
+  TSM: "/landing/landing-prog-motor.svg"
 };
 
-function programImg(title: string): string | null {
-  return PROGRAM_IMG[title] ?? null;
+function programImg(code: string): string | null {
+  return PROGRAM_IMG[code.toUpperCase()] ?? null;
 }
 
 /** Pola bento: kartu besar (col-span-4) berselang-seling dengan kartu ringkas. */
 const BENTO_SPANS = [4, 2, 2, 4, 4, 2];
 
-export async function generateMetadata(): Promise<Metadata> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "program-keahlian");
-  return {
-    title: `${section?.title ?? "Program Keahlian"} — ${APP_NAME}`,
-    description: section?.subtitle ?? "Kompetensi keahlian yang diselenggarakan sekolah."
-  };
-}
+export const metadata: Metadata = {
+  title: `Program Keahlian — ${APP_NAME}`,
+  description: "Kompetensi keahlian yang diselenggarakan sekolah."
+};
 
 export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "program-keahlian");
-  const programs = extraOf(section, "programs");
-  const ctaLink = section?.linkUrl ?? "/ppdb";
-  const ctaLabel = section?.linkLabel ?? "Daftar Sekarang";
+  const programs = await getPrograms();
+  const hasKompetensi = programs.some((p) => strArr(p.kompetensi).length > 0);
 
-  const mitraCount = new Set(programs.flatMap((p) => strArr(p, "mitra_dudi"))).size;
-  const kompetensiCount = programs.reduce((total, p) => total + strArr(p, "kompetensi").length, 0);
+  const mitraCount = new Set(programs.flatMap((p) => strArr(p.mitraDudi))).size;
+  const kompetensiCount = programs.reduce((total, p) => total + strArr(p.kompetensi).length, 0);
 
   return (
     <div className="bg-background">
@@ -169,36 +114,34 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
                   <span aria-hidden="true" className="mx-2">
                     /
                   </span>
-                  <span className="text-white">{section?.title ?? "Program Keahlian"}</span>
+                  <span className="text-white">Program Keahlian</span>
                 </nav>
               </StaggerItem>
               <StaggerItem>
-                {section?.subtitle ? (
-                  <Badge variant="primary" className="mt-4 bg-white/15 text-white">
-                    {section.subtitle}
-                  </Badge>
-                ) : null}
+                <Badge variant="primary" className="mt-4 bg-white/15 text-white">
+                  Kompetensi keahlian (SMK)
+                </Badge>
               </StaggerItem>
               <StaggerItem>
                 <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-                  {section?.title ?? "Program Keahlian"}
+                  Program Keahlian
                 </h1>
               </StaggerItem>
-              {section?.body ? (
-                <StaggerItem>
-                  <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
-                    {section.body}
-                  </p>
-                </StaggerItem>
-              ) : null}
+              <StaggerItem>
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
+                  Sekolah menyelenggarakan program keahlian yang selaras dengan kebutuhan dunia
+                  usaha dan dunia industri (DUDI). Setiap program dilengkapi kurikulum berbasis
+                  industri, guru produktif, dan kemitraan magang.
+                </p>
+              </StaggerItem>
               <StaggerItem>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link href={ctaLink}>
+                  <Link href="/ppdb">
                     <Button
                       size="lg"
                       className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
                     >
-                      {ctaLabel}
+                      Daftar Sekarang
                     </Button>
                   </Link>
                   <Link href="/fasilitas">
@@ -260,7 +203,7 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
               const span = BENTO_SPANS[i % BENTO_SPANS.length];
               return (
                 <StaggerItem
-                  key={str(p, "title")}
+                  key={p.id}
                   className={cn("h-full", span === 4 ? "lg:col-span-4" : "lg:col-span-2")}
                 >
                   <ProgramCard program={p} index={i + 1} featured={span === 4} />
@@ -269,10 +212,29 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
             })}
           </StaggerContainer>
         </section>
-      ) : null}
+      ) : (
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+          <FadeInUp>
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-primary-800">
+                  <IconBook className="h-7 w-7" aria-hidden="true" />
+                </span>
+                <p className="text-base font-semibold text-foreground">
+                  Data program keahlian belum tersedia
+                </p>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  Operator sekolah dapat mengisinya melalui menu data program keahlian di aplikasi.
+                  Silakan kembali lagi nanti.
+                </p>
+              </CardContent>
+            </Card>
+          </FadeInUp>
+        </section>
+      )}
 
       {/* Rincian kompetensi per prodi */}
-      {programs.length > 0 ? (
+      {hasKompetensi ? (
         <section
           id="rincian-kompetensi"
           className="scroll-mt-20 border-t border-border bg-card py-16 sm:py-20"
@@ -290,24 +252,30 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
             <div className="mt-10">
               <Accordion>
                 {programs.map((p) => {
-                  const IconComp = iconFor(str(p, "icon"));
-                  const kompetensi = strArr(p, "kompetensi");
-                  const prospek = strArr(p, "prospek");
-                  const mitra = strArr(p, "mitra_dudi");
+                  const IconComp = iconFor(p.icon);
+                  const kompetensi = strArr(p.kompetensi);
+                  const prospek = strArr(p.prospek);
+                  const mitra = strArr(p.mitraDudi);
+                  const title = p.name || p.shortName;
                   return (
                     <AccordionItem
-                      key={str(p, "title")}
+                      key={p.id}
                       title={
                         <span className="flex min-w-0 items-center gap-3">
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-800">
                             <IconComp className="h-4 w-4" aria-hidden="true" />
                           </span>
-                          <span className="truncate">{str(p, "title")}</span>
+                          <span className="truncate">{title}</span>
+                          {p.shortName && p.shortName !== title ? (
+                            <Badge variant="neutral" className="shrink-0">
+                              {p.shortName}
+                            </Badge>
+                          ) : null}
                         </span>
                       }
                     >
                       <div className="space-y-5">
-                        <p className="text-sm text-muted-foreground">{str(p, "desc")}</p>
+                        {p.desc ? <p className="text-sm text-muted-foreground">{p.desc}</p> : null}
                         {kompetensi.length > 0 ? (
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-brand-secondary">
@@ -385,12 +353,12 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
                 keahlian yang selaras dengan kebutuhan industri.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href={ctaLink}>
+                <Link href="/ppdb">
                   <Button
                     size="lg"
                     className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
                   >
-                    {ctaLabel}
+                    Daftar Sekarang
                   </Button>
                 </Link>
                 <Link href="/ekstrakurikuler">
@@ -425,16 +393,16 @@ function ProgramCard({
   index,
   featured
 }: {
-  program: Record<string, unknown>;
+  program: ProgramPageItem;
   index: number;
   featured: boolean;
 }): JSX.Element {
-  const title = str(program, "title");
-  const IconComp = iconFor(str(program, "icon"));
-  const img = programImg(title);
-  const kompetensi = strArr(program, "kompetensi");
-  const prospek = strArr(program, "prospek");
-  const mitra = strArr(program, "mitra_dudi");
+  const title = program.name || program.shortName;
+  const IconComp = iconFor(program.icon);
+  const img = programImg(program.code);
+  const kompetensi = strArr(program.kompetensi);
+  const prospek = strArr(program.prospek);
+  const mitra = strArr(program.mitraDudi);
 
   return (
     <Card className="group flex h-full flex-col overflow-hidden border-border transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary hover:shadow-xl">
@@ -478,9 +446,18 @@ function ProgramCard({
               <IconComp className="h-5 w-5" aria-hidden="true" />
             </span>
           ) : null}
-          <h3 className="text-lg font-bold leading-snug text-foreground">{title}</h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold leading-snug text-foreground">{title}</h3>
+            {program.shortName && program.shortName !== title ? (
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {program.shortName}
+              </p>
+            ) : null}
+          </div>
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{str(program, "desc")}</p>
+        {program.desc ? (
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{program.desc}</p>
+        ) : null}
 
         {kompetensi.length > 0 ? (
           <div className="mt-4">
@@ -488,11 +465,16 @@ function ProgramCard({
               Kompetensi
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {kompetensi.map((k) => (
+              {kompetensi.slice(0, featured ? kompetensi.length : 2).map((k) => (
                 <Badge key={k} variant="neutral">
                   {k}
                 </Badge>
               ))}
+              {!featured && kompetensi.length > 2 ? (
+                <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+                  +{kompetensi.length - 2}
+                </span>
+              ) : null}
             </div>
           </div>
         ) : null}

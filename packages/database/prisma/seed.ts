@@ -12,12 +12,13 @@
  * disiapkan sebagai konstanta di prisma/seed-data (tabel W2 belum di ERD v1.1).
  */
 
-import { PrismaClient, Role, EnrollmentStatus } from "@prisma/client";
+import { PrismaClient, Role, EnrollmentStatus, AchievementLevel } from "@prisma/client";
 import argon2 from "argon2";
 import { PERMISSIONS, ROLE_PERMISSIONS, ROLES_TO_SEED } from "./seed-data/permissions";
 import { FEATURE_FLAGS } from "./seed-data/feature-flags";
 import { DASHBOARD_CARDS_BY_ROLE, DASHBOARD_ROLES_TO_SEED } from "./seed-data/dashboard-config";
 import { LANDING_SECTIONS_SEED } from "./seed-data/landing-sections";
+import { ACHIEVEMENTS_SEED, EXTRACURRICULARS_SEED } from "./seed-data/public-content";
 
 const prisma = new PrismaClient();
 
@@ -178,6 +179,79 @@ async function main(): Promise<void> {
       create: { code: p.code, name: p.name, short_name: p.short_name }
     });
     prodiIds.set(p.code, row.id);
+  }
+
+  // 4d. User siswa demo + tabel domain halaman publik (R-37): ekstrakurikuler
+  // & prestasi. Achievement wajib student_id → buat 1 user siswa (siswa1,
+  // role SISWA ACTIVE) lalu 5 prestasi. Idempotent: findFirst by name/title
+  // karena kedua tabel tidak punya kunci unik selain id.
+  const DEV_SISWA = {
+    username: "siswa1",
+    email: "siswa1@opensis.local",
+    fullName: "Siswa Contoh"
+  };
+  const siswa = await prisma.user.upsert({
+    where: { username: DEV_SISWA.username },
+    update: {
+      full_name: DEV_SISWA.fullName,
+      password_hash: await argon2.hash(DEV_ADMIN.devPassword),
+      must_change_password: false
+    },
+    create: {
+      username: DEV_SISWA.username,
+      email: DEV_SISWA.email,
+      password_hash: await argon2.hash(DEV_ADMIN.devPassword),
+      must_change_password: false,
+      full_name: DEV_SISWA.fullName
+    }
+  });
+  await prisma.userRole.upsert({
+    where: { user_id_role: { user_id: siswa.id, role: "SISWA" } },
+    update: { status: "ACTIVE" },
+    create: {
+      user_id: siswa.id,
+      role: "SISWA",
+      status: "ACTIVE",
+      invited_by: admin.id,
+      joined_at: new Date()
+    }
+  });
+
+  let ekskulNewCount = 0;
+  for (const e of EXTRACURRICULARS_SEED) {
+    const existing = await prisma.extracurricular.findFirst({ where: { name: e.name } });
+    if (existing) {
+      await prisma.extracurricular.update({
+        where: { id: existing.id },
+        data: { description: e.description, schedule: e.schedule }
+      });
+    } else {
+      await prisma.extracurricular.create({
+        data: { name: e.name, description: e.description, schedule: e.schedule }
+      });
+      ekskulNewCount += 1;
+    }
+  }
+
+  let achievementNewCount = 0;
+  for (const a of ACHIEVEMENTS_SEED) {
+    const existing = await prisma.achievement.findFirst({ where: { title: a.title } });
+    if (existing) {
+      await prisma.achievement.update({
+        where: { id: existing.id },
+        data: { level: a.level as AchievementLevel, date: new Date(a.date) }
+      });
+    } else {
+      await prisma.achievement.create({
+        data: {
+          student_id: siswa.id,
+          title: a.title,
+          level: a.level as AchievementLevel,
+          date: new Date(a.date)
+        }
+      });
+      achievementNewCount += 1;
+    }
   }
 
   // 5. Permission catalog + RolePermission (14 role)
@@ -497,14 +571,19 @@ async function main(): Promise<void> {
   const prodiTotal = await prisma.prodi.count();
   const landingTotal = await prisma.landingContent.count();
   const dashboardConfigTotalDb = await prisma.roleDashboardConfig.count();
+  const ekskulTotal = await prisma.extracurricular.count();
+  const achievementTotal = await prisma.achievement.count();
 
   console.log("Seed selesai:");
   console.log(`- SchoolProfile: ${school.name}`);
   console.log(`- AcademicYear aktif: ${yearNow.code}`);
   console.log(`- SUPERADMIN dev: ${DEV_ADMIN.username} (password: "${DEV_ADMIN.devPassword}")`);
+  console.log(`- User siswa demo: ${DEV_SISWA.username} (role SISWA ACTIVE)`);
   console.log(`- FeatureFlag: ${flagTotal} flag`);
   console.log(`- Branding: opensis (config_version 1)`);
   console.log(`- Prodi: ${prodiTotal} jurusan (TKJ, RPL, TKR, AKL, MM, TSM)`);
+  console.log(`- Ekstrakurikuler: ${ekskulTotal} (baru: ${ekskulNewCount})`);
+  console.log(`- Achievement: ${achievementTotal} prestasi (baru: ${achievementNewCount})`);
   console.log(
     `- Permission: ${permissionTotal} | RolePermission: ${rolePermissionTotal} (baru: ${rolePermissionCount})`
   );

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cache, type JSX } from "react";
+import { type JSX } from "react";
 import {
   Badge,
   Button,
@@ -13,86 +13,34 @@ import {
 import { FadeInUp } from "@/components/landing/motion";
 import { ContactForm } from "@/components/landing/contact-form";
 import { safeUrl } from "@/lib/safe-url";
-import {
-  API_BASE_FALLBACK,
-  API_TIMEOUT_MS,
-  APP_NAME,
-  FALLBACK_LANDING,
-  type LandingPageData,
-  type LandingSection
-} from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants";
+import { getContact } from "@/lib/landing-pages";
 
 /**
- * Halaman Hubungi Kami — SATU halaman berisi hero + seksi `kontak` dari
- * GET /public/landing: telepon/email/alamat/jam layanan, kanal sosial media,
- * peta (mapsEmbedUrl via safeUrl), dan form kontak DEMO (statis, tidak
- * mengirim API — komponen ContactForm). Semua CTA "Hubungi Kami" /
- * "Jadwalkan Kunjungan" di halaman landing lain menuju /kontak ini.
- * ISR 30s — konten berubah hanya via superadmin; fallback FALLBACK_LANDING
- * bila API offline. Berbagi LandingHeader/LandingFooter via layout (landing).
+ * Halaman Hubungi Kami — PAGE MANDIRI.
+ * Data via helper lib/landing-pages (GET /public/contact): telepon/email/
+ * alamat/jam layanan, kanal sosial media, peta (mapsEmbedUrl via safeUrl),
+ * dan form kontak DEMO (statis, tidak mengirim API — komponen ContactForm).
+ * ISR 30s; fallback aman bila API offline.
+ * Header/footer otomatis dari layout (landing).
  */
 
 export const revalidate = 30;
 
-/** URL absolut /api/v1/public/landing untuk fetch server-side. */
-function landingApiUrl(path: string): string {
-  const base = (process.env.NEXT_PUBLIC_API_BASE ?? API_BASE_FALLBACK).replace(/\/+$/, "");
-  if (base.endsWith("/api/v1")) return `${base}${path}`;
-  return `${base}/api/v1${path}`;
-}
-
-const getLanding = cache(async (): Promise<LandingPageData> => {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
-    try {
-      const res = await fetch(landingApiUrl("/public/landing"), {
-        next: { revalidate: 30 },
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error(`landing ${res.status}`);
-      return (await res.json()) as LandingPageData;
-    } finally {
-      clearTimeout(timeout);
-    }
-  } catch {
-    return FALLBACK_LANDING;
-  }
-});
-
-function findSection(sections: LandingSection[], slug: string): LandingSection | undefined {
-  return sections.find((s) => s.slug === slug);
-}
-
-function str(record: Record<string, unknown> | null | undefined, key: string): string {
-  const v = record?.[key];
-  return typeof v === "string" ? v : "";
-}
-
-export async function generateMetadata(): Promise<Metadata> {
-  const landing = await getLanding();
-  const section = findSection(landing.sections, "kontak");
-  return {
-    title: `Hubungi Kami — ${APP_NAME}`,
-    description:
-      section?.subtitle ?? "Informasi kontak, alamat, jam layanan, dan kanal sosial media sekolah."
-  };
-}
+export const metadata: Metadata = {
+  title: `Hubungi Kami — ${APP_NAME}`,
+  description: "Informasi kontak, alamat, jam layanan, dan kanal sosial media sekolah."
+};
 
 export default async function KontakPage(): Promise<JSX.Element> {
-  const landing = await getLanding();
-  const kontak = findSection(landing.sections, "kontak");
+  const contact = await getContact();
 
-  const kontakPhone = str(kontak?.extra, "phone");
-  const kontakEmail = str(kontak?.extra, "email");
-  const kontakAddress = str(kontak?.extra, "address");
-  const kontakHours = str(kontak?.extra, "hours");
-  const kontakWhatsapp = str(kontak?.extra, "whatsapp").replace(/[^0-9]/g, "");
-  const kontakInstagram = safeUrl(str(kontak?.extra, "instagram"));
-  const kontakFacebook = safeUrl(str(kontak?.extra, "facebook"));
-  const kontakYoutube = safeUrl(str(kontak?.extra, "youtube"));
-  const kontakMapsEmbed = safeUrl(str(kontak?.extra, "mapsEmbedUrl"));
-  const kontakBody = kontak?.body?.trim() ? kontak.body : "";
+  const whatsapp = contact.whatsapp?.replace(/[^0-9]/g, "") ?? "";
+  const instagram = safeUrl(contact.instagram);
+  const facebook = safeUrl(contact.facebook);
+  const youtube = safeUrl(contact.youtube);
+  const mapsEmbed = safeUrl(contact.mapsEmbedUrl);
+  const hasSocials = Boolean(whatsapp || instagram || facebook || youtube);
 
   return (
     <div>
@@ -105,22 +53,13 @@ export default async function KontakPage(): Promise<JSX.Element> {
             <Badge variant="primary" className="bg-white/15 text-white">
               Hubungi Kami
             </Badge>
-            <h1 className="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl">
-              {kontak?.title ?? "Hubungi Kami"}
-            </h1>
-            {kontak?.subtitle ? (
-              <p className="mt-3 text-lg font-medium text-white/90">{kontak.subtitle}</p>
-            ) : null}
-            {kontakBody ? (
-              <p className="mt-2 max-w-xl leading-relaxed text-white/90">{kontakBody}</p>
-            ) : null}
+            <h1 className="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl">Hubungi Kami</h1>
+            <p className="mt-3 text-lg font-medium text-white/90">
+              Informasi kontak, alamat, jam layanan, dan kanal sosial media sekolah.
+            </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              {kontakWhatsapp ? (
-                <a
-                  href={`https://wa.me/${kontakWhatsapp}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+              {whatsapp ? (
+                <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
                   <Button size="lg" variant="success">
                     Chat WhatsApp
                   </Button>
@@ -159,36 +98,36 @@ export default async function KontakPage(): Promise<JSX.Element> {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <dl className="grid gap-3 text-muted-foreground sm:grid-cols-2">
-                  {kontakAddress ? (
+                  {contact.address ? (
                     <div>
                       <dt className="font-semibold text-foreground">Alamat</dt>
-                      <dd className="mt-0.5">{kontakAddress}</dd>
+                      <dd className="mt-0.5">{contact.address}</dd>
                     </div>
                   ) : null}
-                  {kontakPhone ? (
+                  {contact.phone ? (
                     <div>
                       <dt className="font-semibold text-foreground">Telepon</dt>
-                      <dd className="mt-0.5">{kontakPhone}</dd>
+                      <dd className="mt-0.5">{contact.phone}</dd>
                     </div>
                   ) : null}
-                  {kontakEmail ? (
+                  {contact.email ? (
                     <div>
                       <dt className="font-semibold text-foreground">Email</dt>
-                      <dd className="mt-0.5 break-all">{kontakEmail}</dd>
+                      <dd className="mt-0.5 break-all">{contact.email}</dd>
                     </div>
                   ) : null}
-                  {kontakHours ? (
+                  {contact.hours ? (
                     <div>
                       <dt className="font-semibold text-foreground">Jam layanan</dt>
-                      <dd className="mt-0.5">{kontakHours}</dd>
+                      <dd className="mt-0.5">{contact.hours}</dd>
                     </div>
                   ) : null}
                 </dl>
-                {kontakWhatsapp || kontakInstagram || kontakFacebook || kontakYoutube ? (
+                {hasSocials ? (
                   <div className="flex flex-wrap gap-2 pt-2">
-                    {kontakWhatsapp ? (
+                    {whatsapp ? (
                       <a
-                        href={`https://wa.me/${kontakWhatsapp}`}
+                        href={`https://wa.me/${whatsapp}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -196,9 +135,9 @@ export default async function KontakPage(): Promise<JSX.Element> {
                         WhatsApp
                       </a>
                     ) : null}
-                    {kontakInstagram ? (
+                    {instagram ? (
                       <a
-                        href={kontakInstagram}
+                        href={instagram}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -206,9 +145,9 @@ export default async function KontakPage(): Promise<JSX.Element> {
                         Instagram
                       </a>
                     ) : null}
-                    {kontakFacebook ? (
+                    {facebook ? (
                       <a
-                        href={kontakFacebook}
+                        href={facebook}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -216,9 +155,9 @@ export default async function KontakPage(): Promise<JSX.Element> {
                         Facebook
                       </a>
                     ) : null}
-                    {kontakYoutube ? (
+                    {youtube ? (
                       <a
-                        href={kontakYoutube}
+                        href={youtube}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-brand-primary hover:text-brand-primary"
@@ -228,17 +167,25 @@ export default async function KontakPage(): Promise<JSX.Element> {
                     ) : null}
                   </div>
                 ) : null}
+                {whatsapp ? (
+                  <div className="pt-2">
+                    <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
+                      <Button variant="success">Chat WhatsApp</Button>
+                    </a>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 
-            {kontakMapsEmbed ? (
+            {mapsEmbed ? (
               <div className="mt-4 overflow-hidden rounded-lg border border-border">
                 <iframe
-                  src={kontakMapsEmbed}
+                  src={mapsEmbed}
                   title="Lokasi sekolah"
                   className="h-64 w-full border-0"
                   loading="lazy"
                   allowFullScreen
+                  sandbox="allow-scripts allow-same-origin"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
