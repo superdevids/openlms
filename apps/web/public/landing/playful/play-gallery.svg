@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi galeri foto sekolah">
+  <defs>
+    <linearGradient id="pga-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ecfeff"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="pga-mount" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="pga-sun" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#pga-bg)"/>
+  <circle cx="398" cy="76" r="20" fill="#fb7185"/>
+  <g transform="translate(76,64)">
+    <rect width="220" height="170" rx="18" fill="#ffffff" stroke="#e5e7eb" stroke-width="4"/>
+    <rect x="12" y="12" width="196" height="122" rx="10" fill="#eef2ff"/>
+    <circle cx="168" cy="52" r="18" fill="url(#pga-sun)"/>
+    <path d="M12 134 L70 80 L120 122 L150 96 L208 134 Z" fill="url(#pga-mount)"/>
+    <path d="M12 134 L48 108 L84 134 Z" fill="#a5b4fc"/>
+    <rect x="30" y="142" width="160" height="14" rx="7" fill="#c7d2fe"/>
+  </g>
+  <g transform="translate(318,190)">
+    <rect width="120" height="100" rx="14" fill="#ffffff" stroke="#e5e7eb" stroke-width="4"/>
+    <rect x="10" y="10" width="100" height="62" rx="8" fill="#fdf2f8"/>
+    <path d="M10 72 L44 42 L78 72 Z" fill="url(#pga-mount)"/>
+    <circle cx="88" cy="30" r="9" fill="url(#pga-sun)"/>
+    <rect x="20" y="80" width="80" height="10" rx="5" fill="#e5e7eb"/>
+  </g>
+  <g transform="translate(120,254)">
+    <rect width="96" height="84" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="4"/>
+    <rect x="8" y="8" width="80" height="50" rx="7" fill="#ecfdf5"/>
+    <circle cx="30" cy="28" r="9" fill="#34d399"/>
+    <path d="M8 58 L34 32 L52 48 L62 40 L88 58 Z" fill="#14b8a6"/>
+  </g>
+  <circle cx="84" cy="330" r="5" fill="#8b5cf6"/>
+  <circle cx="400" cy="326" r="5" fill="#fbbf24"/>
+</svg>

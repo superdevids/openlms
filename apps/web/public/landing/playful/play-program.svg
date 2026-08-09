@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi program keahlian">
+  <defs>
+    <linearGradient id="ppr-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eef2ff"/>
+      <stop offset="1" stop-color="#ecfeff"/>
+    </linearGradient>
+    <linearGradient id="ppr-gear" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="ppr-code" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="ppr-wrench" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#ppr-bg)"/>
+  <circle cx="392" cy="70" r="26" fill="#fbbf24"/>
+  <circle cx="80" cy="90" r="16" fill="#fb7185"/>
+  <g transform="translate(80,100)">
+    <rect width="140" height="140" rx="30" fill="#ffffff"/>
+    <g stroke="#6366f1" stroke-width="10" stroke-linecap="round">
+      <circle cx="70" cy="70" r="24" fill="#c7d2fe" stroke="none"/>
+      <path d="M70 26 L70 34 M70 106 L70 114 M26 70 L34 70 M106 70 L114 70" stroke="url(#ppr-gear)"/>
+      <circle cx="70" cy="70" r="12" fill="url(#ppr-gear)" stroke="none"/>
+    </g>
+  </g>
+  <g transform="translate(252,92)">
+    <rect width="150" height="150" rx="30" fill="#ffffff"/>
+    <path d="M30 40 L12 78 L30 116" stroke="url(#ppr-code)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M62 40 L80 78 L62 116" stroke="url(#ppr-code)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <rect x="96" y="30" width="26" height="14" rx="5" fill="#22d3ee"/>
+    <rect x="96" y="58" width="26" height="14" rx="5" fill="#22d3ee"/>
+    <rect x="96" y="86" width="26" height="14" rx="5" fill="#22d3ee"/>
+  </g>
+  <g transform="translate(190,240)">
+    <rect width="120" height="120" rx="26" fill="#ffffff"/>
+    <path d="M38 24 L14 58 L38 92" stroke="url(#ppr-wrench)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M66 24 L90 58 L66 92" stroke="url(#ppr-wrench)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <circle cx="360" cy="300" r="7" fill="#34d399"/>
+  <circle cx="92" cy="320" r="6" fill="#8b5cf6"/>
+</svg>

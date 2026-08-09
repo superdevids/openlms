@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi pendaftaran peserta didik baru">
+  <defs>
+    <linearGradient id="ppd-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fdf2f8"/>
+      <stop offset="1" stop-color="#fffbeb"/>
+    </linearGradient>
+    <linearGradient id="ppd-mega" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="ppd-ticket" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="ppd-check" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#ppd-bg)"/>
+  <circle cx="84" cy="74" r="22" fill="#fbbf24"/>
+  <g transform="translate(96,64)">
+    <path d="M16 52 L120 8 L128 70 Z" fill="url(#ppd-mega)"/>
+    <path d="M112 8 L172 0 L164 62 L128 70 Z" fill="#4f46e5"/>
+    <circle cx="60" cy="52" r="42" fill="#c7d2fe" opacity="0.6"/>
+    <path d="M16 52 A44 44 0 0 1 104 52" stroke="#22d3ee" stroke-width="10" stroke-linecap="round" fill="none"/>
+  </g>
+  <g transform="translate(278,80)">
+    <rect x="0" y="22" width="140" height="92" rx="18" fill="url(#ppd-ticket)"/>
+    <circle cx="0" cy="68" r="10" fill="#ffffff"/>
+    <path d="M14 22 L14 114" stroke="#ffffff" stroke-width="3" stroke-dasharray="8 8" opacity="0.7"/>
+    <rect x="30" y="40" width="84" height="12" rx="6" fill="#ffffff" opacity="0.9"/>
+    <rect x="30" y="60" width="58" height="12" rx="6" fill="#ffffff" opacity="0.6"/>
+    <path d="M30 92 L44 106 L62 88" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <g transform="translate(172,240)">
+    <circle cx="60" cy="60" r="58" fill="url(#ppd-check)"/>
+    <path d="M30 62 L48 80 L92 40" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <circle cx="404" cy="300" r="7" fill="#8b5cf6"/>
+  <circle cx="72" cy="318" r="6" fill="#34d399"/>
+</svg>

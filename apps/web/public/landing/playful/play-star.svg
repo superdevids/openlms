@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Bintang">
+  <defs>
+    <linearGradient id="pstar-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+  <path d="M24 3 L29.5 17.5 L45 19 L33 29.5 L36.5 45 L24 37 L11.5 45 L15 29.5 L3 19 L18.5 17.5 Z" fill="url(#pstar-g)"/>
+</svg>

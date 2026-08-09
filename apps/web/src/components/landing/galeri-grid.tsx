@@ -2,8 +2,8 @@
 
 import { useMemo, useState, type JSX } from "react";
 
-import { Card, CardContent, cn } from "@opensis/ui";
-import { StaggerContainer, StaggerItem } from "@/components/landing/motion";
+import { cn } from "@opensis/ui";
+import { FadeInUp } from "@/components/landing/motion";
 import { LandingImage } from "@/components/landing/landing-image";
 import type { GalleryImage } from "@/lib/landing-pages";
 
@@ -11,7 +11,10 @@ import type { GalleryImage } from "@/lib/landing-pages";
  * Grid galeri + filter kategori (klien) untuk halaman /galeri mandiri.
  * Gambar dari CMS (/storage/...) bisa 404 — LandingImage menukar ke
  * placeholder lokal agar tidak ada gambar rusak (broken image).
+ * Tile memakai pola ImageTile (D.6): rounded-2xl, ring, hover zoom, caption.
  */
+
+const SHADOW_SOFT = "shadow-[0_8px_30px_rgba(67,56,202,0.1)]";
 
 function formatTanggal(value: string | null): string {
   if (!value) return "";
@@ -41,7 +44,11 @@ export function GaleriGrid({ images }: { images: GalleryImage[] }): JSX.Element 
   return (
     <div>
       {categories.length > 0 ? (
-        <div className="flex flex-wrap justify-center gap-2">
+        <div
+          className="flex flex-wrap justify-center gap-2"
+          role="group"
+          aria-label="Filter kategori galeri"
+        >
           {["SEMUA", ...categories].map((key) => (
             <button
               key={key}
@@ -49,9 +56,9 @@ export function GaleriGrid({ images }: { images: GalleryImage[] }): JSX.Element 
               onClick={() => setCategory(key)}
               aria-pressed={category === key}
               className={cn(
-                "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                "min-h-11 rounded-full border px-4 py-2 text-sm font-medium transition-all",
                 category === key
-                  ? "border-brand-primary bg-brand-primary text-white"
+                  ? cn("border-brand-primary bg-brand-primary text-white", SHADOW_SOFT)
                   : "border-border bg-card text-foreground hover:border-brand-primary hover:text-brand-primary"
               )}
             >
@@ -62,42 +69,58 @@ export function GaleriGrid({ images }: { images: GalleryImage[] }): JSX.Element 
       ) : null}
 
       {filtered.length === 0 ? (
-        <Card className="mt-8">
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Belum ada foto yang diterbitkan. Silakan kembali lagi nanti.
-          </CardContent>
-        </Card>
+        <div
+          className={cn(
+            "mt-8 rounded-[1.5rem] border border-dashed border-border bg-card px-6 py-12 text-center",
+            SHADOW_SOFT
+          )}
+        >
+          <img
+            src="/landing/playful/play-gallery.svg"
+            alt=""
+            aria-hidden="true"
+            className="mx-auto h-16 w-20 opacity-80"
+          />
+          <p className="mt-4 font-semibold text-foreground">Belum ada foto di kategori ini</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pilih kategori lain atau kembali lagi nanti.
+          </p>
+        </div>
       ) : (
-        <StaggerContainer className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 columns-1 gap-4 sm:columns-2 lg:columns-3">
           {filtered.map((item) => {
             const tanggal = formatTanggal(item.date);
             return (
-              <StaggerItem key={item.title || item.src} className="h-full">
-                <Card className="h-full overflow-hidden">
+              <FadeInUp key={item.title || item.src} className="mb-4 break-inside-avoid">
+                <figure
+                  className={cn(
+                    "group relative overflow-hidden rounded-2xl ring-1 ring-border",
+                    SHADOW_SOFT
+                  )}
+                >
                   <LandingImage
                     src={item.src}
                     alt={item.title}
-                    fallbackText={item.title}
-                    className="h-48 w-full rounded-t-xl object-cover px-4 text-sm font-medium"
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <CardContent className="p-4">
-                    <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pt-10">
+                    <p className="text-sm font-bold text-white">{item.title}</p>
                     {item.category || tanggal ? (
-                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
                         {item.category ? (
-                          <span className="text-xs text-brand-secondary">{item.category}</span>
+                          <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
+                            {item.category}
+                          </span>
                         ) : null}
-                        {tanggal ? (
-                          <span className="text-xs text-muted-foreground">{tanggal}</span>
-                        ) : null}
+                        {tanggal ? <span className="text-xs text-white/85">{tanggal}</span> : null}
                       </div>
                     ) : null}
-                  </CardContent>
-                </Card>
-              </StaggerItem>
+                  </figcaption>
+                </figure>
+              </FadeInUp>
             );
           })}
-        </StaggerContainer>
+        </div>
       )}
     </div>
   );

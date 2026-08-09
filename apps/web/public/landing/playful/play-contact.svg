@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi kontak sekolah">
+  <defs>
+    <linearGradient id="pct-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ecfeff"/>
+      <stop offset="1" stop-color="#f6f7fc"/>
+    </linearGradient>
+    <linearGradient id="pct-bub1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="pct-bub2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="pct-pin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#pct-bg)"/>
+  <circle cx="76" cy="80" r="24" fill="#fbbf24"/>
+  <g transform="translate(120,72)">
+    <rect x="0" y="0" width="170" height="64" rx="18" fill="url(#pct-bub1)"/>
+    <circle cx="24" cy="24" r="10" fill="#ffffff" opacity="0.9"/>
+    <circle cx="24" cy="42" r="10" fill="#ffffff" opacity="0.6"/>
+    <rect x="48" y="18" width="92" height="12" rx="6" fill="#ffffff" opacity="0.9"/>
+    <rect x="48" y="36" width="64" height="12" rx="6" fill="#ffffff" opacity="0.6"/>
+    <path d="M22 64 L14 82 L40 66 Z" fill="#22d3ee"/>
+  </g>
+  <g transform="translate(238,158)">
+    <rect x="0" y="0" width="150" height="58" rx="16" fill="url(#pct-bub2)"/>
+    <rect x="18" y="16" width="80" height="11" rx="5" fill="#ffffff" opacity="0.9"/>
+    <rect x="18" y="33" width="52" height="11" rx="5" fill="#ffffff" opacity="0.6"/>
+    <path d="M132 58 L140 76 L116 60 Z" fill="#fbbf24"/>
+  </g>
+  <g transform="translate(180,236)">
+    <path d="M60 0 C92 0 120 26 120 60 C120 100 70 142 60 142 C50 142 0 100 0 60 C0 26 28 0 60 0 Z" fill="url(#pct-pin)"/>
+    <circle cx="60" cy="58" r="22" fill="#ffffff"/>
+    <circle cx="60" cy="58" r="11" fill="#0f766e"/>
+  </g>
+  <circle cx="100" cy="330" r="6" fill="#8b5cf6"/>
+  <circle cx="392" cy="316" r="6" fill="#fb7185"/>
+</svg>

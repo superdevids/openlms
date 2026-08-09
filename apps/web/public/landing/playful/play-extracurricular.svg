@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi ekstrakurikuler">
+  <defs>
+    <linearGradient id="pex-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fdf2f8"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <linearGradient id="pex-ball" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <linearGradient id="pex-music" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="pex-pal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#pex-bg)"/>
+  <circle cx="80" cy="76" r="22" fill="#fbbf24"/>
+  <circle cx="404" cy="80" r="18" fill="#22d3ee"/>
+  <g transform="translate(100,84)">
+    <circle cx="64" cy="64" r="58" fill="url(#pex-ball)"/>
+    <path d="M64 6 L64 122 M6 64 L122 64 M20 20 L108 108 M108 20 L20 108" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.85"/>
+  </g>
+  <g transform="translate(296,78)">
+    <rect x="8" y="0" width="10" height="84" rx="5" fill="url(#pex-music)"/>
+    <circle cx="8" cy="86" r="20" fill="url(#pex-music)"/>
+    <circle cx="58" cy="70" r="18" fill="url(#pex-music)"/>
+    <path d="M18 70 L18 16 L70 8 L70 62" stroke="url(#pex-music)" stroke-width="10" stroke-linecap="round" fill="none"/>
+  </g>
+  <g transform="translate(150,222)">
+    <circle cx="70" cy="70" r="60" fill="url(#pex-pal)"/>
+    <circle cx="70" cy="44" r="10" fill="#6366f1"/>
+    <circle cx="40" cy="80" r="10" fill="#22d3ee"/>
+    <circle cx="100" cy="80" r="10" fill="#fb7185"/>
+    <circle cx="70" cy="106" r="10" fill="#ffffff"/>
+    <path d="M8 92 Q0 120 24 114 L16 98 Z" fill="#ffffff"/>
+  </g>
+  <circle cx="360" cy="320" r="7" fill="#34d399"/>
+  <circle cx="84" cy="318" r="6" fill="#8b5cf6"/>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="96" viewBox="0 0 320 96" fill="none" aria-hidden="true">
+  <path d="M0 24Q40 4 80 24T160 24T240 24T320 24" stroke="#22d3ee" stroke-opacity="0.4" stroke-width="6" stroke-linecap="round"/>
+  <path d="M0 56Q40 36 80 56T160 56T240 56T320 56" stroke="#6366f1" stroke-opacity="0.28" stroke-width="6" stroke-linecap="round"/>
+  <path d="M0 88Q40 68 80 88T160 88T240 88T320 88" stroke="#fb7185" stroke-opacity="0.22" stroke-width="6" stroke-linecap="round"/>
+</svg>

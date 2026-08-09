@@ -22,12 +22,16 @@ import { APP_NAME } from "@/lib/constants";
 
 /**
  * Ekstrakurikuler — GET /public/extracurriculars (publik, per-halaman).
- * Data nyata dari tabel Extracurricular (seed). Kartu ekskul dengan badge
- * jadwal (array {day, time}) + pembina, dikelompokkan ke "Akhir Pekan" dan
- * "Hari Sekolah" berdasarkan jadwal. ISR 30s, fallback aman (array kosong →
- * empty state "Data sedang disiapkan") bila tabel belum di-seed / API mati.
- * Fetch via helper lib/landing-pages.ts (getExtracurriculars) — satu sumber
- * fetch + timeout agar tidak menggantung saat build.
+ * Redesign v2 (docs/landing-design-v2.md E.6): PageHero playful
+ * (play-extracurricular + blob), kartu ekskul CardPlay (badge jadwal, pembina)
+ * dengan aksen gradient pink/teal/amber/indigo, pengelompokan otomatis
+ * "Akhir Pekan" / "Hari Sekolah", blok manfaat, dan CTA. ISR 30s, fallback
+ * aman (array kosong → empty state). Token landing v2 (--surface-soft,
+ * --gradient-*, --shadow-*, --playful-*) dipakai via var() — dideklarasikan
+ * di globals.css oleh task token terpisah.
+ *
+ * Catatan: kontrak data ekskul (name, description, schedule, coachName) belum
+ * menyediakan kolom kuota, sehingga kartu tidak menampilkan angka kuota.
  */
 
 export const revalidate = 30;
@@ -71,6 +75,14 @@ const ICON_BY_NAME: Record<string, (props: IconProps) => JSX.Element> = {
 function iconFor(name: string): (props: IconProps) => JSX.Element {
   return ICON_BY_NAME[name] ?? IconBook;
 }
+
+/** Gradient ikon chip & strip kartu — diputar per ekskul (pink/teal/amber/indigo). */
+const CARD_GRADIENTS = [
+  "var(--gradient-pink)",
+  "var(--gradient-teal)",
+  "var(--gradient-amber)",
+  "var(--gradient-indigo)"
+];
 
 const BENEFIT_ITEMS: Array<{
   title: string;
@@ -119,94 +131,112 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
   ];
 
   return (
-    <div className="bg-background">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-brand-primary text-white">
+    <div className="bg-[var(--surface-soft)]">
+      {/* Hero playful */}
+      <section
+        className="relative overflow-hidden"
+        style={{ backgroundImage: "var(--gradient-hero-soft)" }}
+      >
         <img
-          src="/landing/landing-hero-pattern.svg"
+          src="/landing/playful/play-blob-4.svg"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-25"
+          className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 opacity-60"
         />
-        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-accent opacity-30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-brand-secondary opacity-40 blur-3xl" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:py-24 lg:grid-cols-2">
-          <div>
-            <StaggerContainer>
-              <StaggerItem>
-                <nav aria-label="Breadcrumb" className="text-sm text-white/70">
-                  <Link href="/" className="transition-colors hover:text-white">
-                    Beranda
-                  </Link>
-                  <span aria-hidden="true" className="mx-2">
-                    /
-                  </span>
-                  <span className="text-white">Ekstrakurikuler</span>
-                </nav>
-              </StaggerItem>
-              <StaggerItem>
-                <Badge variant="primary" className="mt-4 bg-white/15 text-white">
-                  Wadah pengembangan bakat &amp; minat
-                </Badge>
-              </StaggerItem>
-              <StaggerItem>
-                <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-                  Ekstrakurikuler
-                </h1>
-              </StaggerItem>
-              <StaggerItem>
-                <p className="mt-4 max-w-xl text-base leading-relaxed text-white/90">
-                  Beragam kegiatan ekstrakurikuler untuk mengembangkan bakat, minat, dan karakter
-                  peserta didik di luar jam pelajaran.
-                </p>
-              </StaggerItem>
-              <StaggerItem>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Link href="/kontak">
-                    <Button
-                      size="lg"
-                      className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
-                    >
-                      Daftar &amp; Bergabung
-                    </Button>
-                  </Link>
-                  <Link href="/ppdb">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="border-white/60 bg-transparent text-white hover:bg-white/10"
-                    >
-                      Info PPDB
-                    </Button>
-                  </Link>
-                </div>
-              </StaggerItem>
-              <StaggerItem>
+        <img
+          src="/landing/playful/play-blob-1.svg"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-28 -right-20 h-80 w-80 opacity-50"
+        />
+        <img
+          src="/landing/playful/play-spark.svg"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute right-10 top-12 h-10 w-10 opacity-80"
+        />
+        <img
+          src="/landing/playful/play-grid.svg"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-10 left-8 h-24 w-24 opacity-[0.12]"
+        />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
+          <FadeInUp>
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--accent-indigo-text)]/30 bg-[var(--accent-indigo-text)]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--accent-indigo-text)]">
+                <img
+                  src="/landing/playful/play-star.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5"
+                />
+                Wadah pengembangan bakat &amp; minat
+              </span>
+              <h1 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
+                Ekstrakurikuler
+              </h1>
+              <p className="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
+                Beragam kegiatan ekstrakurikuler untuk mengembangkan bakat, minat, dan karakter
+                peserta didik di luar jam pelajaran.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link href="/kontak">
+                  <Button
+                    size="lg"
+                    style={{ backgroundImage: "var(--gradient-hero)" }}
+                    className="rounded-full text-white shadow-[var(--shadow-soft)] transition-all duration-300 hover:shadow-[var(--shadow-lift)]"
+                  >
+                    Daftar &amp; Bergabung
+                  </Button>
+                </Link>
+                <Link href="/ppdb">
+                  <Button size="lg" variant="outline" className="rounded-full">
+                    Info PPDB
+                  </Button>
+                </Link>
+              </div>
+              {items.length > 0 ? (
                 <div className="mt-10 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+                  <span className="rounded-full border border-border bg-card/70 px-3 py-1.5 text-sm font-medium text-foreground backdrop-blur">
                     {items.length} Ekskul Aktif
                   </span>
                   {pembinaCount > 0 ? (
-                    <span className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+                    <span className="rounded-full border border-border bg-card/70 px-3 py-1.5 text-sm font-medium text-foreground backdrop-blur">
                       {pembinaCount} Pembina
                     </span>
                   ) : null}
                   {weekendItems.length > 0 ? (
-                    <span className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-medium">
+                    <span className="rounded-full border border-border bg-card/70 px-3 py-1.5 text-sm font-medium text-foreground backdrop-blur">
                       {weekendItems.length} Ekskul Akhir Pekan
                     </span>
                   ) : null}
                 </div>
-              </StaggerItem>
-            </StaggerContainer>
-          </div>
-          <FadeInUp className="relative">
-            <img
-              src="/landing/landing-eks-hero.svg"
-              alt="Ilustrasi ekstrakurikuler: olahraga, seni, dan kegiatan kepemimpinan"
-              className="mx-auto w-full max-w-sm drop-shadow-2xl lg:max-w-md"
-              loading="eager"
-            />
+              ) : null}
+            </div>
+          </FadeInUp>
+          <FadeInUp delay={0.15}>
+            <div className="relative">
+              <img
+                src="/landing/playful/play-extracurricular.svg"
+                alt="Ilustrasi ekstrakurikuler: olahraga, seni, dan kegiatan kepemimpinan"
+                role="img"
+                className="mx-auto w-full max-w-md"
+                loading="eager"
+              />
+              <img
+                src="/landing/playful/play-star.svg"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -left-2 top-8 h-8 w-8 opacity-80"
+              />
+              <img
+                src="/landing/playful/play-dots.svg"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-4 right-2 h-20 w-20 opacity-40"
+              />
+            </div>
           </FadeInUp>
         </div>
       </section>
@@ -215,41 +245,53 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
       {items.length > 0 ? (
         <section
           id="ekstrakurikuler"
-          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:py-20"
+          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 md:py-20"
         >
-          <FadeInUp>
-            <Badge variant="primary">Jadwal Latihan</Badge>
-            <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
-              Pilih kegiatanmu
-            </h2>
-            <p className="mt-2 max-w-2xl text-base text-muted-foreground">
+          <FadeInUp className="mx-auto max-w-2xl text-center">
+            <span
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide text-white"
+              style={{ backgroundImage: "var(--gradient-pink)" }}
+            >
+              <img
+                src="/landing/playful/play-spark.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-3.5 w-3.5"
+              />
+              Jadwal Latihan
+            </span>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">Pilih kegiatanmu</h2>
+            <p className="mt-4 text-base text-muted-foreground">
               Semua kegiatan dibimbing oleh pembina berpengalaman dan terbuka untuk setiap peserta
               didik.
             </p>
           </FadeInUp>
 
           <div className="mt-12 space-y-12">
-            {groups.map((group) => {
+            {groups.map((group, gi) => {
               if (group.list.length === 0) return null;
               const GroupIcon = group.icon;
               return (
                 <div key={group.title}>
                   <FadeInUp className="flex flex-wrap items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-100 text-primary-800">
+                    <span
+                      className="flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-[var(--shadow-soft)]"
+                      style={{ backgroundImage: CARD_GRADIENTS[gi % CARD_GRADIENTS.length] }}
+                    >
                       <GroupIcon className="h-5 w-5" aria-hidden="true" />
                     </span>
                     <div>
                       <h3 className="text-xl font-bold text-foreground">{group.title}</h3>
                       <p className="text-sm text-muted-foreground">{group.desc}</p>
                     </div>
-                    <Badge variant="neutral" className="ml-auto">
+                    <span className="ml-auto rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
                       {group.list.length} kegiatan
-                    </Badge>
+                    </span>
                   </FadeInUp>
                   <StaggerContainer className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                    {group.list.map((e) => (
+                    {group.list.map((e, ci) => (
                       <StaggerItem key={e.id} className="h-full">
-                        <EkskulCard item={e} />
+                        <EkskulCard item={e} index={ci} />
                       </StaggerItem>
                     ))}
                   </StaggerContainer>
@@ -259,11 +301,14 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
           </div>
         </section>
       ) : (
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+        <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
           <FadeInUp>
-            <Card className="border-dashed">
+            <Card className="rounded-3xl border-dashed shadow-[var(--shadow-soft)]">
               <CardContent className="flex flex-col items-center gap-2 p-10 text-center">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-primary-800">
+                <span
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl text-white"
+                  style={{ backgroundImage: "var(--gradient-pink)" }}
+                >
                   <IconBook className="h-7 w-7" aria-hidden="true" />
                 </span>
                 <p className="text-base font-semibold text-foreground">Data sedang disiapkan</p>
@@ -279,106 +324,169 @@ export default async function EkstrakurikulerPage(): Promise<JSX.Element> {
 
       {/* Kenapa ikut ekskul */}
       {BENEFIT_ITEMS.length > 0 ? (
-        <section
-          id="manfaat"
-          className="scroll-mt-20 border-t border-border bg-card py-16 sm:py-20"
-        >
-          <FadeInUp className="mx-auto max-w-6xl px-4">
-            <div className="text-center">
-              <Badge variant="primary">Manfaat</Badge>
-              <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
+        <section id="manfaat" className="scroll-mt-20 bg-[var(--surface-soft-2)] py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <FadeInUp className="mx-auto max-w-2xl text-center">
+              <span
+                className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide text-white"
+                style={{ backgroundImage: "var(--gradient-indigo)" }}
+              >
+                <img
+                  src="/landing/playful/play-spark.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-3.5 w-3.5"
+                />
+                Manfaat
+              </span>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
                 Lebih dari sekadar kegiatan
               </h2>
-            </div>
+              <p className="mt-4 text-base text-muted-foreground">
+                Kegiatan di luar kelas ini menjadi ruang bertumbuh: membentuk karakter, mengasah
+                bakat, dan meraih prestasi.
+              </p>
+            </FadeInUp>
             <StaggerContainer className="mt-10 grid gap-5 sm:grid-cols-3">
-              {BENEFIT_ITEMS.map((b) => {
+              {BENEFIT_ITEMS.map((b, i) => {
                 const IconComp = b.icon;
                 return (
                   <StaggerItem key={b.title} className="h-full">
-                    <div className="h-full rounded-2xl border border-border bg-background p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary hover:shadow-xl">
-                      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-100 text-primary-800">
-                        <IconComp className="h-7 w-7" aria-hidden="true" />
-                      </span>
-                      <h3 className="mt-4 text-lg font-bold text-foreground">{b.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{b.desc}</p>
-                    </div>
+                    <Card className="group relative h-full overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-x-0 top-0 h-1.5"
+                        style={{ backgroundImage: CARD_GRADIENTS[i % CARD_GRADIENTS.length] }}
+                      />
+                      <CardContent className="flex h-full flex-col items-center p-6 text-center">
+                        <span
+                          className="flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-[var(--shadow-soft)]"
+                          style={{ backgroundImage: CARD_GRADIENTS[i % CARD_GRADIENTS.length] }}
+                        >
+                          <IconComp className="h-7 w-7" aria-hidden="true" />
+                        </span>
+                        <h3 className="mt-4 text-lg font-bold text-foreground">{b.title}</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {b.desc}
+                        </p>
+                      </CardContent>
+                    </Card>
                   </StaggerItem>
                 );
               })}
             </StaggerContainer>
-          </FadeInUp>
+          </div>
         </section>
       ) : null}
 
       {/* CTA */}
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
-        <FadeInUp className="relative overflow-hidden rounded-3xl bg-brand-primary text-white">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-accent opacity-30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-10 h-56 w-56 rounded-full bg-brand-secondary opacity-40 blur-3xl" />
-          <div className="relative grid gap-8 p-8 sm:p-12 lg:grid-cols-[1.4fr_1fr] lg:items-center">
-            <div>
-              <Badge variant="primary" className="bg-white/15 text-white">
-                Bergabung
-              </Badge>
-              <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Temukan minatmu di sini</h2>
-              <p className="mt-3 max-w-xl text-white/90">
-                Hubungi sekolah untuk info pendaftaran ekskul dan kuota setiap kegiatan, atau
-                langsung daftar melalui portal PPDB.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/kontak">
-                  <Button
-                    size="lg"
-                    className="bg-card text-brand-primary hover:bg-muted dark:bg-white/15 dark:text-white dark:hover:bg-white/25"
-                  >
-                    Hubungi Kami
-                  </Button>
-                </Link>
-                <Link href="/ppdb">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white/60 bg-transparent text-white hover:bg-white/10"
-                  >
-                    Daftar PPDB
-                  </Button>
-                </Link>
+      <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
+        <FadeInUp>
+          <div
+            className="relative overflow-hidden rounded-3xl text-white shadow-[var(--shadow-lift)]"
+            style={{ backgroundImage: "var(--gradient-hero)" }}
+          >
+            <img
+              src="/landing/playful/play-blob-2.svg"
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 opacity-40"
+            />
+            <img
+              src="/landing/playful/play-blob-4.svg"
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-20 -left-12 h-64 w-64 opacity-30"
+            />
+            <img
+              src="/landing/playful/play-star.svg"
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none absolute right-10 top-8 h-8 w-8 opacity-70"
+            />
+            <div className="relative grid gap-8 p-8 sm:p-12 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+              <div>
+                <Badge variant="primary" className="bg-white/15 text-white">
+                  Bergabung
+                </Badge>
+                <h2 className="mt-3 text-3xl font-bold sm:text-4xl">Temukan minatmu di sini</h2>
+                <p className="mt-3 max-w-xl text-white/90">
+                  Hubungi sekolah untuk info pendaftaran ekskul dan kuota setiap kegiatan, atau
+                  langsung daftar melalui portal PPDB.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link href="/kontak">
+                    <Button
+                      size="lg"
+                      className="rounded-full bg-white text-brand-primary hover:bg-white/90"
+                    >
+                      Hubungi Kami
+                    </Button>
+                  </Link>
+                  <Link href="/ppdb">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="rounded-full border-white/60 bg-transparent text-white hover:bg-white/10"
+                    >
+                      Daftar PPDB
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div className="hidden lg:block">
-              <img
-                src="/landing/landing-eks-hero.svg"
-                alt=""
-                aria-hidden="true"
-                className="mx-auto w-full max-w-sm rounded-2xl drop-shadow-2xl"
-                loading="lazy"
-              />
+              <div className="hidden lg:block">
+                <img
+                  src="/landing/playful/play-extracurricular.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="mx-auto w-full max-w-sm"
+                  loading="lazy"
+                />
+              </div>
             </div>
           </div>
         </FadeInUp>
-      </div>
+      </section>
     </div>
   );
 }
 
-function EkskulCard({ item }: { item: ExtracurricularPageItem }): JSX.Element {
+function EkskulCard({
+  item,
+  index
+}: {
+  item: ExtracurricularPageItem;
+  index: number;
+}): JSX.Element {
   const IconComp = iconFor(item.name);
   const schedule = parseSchedule(item.schedule);
+  const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
 
   return (
-    <Card className="group flex h-full flex-col border-border transition-all duration-300 hover:-translate-y-1 hover:border-brand-primary hover:shadow-xl">
-      <CardContent className="flex h-full flex-col p-6">
+    <Card className="group relative flex h-full flex-col overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-1.5"
+        style={{ backgroundImage: gradient }}
+      />
+      <CardContent className="relative flex h-full flex-col p-6">
         <div className="flex items-center justify-between gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-800 transition-transform duration-300 group-hover:scale-110">
+          <span
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[var(--shadow-soft)] transition-transform duration-300 group-hover:scale-105"
+            style={{ backgroundImage: gradient }}
+          >
             <IconComp className="h-6 w-6" aria-hidden="true" />
           </span>
           {schedule.length > 0 ? (
-            <Badge variant="info" className="max-w-[55%] whitespace-normal text-left leading-snug">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-[var(--surface-soft-2)] px-3 py-1 text-xs font-bold text-[var(--accent-teal-text)]">
+              <IconCalendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {schedule[0].day}
               {schedule.length > 1 ? ` +${schedule.length - 1}` : ""}
-            </Badge>
+            </span>
           ) : (
-            <Badge variant="neutral">Jadwal menyusul</Badge>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs font-bold text-muted-foreground">
+              Jadwal menyusul
+            </span>
           )}
         </div>
         <h3 className="mt-4 text-lg font-bold text-foreground">{item.name}</h3>
@@ -396,7 +504,7 @@ function EkskulCard({ item }: { item: ExtracurricularPageItem }): JSX.Element {
                   className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground"
                 >
                   <IconCalendar
-                    className="h-3.5 w-3.5 shrink-0 text-brand-primary"
+                    className="h-3.5 w-3.5 shrink-0 text-[var(--playful-indigo)]"
                     aria-hidden="true"
                   />
                   {s.day}
@@ -406,13 +514,19 @@ function EkskulCard({ item }: { item: ExtracurricularPageItem }): JSX.Element {
             </div>
           ) : (
             <p className="flex items-center gap-2 text-muted-foreground">
-              <IconCalendar className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
+              <IconCalendar
+                className="h-4 w-4 shrink-0 text-[var(--playful-indigo)]"
+                aria-hidden="true"
+              />
               Jadwal menyusul
             </p>
           )}
           {item.coachName ? (
             <p className="flex items-center gap-2 text-muted-foreground">
-              <IconUser className="h-4 w-4 shrink-0 text-brand-primary" aria-hidden="true" />
+              <IconUser
+                className="h-4 w-4 shrink-0 text-[var(--playful-indigo)]"
+                aria-hidden="true"
+              />
               {item.coachName}
             </p>
           ) : null}

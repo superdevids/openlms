@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+  <defs>
+    <pattern id="playGridPat" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M30 0H0v30" fill="none" stroke="#6366f1" stroke-opacity="0.12" stroke-width="1.5"/>
+    </pattern>
+  </defs>
+  <rect width="120" height="120" fill="url(#playGridPat)"/>
+  <circle cx="16" cy="16" r="4" fill="#fb7185" opacity="0.5"/>
+  <circle cx="104" cy="104" r="4" fill="#fbbf24" opacity="0.5"/>
+  <circle cx="104" cy="16" r="3" fill="#34d399" opacity="0.5"/>
+</svg>

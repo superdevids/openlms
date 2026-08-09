@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="pspark-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="pspark-g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <path d="M22 4 L26 18 L40 22 L26 26 L22 40 L18 26 L4 22 L18 18 Z" fill="url(#pspark-g)"/>
+  <path d="M40 32 L41.5 37.5 L47 39 L41.5 40.5 L40 46 L38.5 40.5 L33 39 L38.5 37.5 Z" fill="url(#pspark-g2)"/>
+  <circle cx="10" cy="38" r="3.4" fill="#fbbf24"/>
+</svg>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi fasilitas sekolah">
+  <defs>
+    <linearGradient id="pfa-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef2ff"/>
+      <stop offset="1" stop-color="#f6f7fc"/>
+    </linearGradient>
+    <linearGradient id="pfa-roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="pfa-wifi" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#pfa-bg)"/>
+  <circle cx="404" cy="64" r="26" fill="#fbbf24"/>
+  <rect x="110" y="118" width="260" height="196" rx="16" fill="#ffffff" stroke="#e5e7eb" stroke-width="3"/>
+  <path d="M82 130 L240 52 L398 130 Z" fill="url(#pfa-roof)"/>
+  <rect x="196" y="112" width="24" height="18" rx="5" fill="#fb923c"/>
+  <rect x="142" y="160" width="52" height="52" rx="8" fill="#c7d2fe"/>
+  <rect x="142" y="228" width="52" height="52" rx="8" fill="#c7d2fe"/>
+  <rect x="286" y="160" width="52" height="52" rx="8" fill="#c7d2fe"/>
+  <rect x="286" y="228" width="52" height="52" rx="8" fill="#c7d2fe"/>
+  <rect x="210" y="178" width="60" height="102" rx="8" fill="#4f46e5"/>
+  <rect x="222" y="238" width="36" height="42" rx="5" fill="#fbbf24"/>
+  <g transform="translate(96,72)">
+    <path d="M16 26 A26 26 0 0 1 68 26" stroke="url(#pfa-wifi)" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <path d="M6 14 A38 38 0 0 1 78 14" stroke="url(#pfa-wifi)" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <circle cx="42" cy="50" r="7" fill="#22d3ee"/>
+  </g>
+  <g transform="translate(360,250)">
+    <path d="M16 8 Q28 0 40 8 L40 52 L16 44 Z" fill="#ffffff" stroke="#8b5cf6" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M28 8 L28 44" stroke="#8b5cf6" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <circle cx="70" cy="322" r="6" fill="#34d399"/>
+  <circle cx="408" cy="330" r="6" fill="#fb7185"/>
+</svg>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi prestasi dan penghargaan">
+  <defs>
+    <linearGradient id="pac-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffbeb"/>
+      <stop offset="1" stop-color="#fdf2f8"/>
+    </linearGradient>
+    <linearGradient id="pac-trophy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#fb923c"/>
+    </linearGradient>
+    <linearGradient id="pac-medal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="pac-star" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#pac-bg)"/>
+  <circle cx="76" cy="72" r="22" fill="#fb7185"/>
+  <g transform="translate(150,70)">
+    <path d="M60 8 L110 24 L92 74 L28 74 L10 24 Z" fill="url(#pac-trophy)"/>
+    <rect x="28" y="16" width="64" height="12" rx="6" fill="#ffffff" opacity="0.55"/>
+    <path d="M28 74 Q28 106 60 110 Q92 106 92 74" fill="none" stroke="#f59e0b" stroke-width="9" stroke-linecap="round"/>
+    <rect x="46" y="108" width="28" height="26" rx="6" fill="#f59e0b"/>
+    <circle cx="28" cy="46" r="9" fill="#fbbf24"/>
+    <circle cx="92" cy="46" r="9" fill="#fbbf24"/>
+  </g>
+  <g transform="translate(312,74)">
+    <circle cx="54" cy="30" r="26" fill="url(#pac-medal)"/>
+    <path d="M34 42 L54 96 L74 42" fill="none" stroke="#14b8a6" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M54 14 L60 26 L74 28 L64 38 L66 52 L54 46 L42 52 L44 38 L34 28 L48 26 Z" fill="#ffffff"/>
+  </g>
+  <g transform="translate(196,240)">
+    <path d="M36 10 L45 28 L64 30 L50 44 L53 62 L36 54 L19 62 L22 44 L8 30 L27 28 Z" fill="url(#pac-star)"/>
+  </g>
+  <circle cx="102" cy="300" r="7" fill="#fbbf24"/>
+  <circle cx="392" cy="304" r="7" fill="#34d399"/>
+  <circle cx="240" cy="320" r="5" fill="#8b5cf6"/>
+</svg>

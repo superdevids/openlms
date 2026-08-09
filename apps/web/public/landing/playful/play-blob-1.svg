@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Blob organik biru">
+  <defs>
+    <linearGradient id="playBlob1g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#playBlob1g)" d="M200 24c58-14 122 30 130 88 8 58 14 136-36 174-50 38-128 20-166-26C90 204 96 110 140 60c22-28 58-40 60-36z"/>
+  <circle cx="128" cy="112" r="14" fill="#ffffff" opacity="0.35"/>
+  <circle cx="268" cy="252" r="20" fill="#ffffff" opacity="0.22"/>
+  <circle cx="214" cy="88" r="7" fill="#ffffff" opacity="0.5"/>
+</svg>

@@ -197,3 +197,110 @@
     @apply flex min-h-11 min-w-11 items-center justify-center;
   }
 }
+
+/* ===== Landing v2 tokens (docs/landing-design-v2.md §H) =====
+ * Token playful × profesional × creative untuk 10 halaman landing.
+ * Blok ini TIDAK mengubah token existing di atas; nilai dipakai via
+ * var() di komponen halaman dan diekspos ke utilitas Tailwind di
+ * `@theme inline` bawah ini. Dark mode mengikuti class `.dark`. */
+:root {
+  --surface-soft: #f6f7fc;
+  --surface-soft-2: #eef0f8;
+  --surface-card-soft: #ffffff;
+
+  --gradient-hero: linear-gradient(135deg, #4f46e5 0%, #6366f1 42%, #22d3ee 100%);
+  --gradient-hero-soft: linear-gradient(160deg, #eef2ff, #e0f2fe 50%, #fef3c7);
+  --gradient-amber: linear-gradient(135deg, #f59e0b, #f97316);
+  --gradient-pink: linear-gradient(135deg, #ec4899, #fb7185);
+  --gradient-teal: linear-gradient(135deg, #10b981, #06b6d4);
+  --gradient-indigo: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --gradient-text: linear-gradient(135deg, #4f46e5, #06b6d4);
+
+  --playful-indigo: #6366f1;
+  --playful-violet: #8b5cf6;
+  --playful-cyan: #22d3ee;
+  --playful-teal: #14b8a6;
+  --playful-emerald: #34d399;
+  --playful-amber: #f59e0b;
+  --playful-orange: #fb923c;
+  --playful-rose: #fb7185;
+  --playful-pink: #ec4899;
+
+  --accent-indigo-text: #4338ca;
+  --accent-amber-text: #92400e;
+  --accent-pink-text: #be185d;
+  --accent-teal-text: #0f766e;
+
+  --shadow-soft: 0 10px 30px -10px rgb(99 102 241 / 0.15);
+  --shadow-lift: 0 18px 40px -12px rgb(99 102 241 / 0.25);
+  --shadow-blob: 0 12px 40px rgb(34 211 238 / 0.18);
+}
+
+.dark {
+  --surface-soft: #101218;
+  --surface-soft-2: #181b24;
+  --surface-card-soft: #161922;
+
+  --gradient-hero: linear-gradient(135deg, #4f46e5 0%, #4338ca 60%, #0e7490 100%);
+  --gradient-hero-soft: linear-gradient(160deg, #1e1b4b, #083344 50%, #451a03);
+  --gradient-text: linear-gradient(135deg, #a5b4fc, #22d3ee);
+
+  --playful-indigo: #818cf8;
+  --playful-violet: #a78bfa;
+  --playful-teal: #2dd4bf;
+  --playful-pink: #f9a8d4;
+
+  --accent-indigo-text: #a5b4fc;
+  --accent-amber-text: #fcd34d;
+  --accent-pink-text: #f9a8d4;
+  --accent-teal-text: #2dd4bf;
+}
+
+/* Ekspos token landing v2 ke utilitas Tailwind (bg-surface-soft,
+ * bg-playful-indigo, text-accent-teal-text, shadow-soft, dst.). */
+@theme inline {
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-soft-2: var(--surface-soft-2);
+  --color-surface-card-soft: var(--surface-card-soft);
+  --color-playful-indigo: var(--playful-indigo);
+  --color-playful-violet: var(--playful-violet);
+  --color-playful-cyan: var(--playful-cyan);
+  --color-playful-teal: var(--playful-teal);
+  --color-playful-emerald: var(--playful-emerald);
+  --color-playful-amber: var(--playful-amber);
+  --color-playful-orange: var(--playful-orange);
+  --color-playful-rose: var(--playful-rose);
+  --color-playful-pink: var(--playful-pink);
+  --color-accent-indigo-text: var(--accent-indigo-text);
+  --color-accent-amber-text: var(--accent-amber-text);
+  --color-accent-pink-text: var(--accent-pink-text);
+  --color-accent-teal-text: var(--accent-teal-text);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
+  --shadow-blob: var(--shadow-blob);
+}
+
+/* Utility opsional landing v2 (D.1/D.3) */
+@layer components {
+  .text-gradient-brand {
+    background-image: var(--gradient-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .card-play {
+    border-radius: 1.25rem;
+    border: 1px solid var(--border);
+    background-color: var(--card);
+    box-shadow: var(--shadow-soft);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .card-play:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lift);
+  }
+}

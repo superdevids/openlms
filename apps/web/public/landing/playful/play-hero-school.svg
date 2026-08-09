@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" role="img" aria-label="Ilustrasi gedung sekolah ceria">
+  <defs>
+    <linearGradient id="phs-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef2ff"/>
+      <stop offset="1" stop-color="#f6f7fc"/>
+    </linearGradient>
+    <linearGradient id="phs-roof" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="phs-wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eef0f8"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="360" fill="url(#phs-sky)"/>
+  <circle cx="408" cy="66" r="30" fill="#fbbf24"/>
+  <path d="M0 300 Q120 260 240 286 T480 276 V360 H0 Z" fill="#c7d2fe"/>
+  <path d="M0 330 Q140 296 260 318 T480 310 V360 H0 Z" fill="#a5b4fc"/>
+  <circle cx="66" cy="212" r="30" fill="#34d399"/>
+  <rect x="60" y="224" width="12" height="52" rx="4" fill="#92400e"/>
+  <circle cx="430" cy="204" r="22" fill="#22d3ee"/>
+  <rect x="425" y="214" width="10" height="44" rx="4" fill="#92400e"/>
+  <rect x="140" y="150" width="200" height="166" rx="14" fill="url(#phs-wall)" stroke="#e5e7eb" stroke-width="3"/>
+  <path d="M112 162 L240 92 L368 162 Z" fill="url(#phs-roof)"/>
+  <rect x="226" y="142" width="28" height="24" rx="6" fill="#fb923c"/>
+  <rect x="172" y="182" width="38" height="50" rx="8" fill="#6366f1"/>
+  <rect x="270" y="182" width="38" height="50" rx="8" fill="#6366f1"/>
+  <rect x="172" y="244" width="38" height="30" rx="6" fill="#c7d2fe"/>
+  <rect x="270" y="244" width="38" height="30" rx="6" fill="#c7d2fe"/>
+  <rect x="218" y="232" width="44" height="84" rx="8" fill="#4f46e5"/>
+  <rect x="228" y="278" width="24" height="38" rx="5" fill="#fbbf24"/>
+  <rect x="238" y="66" width="6" height="90" rx="3" fill="#9ca3af"/>
+  <path d="M244 68 L296 80 L244 92 Z" fill="#fb7185"/>
+  <circle cx="238" cy="60" r="7" fill="#fb7185"/>
+</svg>
