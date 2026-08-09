@@ -86,17 +86,17 @@
 
 ## Teknologi
 
-| Komponen           | Path                | Teknologi                                                                         |
-| ------------------ | ------------------- | --------------------------------------------------------------------------------- |
-| API                | `apps/api`          | NestJS 11, REST prefix `/api/v1`, Socket.IO namespace `/ws`, Prisma               |
-| Web                | `apps/web`          | Next.js App Router, Tailwind CSS v4, shadcn/ui, TanStack Query, Zustand           |
-| Database           | `packages/database` | Prisma + PostgreSQL (skema tunggal, single-school)                                |
-| UI kit             | `packages/ui`       | Komponen shared (shadcn/ui primitives)                                            |
-| Types              | `packages/types`    | Enum & tipe bersama (satu sumber kebenaran)                                       |
-| Orchestrasi        | root                | Turborepo, npm workspaces, Node.js ≥ 20                                           |
-| Antrean (opsional) | `apps/api`          | BullMQ via Redis (`REDIS_URL`); fallback in-process tanpa Redis                   |
-| Testing            | API / Web           | Jest + Supertest (API); Vitest + Testing Library (web); Playwright (E2E, roadmap) |
-| Reverse proxy      | `deploy/nginx.conf` | Nginx — rate limit, security headers, gzip, WebSocket                             |
+| Komponen           | Path                | Teknologi                                                                                                                                                       |
+| ------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API                | `apps/api`          | NestJS 11, REST prefix `/api/v1`, Socket.IO namespace `/ws`, Prisma                                                                                             |
+| Web                | `apps/web`          | Next.js App Router, Tailwind CSS v4, shadcn/ui, hook `useApi`/`useAsyncData` (client data fetching), React Context, localStorage/sessionStorage (offline queue) |
+| Database           | `packages/database` | Prisma + PostgreSQL (skema tunggal, single-school)                                                                                                              |
+| UI kit             | `packages/ui`       | Komponen shared (shadcn/ui primitives)                                                                                                                          |
+| Types              | `packages/types`    | Enum & tipe bersama (satu sumber kebenaran)                                                                                                                     |
+| Orchestrasi        | root                | Turborepo, npm workspaces, Node.js ≥ 20                                                                                                                         |
+| Antrean (opsional) | `apps/api`          | BullMQ via Redis (`REDIS_URL`); fallback in-process tanpa Redis                                                                                                 |
+| Testing            | API / Web           | Jest + Supertest (API); Vitest + Testing Library (web); Playwright (E2E, roadmap)                                                                               |
+| Reverse proxy      | `deploy/nginx.conf` | Nginx — rate limit, security headers, gzip, WebSocket                                                                                                           |
 
 ## Arsitektur
 
@@ -107,7 +107,8 @@
                         │  (superadmin) (ppdb) (landing) (auth)        │
                         │  (calonsiswa) (pembimbing) (penguji)         │
                         │  Server Components + Client Components       │
-                        │  TanStack Query · Zustand · IndexedDB queue  │
+                        │  useApi/useAsyncData · React Context ·       │
+                        │  localStorage/sessionStorage (offline queue) │
                         └───────┬───────────────────────┬──────────────┘
                                 │ HTTPS (REST /api/v1)  │ WSS (Socket.IO)
                                 │ (JWT httpOnly cookie) │ namespace /ws
@@ -457,7 +458,7 @@ Prioritas pengembangan (detail: [docs/prd/prd05.md](docs/prd/prd05.md) dan [docs
 - **Integritas data**: idempotensi pembayaran, payroll PAID transaksional, rollback rollover PPDB.
 - **Fitur bisnis**: e-Rapor dua-track Kurikulum Merdeka, ekspor Dapodik.
 - **Testing & kualitas**: kampanye 2.000+ test, coverage ≥ 80%, E2E Playwright, gate coverage di CI.
-- **Ops/infra**: Dockerfile aplikasi, backup/restore & drill, graceful shutdown.
+- **Ops/infra**: backup/restore & drill (RPO ≤ 24 jam / RTO ≤ 4 jam), observability lengkap (metrik, slow query, alerting).
 
 ## Lisensi
 

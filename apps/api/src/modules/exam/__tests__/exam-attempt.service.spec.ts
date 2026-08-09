@@ -49,13 +49,20 @@ describe("ExamAttemptService", () => {
       id: "att1",
       exam_session_id: "sess1",
       exam_package_id: "pkg1",
+      student_id: "s1",
       started_at: new Date(),
       status: AttemptStatus.IN_PROGRESS,
       exam_session: { exam: { duration_min: 60 } }
     };
 
+    // GURU (scope KELAS) hanya bisa akses attempt siswa di kelasnya — mock
+    // Enrollment ACTIVE agar "guru-1" dianggap mengajar kelas "s1".
+    const mockGuruTeachesS1 = () =>
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
+
     it("Idempotency-Key sama tidak membuat log duplikat (per soal)", async () => {
       mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
+      mockGuruTeachesS1();
       (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }]);
       (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([
         { idempotency_key: "key-1:q1" }
@@ -64,7 +71,7 @@ describe("ExamAttemptService", () => {
       const result = await service.saveAnswers(
         "att1",
         { answers: [{ question_id: "q1", answer: "B" }] },
-        { userId: "guru-1", roles: ["GURU"] },
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
         "key-1",
         "127.0.0.1"
       );
@@ -75,6 +82,7 @@ describe("ExamAttemptService", () => {
 
     it("batch baru menyimpan log append-only dengan key per soal", async () => {
       mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
+      mockGuruTeachesS1();
       (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }, { id: "q2" }]);
       (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([]);
       mockLogCreate.mockResolvedValue({ id: "log2", answer: "B" });
@@ -87,7 +95,7 @@ describe("ExamAttemptService", () => {
             { question_id: "q2", answer: "Jakarta" }
           ]
         },
-        { userId: "guru-1", roles: ["GURU"] },
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
         "key-2",
         "127.0.0.1"
       );
@@ -109,17 +117,34 @@ describe("ExamAttemptService", () => {
 
     it("menolak soal yang bukan milik paket attempt", async () => {
       mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
+      mockGuruTeachesS1();
       (prisma.question.findMany as jest.Mock).mockResolvedValue([{ id: "q1" }]);
 
       await expect(
         service.saveAnswers(
           "att1",
           { answers: [{ question_id: "qLain", answer: "X" }] },
-          { userId: "guru-1", roles: ["GURU"] },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
           "key-3",
           "127.0.0.1"
         )
       ).rejects.toThrow("tidak termasuk paket attempt ini");
+      expect(mockLogCreate).not.toHaveBeenCalled();
+    });
+
+    it("GURU tanpa keanggotaan kelas siswa → 403 (anti-IDOR lintas kelas)", async () => {
+      mockAttemptFindUnique.mockResolvedValue(inProgressAttempt);
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.saveAnswers(
+          "att1",
+          { answers: [{ question_id: "q1", answer: "B" }] },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
+          "key-4",
+          "127.0.0.1"
+        )
+      ).rejects.toThrow("di luar kelas yang diampu");
       expect(mockLogCreate).not.toHaveBeenCalled();
     });
   });
@@ -162,7 +187,11 @@ describe("ExamAttemptService", () => {
       (prisma.classSubject.findFirst as jest.Mock).mockResolvedValue({ id: "cs1" });
       mockGradeUpsert.mockResolvedValue({ id: "g1" });
 
-      const result = await service.submit("att1", { userId: "guru-1", roles: ["GURU"] });
+      const result = await service.submit("att1", {
+        userId: "guru-1",
+        roles: ["GURU"],
+        classIds: ["c1"]
+      });
       expect(result.score_auto).toBe(100);
       expect(result.status).toBe(AttemptStatus.SUBMITTED);
 
@@ -335,6 +364,8 @@ describe("ExamAttemptService", () => {
 
     it("menolak token yang sudah dipakai (sekali pakai)", async () => {
       (prisma.examSession.findUnique as jest.Mock).mockResolvedValue(mockSession());
+      // GURU harus mengajar kelas siswa "s2" agar lolos cek keanggotaan.
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
       (prisma.examAttempt.findFirst as jest.Mock)
         .mockResolvedValueOnce(null) // cek existing attempt (satu akun satu sesi)
         .mockResolvedValueOnce({ id: "attOld", token_used: hashToken(validPlain) }); // token sudah dipakai
@@ -343,7 +374,7 @@ describe("ExamAttemptService", () => {
         service.start(
           "sess1",
           { student_id: "s2", access_token: validPlain },
-          { userId: "guru-1", roles: ["GURU"] },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
           "10.0.0.2"
         )
       ).rejects.toThrow("sudah dipakai");
@@ -352,6 +383,7 @@ describe("ExamAttemptService", () => {
 
     it("menolak login ganda (satu akun satu sesi)", async () => {
       (prisma.examSession.findUnique as jest.Mock).mockResolvedValue(mockSession());
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
       (prisma.examAttempt.findFirst as jest.Mock).mockResolvedValueOnce({
         id: "attOld",
         student_id: "s1",
@@ -362,10 +394,25 @@ describe("ExamAttemptService", () => {
         service.start(
           "sess1",
           { student_id: "s1", access_token: validPlain },
-          { userId: "guru-1", roles: ["GURU"] },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
           "10.0.0.1"
         )
       ).rejects.toThrow("satu attempt per sesi");
+    });
+
+    it("GURU tidak mengajar kelas siswa → start ditolak (anti-IDOR lintas kelas)", async () => {
+      (prisma.examSession.findUnique as jest.Mock).mockResolvedValue(mockSession());
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.start(
+          "sess1",
+          { student_id: "s2", access_token: validPlain },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] },
+          "10.0.0.3"
+        )
+      ).rejects.toThrow("di luar kelas yang diampu");
+      expect(prisma.examAttempt.create).not.toHaveBeenCalled();
     });
 
     it("menolak token yang salah / bukan hash yang tersimpan", async () => {
@@ -379,6 +426,98 @@ describe("ExamAttemptService", () => {
           "10.0.0.1"
         )
       ).rejects.toThrow("Token sesi tidak valid");
+    });
+  });
+
+  describe("markExpired (M-EXAM-T6 proctor)", () => {
+    it("GURU yang mengajar kelas siswa boleh menandai EXPIRED", async () => {
+      (prisma.examAttempt.findUnique as jest.Mock).mockResolvedValue({
+        id: "att1",
+        student_id: "s1",
+        status: AttemptStatus.IN_PROGRESS
+      });
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
+      mockAttemptUpdate.mockResolvedValue({
+        id: "att1",
+        status: AttemptStatus.EXPIRED,
+        submitted_at: new Date()
+      });
+
+      const result = await service.markExpired("att1", {
+        userId: "guru-1",
+        roles: ["GURU"],
+        classIds: ["c1"]
+      });
+      expect(result.status).toBe(AttemptStatus.EXPIRED);
+      const updateArg = mockAttemptUpdate.mock.calls[0]?.[0] as {
+        data: { status: AttemptStatus };
+      };
+      expect(updateArg.data.status).toBe(AttemptStatus.EXPIRED);
+    });
+
+    it("GURU tanpa keanggotaan kelas → 403 (anti-IDOR lintas kelas)", async () => {
+      (prisma.examAttempt.findUnique as jest.Mock).mockResolvedValue({
+        id: "att1",
+        student_id: "s1",
+        status: AttemptStatus.IN_PROGRESS
+      });
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.markExpired("att1", { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] })
+      ).rejects.toThrow("di luar kelas yang diampu");
+      expect(mockAttemptUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("manualGrade (M-EXAM-T7)", () => {
+    const submittedAttempt = {
+      id: "att1",
+      student_id: "s1",
+      status: AttemptStatus.SUBMITTED,
+      score_auto: 0,
+      score_manual: null,
+      device_info: null,
+      exam_session: { id: "sess1", exam: { id: "e1", title: "UAS", subject_id: "sub1" } },
+      exam_package: {
+        id: "pkg1",
+        total_score: 100,
+        questions: [{ id: "q1", type: QuestionType.ESAI, correct_answer: null }]
+      }
+    };
+
+    it("GURU yang mengajar kelas siswa boleh mengisi nilai esai", async () => {
+      mockAttemptFindUnique.mockResolvedValue(submittedAttempt);
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
+      (prisma.examAnswerLog.findMany as jest.Mock).mockResolvedValue([]);
+      mockAttemptUpdate.mockResolvedValue({
+        id: "att1",
+        status: AttemptStatus.SUBMITTED,
+        score_manual: 80
+      });
+      (prisma.classSubject.findFirst as jest.Mock).mockResolvedValue({ id: "cs1" });
+      mockGradeUpsert.mockResolvedValue({ id: "g1" });
+
+      const result = await service.manualGrade(
+        "att1",
+        { score_manual: 80, graded_by: "guru-1" },
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
+      );
+      expect(result.score_manual).toBe(80);
+    });
+
+    it("GURU tanpa keanggotaan kelas → 403 (anti-IDOR lintas kelas)", async () => {
+      mockAttemptFindUnique.mockResolvedValue(submittedAttempt);
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.manualGrade(
+          "att1",
+          { score_manual: 80, graded_by: "guru-1" },
+          { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
+        )
+      ).rejects.toThrow("di luar kelas yang diampu");
+      expect(mockAttemptUpdate).not.toHaveBeenCalled();
     });
   });
 });

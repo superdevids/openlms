@@ -718,7 +718,7 @@ Tambahan GIN index untuk `tags` (Question) dan `target_role` (Announcement) bila
 | Kategori           | Tabel                                                              | RLS                                                                                           |
 | ------------------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | Profil & identitas | SchoolProfile, User                                                | Policy khusus (User: diri sendiri / minimal)                                                  |
-| Standar            | Semua tabel (tanpa `school_id`)                                    | Policy berbasis role/scope (`user_roles`)                                                     |
+| Standar            | Semua tabel (tanpa `school_id`)                                    | Policy berbasis role/scope (`user_role`)                                                      |
 | Sensitif           | counseling_note, ppdb_applicant, parental_consent, data_export_log | Policy standar + **field/role check tambahan**                                                |
 | Mapping            | user_role                                                          | Policy berdasarkan `app.user_id` sendiri                                                      |
 | PPDB publik        | ppdb_applicant (saat DRAFT/SUBMITTED)                              | `@Public` API — RLS tetap menolak akses lintas; pendaftar akses via token undangan/ID rahasia |
@@ -737,24 +737,26 @@ SELECT set_config('app.user_id', :userId, true);   -- scope transaksi
 
 ```sql
 -- (1) RLS opsional berbasis role/scope — mis. assignment: role pengajar/admin
+-- Tabel role aktual: "user_role" (schema @@map). Helper app.current_user_id()
+-- mengembalikan text (PK user_* bertipe String/cuid) — jangan pakai ::uuid.
 CREATE POLICY assignment_role_scope ON assignment
   USING (EXISTS (
-    SELECT 1 FROM public.user_roles ur
-    WHERE ur.user_id = current_setting('app.user_id')::uuid
+    SELECT 1 FROM "user_role" ur
+    WHERE ur.user_id = app.current_user_id()
       AND ur.status = 'ACTIVE'
       AND ur.role IN ('GURU','OPERATOR','WAKEPSEK','KEPSEK','SUPERADMIN')));
 
 -- (2) Tabel sensitif BK — role check BK/WAKEPSEK/KEPSEK
 CREATE POLICY counseling_limited_roles ON counseling_note
   USING (EXISTS (
-    SELECT 1 FROM public.user_roles ur
-    WHERE ur.user_id = current_setting('app.user_id')::uuid
+    SELECT 1 FROM "user_role" ur
+    WHERE ur.user_id = app.current_user_id()
       AND ur.status = 'ACTIVE'
       AND ur.role IN ('BK','WAKEPSEK','KEPSEK')));
 
 -- (3) User — hanya diri sendiri
 CREATE POLICY user_self_read ON "user"
-  USING (id = current_setting('app.user_id')::uuid);
+  USING (id = app.current_user_id());
 
 -- (4) Storage — lihat §8 02-technical-architecture.md (policy per bucket via path {module}/{entity_id}/{file})
 ```

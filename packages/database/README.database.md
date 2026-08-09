@@ -9,15 +9,15 @@ langsung kecuali `apps/api`.
 
 ## Struktur Folder
 
-| Path                   | Isi                                                                                               |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `prisma/schema.prisma` | Skema Prisma (~83 entitas: akademik, LMS, keuangan, payroll, aset, RBAC, branding, landing, dsb.) |
-| `prisma/migrations/`   | Migrasi database (6 batch)                                                                        |
-| `prisma/seed.ts`       | Seed dev idempotent (admin, role, permission, prodi, dsb.)                                        |
-| `prisma/rls/`          | Skrip RLS PostgreSQL **opsional** (defense-in-depth)                                              |
-| `prisma/seed-data/`    | Data seed (permission, kurikulum, dsb.)                                                           |
-| `prisma.config.ts`     | Konfigurasi Prisma (dotenv)                                                                       |
-| `src/index.ts`         | `PrismaClient` singleton (`globalThis.opensisPrisma`)                                             |
+| Path                   | Isi                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `prisma/schema.prisma` | Skema Prisma (**90 model + 62 enum**: akademik, LMS, keuangan, payroll, aset, RBAC, branding, landing, dsb.) |
+| `prisma/migrations/`   | Migrasi database (6 batch)                                                                                   |
+| `prisma/seed.ts`       | Seed dev idempotent (admin, role, permission, prodi, dsb.)                                                   |
+| `prisma/rls/`          | Skrip RLS PostgreSQL **opsional** (defense-in-depth)                                                         |
+| `prisma/seed-data/`    | Data seed (permission, kurikulum, dsb.)                                                                      |
+| `prisma.config.ts`     | Konfigurasi Prisma (dotenv)                                                                                  |
+| `src/index.ts`         | `PrismaClient` singleton (`globalThis.opensisPrisma`)                                                        |
 
 ## Perintah
 

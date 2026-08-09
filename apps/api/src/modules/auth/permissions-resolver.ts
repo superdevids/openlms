@@ -20,11 +20,22 @@ const SCOPE_RANK: Record<PermissionScope, number> = {
   SEKOLAH: 3
 };
 
-/** Scope yang tertulis di akhir kode permission ("resource:action[:scope]"). */
+/** Scope yang tertulis di akhir kode permission ("resource:action[:scope]").
+ *  Case-insensitive; menerima suffix lowercase ("self"/"class"/"school") yang
+ *  dipakai di seed maupun uppercase ("SENDIRI"/"KELAS"/"SEKOLAH") untuk
+ *  kompatibilitas mundur. Kode tanpa suffix scope → null (cukup punya grant). */
 export function parseScopeFromCode(code: string): PermissionScope | null {
   const last = code.split(":").pop();
-  if (last === "SENDIRI" || last === "KELAS" || last === "SEKOLAH") {
-    return last;
+  if (!last) return null;
+  const scope = last.toUpperCase();
+  if (scope === "SELF" || scope === "SENDIRI") {
+    return PermissionScope.SENDIRI;
+  }
+  if (scope === "CLASS" || scope === "KELAS") {
+    return PermissionScope.KELAS;
+  }
+  if (scope === "SCHOOL" || scope === "SEKOLAH") {
+    return PermissionScope.SEKOLAH;
   }
   return null;
 }

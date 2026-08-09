@@ -3,6 +3,7 @@ import { Reflector } from "@nestjs/core";
 import { PermissionsGuard } from "../../common/permissions.guard";
 import {
   canAccess,
+  parseScopeFromCode,
   PermissionsResolver,
   PermissionGrant,
   PermissionOverrideGrant
@@ -66,6 +67,77 @@ describe("canAccess (logika permission + scope)", () => {
       { code: "class:read:class", scope: "KELAS", deny: true }
     ];
     expect(canAccess("class:read:class", denyGrants, overrides)).toBe(false);
+  });
+});
+
+describe("parseScopeFromCode (normalisasi scope — R-XX)", () => {
+  it("mengenali suffix lowercase yang dipakai seed", () => {
+    expect(parseScopeFromCode("grade:write:class")).toBe("KELAS");
+    expect(parseScopeFromCode("grade:write:school")).toBe("SEKOLAH");
+    expect(parseScopeFromCode("auth:me:self")).toBe("SENDIRI");
+  });
+
+  it("kompatibilitas mundur: suffix uppercase tetap dikenali", () => {
+    expect(parseScopeFromCode("grade:write:CLASS")).toBe("KELAS");
+    expect(parseScopeFromCode("grade:write:SCHOOL")).toBe("SEKOLAH");
+    expect(parseScopeFromCode("grade:write:SENDIRI")).toBe("SENDIRI");
+    expect(parseScopeFromCode("grade:write:SELF")).toBe("SENDIRI");
+  });
+
+  it("kode tanpa suffix scope → null", () => {
+    expect(parseScopeFromCode("announcement:read")).toBeNull();
+    expect(parseScopeFromCode("grade:write")).toBeNull();
+    expect(parseScopeFromCode("auth:login")).toBeNull();
+  });
+});
+
+describe("canAccess dengan scope lowercase (enforcement KELAS vs SEKOLAH)", () => {
+  const overrides: PermissionOverrideGrant[] = [];
+
+  it("grant scope KELAS memenuhi permintaan :class", () => {
+    const grants: PermissionGrant[] = [{ code: "grade:write:class", scope: "KELAS", deny: false }];
+    expect(canAccess("grade:write:class", grants, overrides)).toBe(true);
+  });
+
+  it("grant scope KELAS TIDAK memenuhi permintaan :school (scope rank)", () => {
+    const grants: PermissionGrant[] = [{ code: "grade:write:school", scope: "KELAS", deny: false }];
+    expect(canAccess("grade:write:school", grants, overrides)).toBe(false);
+  });
+
+  it("grant scope SEKOLAH memenuhi permintaan :school", () => {
+    const grants: PermissionGrant[] = [
+      { code: "grade:write:school", scope: "SEKOLAH", deny: false }
+    ];
+    expect(canAccess("grade:write:school", grants, overrides)).toBe(true);
+  });
+
+  it("grant scope SEKOLAH juga memenuhi permintaan :class (hierarki)", () => {
+    const grants: PermissionGrant[] = [
+      { code: "grade:write:class", scope: "SEKOLAH", deny: false }
+    ];
+    expect(canAccess("grade:write:class", grants, overrides)).toBe(true);
+  });
+
+  it("kode tanpa scope tetap cukup memiliki grant", () => {
+    const grants: PermissionGrant[] = [
+      { code: "announcement:read", scope: "SENDIRI", deny: false }
+    ];
+    expect(canAccess("announcement:read", grants, overrides)).toBe(true);
+  });
+
+  it("uppercase pada kode juga tetap bekerja", () => {
+    const grants: PermissionGrant[] = [
+      { code: "grade:write:SCHOOL", scope: "SEKOLAH", deny: false }
+    ];
+    expect(canAccess("grade:write:SCHOOL", grants, overrides)).toBe(true);
+  });
+
+  it("DENY override menang atas grant", () => {
+    const grants: PermissionGrant[] = [{ code: "grade:write:class", scope: "KELAS", deny: false }];
+    const denyOverrides: PermissionOverrideGrant[] = [
+      { code: "grade:write:class", effect: "DENY" }
+    ];
+    expect(canAccess("grade:write:class", grants, denyOverrides)).toBe(false);
   });
 });
 

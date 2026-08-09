@@ -6,7 +6,7 @@ import {
   NotFoundException
 } from "@nestjs/common";
 import { prisma } from "@opensis/database";
-import { AssessmentStatus, AttemptStatus, GradeType, QuestionType } from "@prisma/client";
+import { AssessmentStatus, AttemptStatus, GradeType, QuestionType, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { writeAudit } from "../lms/lms-audit";
 import {
@@ -30,7 +30,26 @@ type AttemptWithQuiz = Prisma.QuizAttemptGetPayload<{
 export interface AttemptActor {
   userId: string;
   roles: string[];
+  /** Kelas yang diampu/diikuti (ClassSubject.teacher_id + Enrollment) — dari requestContext. */
+  classIds?: string[];
+  /** Kelas di mana user menjadi wali kelas (Class.homeroom_teacher_id) — dari requestContext. */
+  homeroomClassId?: string | null;
 }
+
+/** Role staf yang berhak mengakses attempt siswa lain (penilai/pengawas).
+ *  Whitelist eksplisit — hardening anti-IDOR: role non-staf (CALON_SISWA,
+ *  WALI_MURID, dll.) tidak boleh bypass ownership meski lolos permission guard. */
+const STAFF_ATTEMPT_ROLES = new Set<Role>([
+  "SUPERADMIN",
+  "OPERATOR",
+  "WAKEPSEK",
+  "KEPSEK",
+  "AUDITOR",
+  "GURU",
+  "BK",
+  "KAPRODI",
+  "KEUANGAN"
+]);
 
 /**
  * QuizAttemptService — start, timer server-side, auto-submit saat waktu habis,
@@ -69,6 +88,15 @@ export class QuizAttemptService {
     }
     const studentId = staffScope ? (dto.student_id as string) : actor.userId;
 
+    // Anti-IDOR lintas kelas: role scope KELAS (GURU/BK) hanya boleh memulai
+    // attempt untuk siswa di kelas yang diampu/wali (hardening over-permission).
+    if (staffScope && studentId !== actor.userId) {
+      const allowed = await this.canAccessStudent(actor, studentId);
+      if (!allowed) {
+        throw new ForbiddenException("Akses ditolak: siswa di luar kelas yang diampu");
+      }
+    }
+
     const attempt = await prisma.$transaction(async (tx) => {
       // Status otomatis jadi ONGOING saat attempt pertama dibuat.
       await tx.quiz.updateMany({
@@ -105,7 +133,7 @@ export class QuizAttemptService {
         include: { quiz: { include: { questions: true, class_subject: true } } }
       });
       if (!attempt) throw new NotFoundException("Attempt tidak ditemukan");
-      this.assertOwnsAttempt(attempt, actor);
+      await this.assertOwnsAttempt(attempt, actor);
       if (attempt.status !== AttemptStatus.IN_PROGRESS) {
         throw new ConflictException("Attempt sudah selesai");
       }
@@ -132,7 +160,7 @@ export class QuizAttemptService {
         include: { quiz: { include: { questions: true, class_subject: true } } }
       });
       if (!attempt) throw new NotFoundException("Attempt tidak ditemukan");
-      this.assertOwnsAttempt(attempt, actor);
+      await this.assertOwnsAttempt(attempt, actor);
       if (attempt.status !== AttemptStatus.IN_PROGRESS) {
         throw new ConflictException("Attempt sudah selesai");
       }
@@ -199,17 +227,69 @@ export class QuizAttemptService {
       include: { quiz: { include: { questions: true } } }
     });
     if (!attempt) throw new NotFoundException("Attempt tidak ditemukan");
-    this.assertOwnsAttempt(attempt, actor);
+    await this.assertOwnsAttempt(attempt, actor);
     return this.buildAttemptResponse(attempt, attempt.quiz, new Date());
   }
 
-  /** Scope SENDIRI (SISWA): attempt harus milik actor; staff boleh semua. */
+  /** Scope SENDIRI (SISWA): attempt harus milik actor; staff boleh semua.
+   *  Hanya role dalam STAFF_ATTEMPT_ROLES (whitelist) yang dianggap staff —
+   *  role non-staf lain tidak boleh membaca attempt siswa lain (anti-IDOR). */
   private isStaffScope(actor: AttemptActor): boolean {
-    return !actor.roles.includes("SISWA");
+    return actor.roles.some((r) => STAFF_ATTEMPT_ROLES.has(r as Role));
   }
 
-  private assertOwnsAttempt(attempt: { student_id: string }, actor: AttemptActor): void {
-    if (this.isStaffScope(actor)) return;
+  /** Role whitelist yang scope-nya SEKOLAH — dapat mengakses attempt siswa mana pun. */
+  private hasSchoolScope(actor: AttemptActor): boolean {
+    return actor.roles.some((r) =>
+      ["SUPERADMIN", "OPERATOR", "WAKEPSEK", "KEPSEK", "AUDITOR", "KAPRODI", "KEUANGAN"].includes(r)
+    );
+  }
+
+  /**
+   * Otorisasi data-level attempt (hardening over-permission GURU lintas kelas):
+   * - scope SEKOLAH (SUPERADMIN/OPERATOR/WAKEPSEK/KEPSEK/AUDITOR/KAPRODI/KEUANGAN) → true.
+   * - GURU/BK (scope KELAS) → true hanya jika siswa punya Enrollment ACTIVE di
+   *   kelas yang diajar (classIds dari ClassSubject.teacher_id) ATAU di kelas
+   *   di mana aktor menjadi wali kelas (homeroomClassId dari Class.homeroom_teacher_id).
+   * - role lain → false. Satu query Enrollment; nol query untuk scope SEKOLAH.
+   */
+  private async canAccessStudent(actor: AttemptActor, studentId: string): Promise<boolean> {
+    if (this.hasSchoolScope(actor)) return true;
+    if (actor.roles.some((r) => r === "GURU" || r === "BK")) {
+      const classIds = actor.classIds ?? [];
+      const homeroomClassId = actor.homeroomClassId ?? null;
+      if (classIds.length === 0 && !homeroomClassId) return false;
+      const enrollment = await prisma.enrollment.findFirst({
+        where: {
+          student_id: studentId,
+          status: "ACTIVE",
+          OR: [
+            { class_id: { in: classIds } },
+            ...(homeroomClassId ? [{ class_id: homeroomClassId }] : [])
+          ]
+        },
+        select: { id: true }
+      });
+      return enrollment !== null;
+    }
+    return false;
+  }
+
+  private async assertOwnsAttempt(
+    attempt: { student_id: string },
+    actor: AttemptActor
+  ): Promise<void> {
+    if (this.isStaffScope(actor)) {
+      // Staff boleh mengakses attempt miliknya sendiri; untuk attempt siswa lain
+      // wajib lolos otorisasi data-level (scope SEKOLAH atau kelas yang diampu).
+      if (attempt.student_id !== actor.userId) {
+        const allowed = await this.canAccessStudent(actor, attempt.student_id);
+        if (!allowed) {
+          throw new ForbiddenException("Akses ditolak: siswa di luar kelas yang diampu");
+        }
+      }
+      return;
+    }
     if (attempt.student_id !== actor.userId) {
       throw new ForbiddenException("Akses ditolak: attempt milik siswa lain");
     }

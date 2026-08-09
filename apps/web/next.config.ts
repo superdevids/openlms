@@ -18,7 +18,16 @@ const nextConfig: NextConfig = {
   // Security headers (F hardening): anti-clickjacking, nosniff, referrer,
   // permissions policy, dan CSP dasar. CSP mengizinkan inline style (branding
   // CSS vars) + data: image + ws/wss (realtime) seperti kebijakan API.
+  //
+  // 'unsafe-eval' HANYA untuk dev mode: React dev (Turbopack) membutuhkan
+  // eval() untuk sourcemaps & reconstruct callstack. Production tetap ketat
+  // tanpa 'unsafe-eval' (React tidak pernah memakai eval di production).
   async headers() {
+    const scriptSrc =
+      process.env.NODE_ENV === "production"
+        ? "'self' 'unsafe-inline'"
+        : "'self' 'unsafe-inline' 'unsafe-eval'";
+
     return [
       {
         source: "/(.*)",
@@ -29,8 +38,7 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           {
             key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:"
+            value: `default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src ${scriptSrc}; connect-src 'self' ws: wss:`
           }
         ]
       }

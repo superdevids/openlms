@@ -14,6 +14,7 @@ jest.mock("@opensis/database", () => ({
     examPackage: { findMany: jest.fn() },
     question: { findMany: jest.fn() },
     exam: { updateMany: jest.fn() },
+    enrollment: { findFirst: jest.fn() },
     grade: { upsert: jest.fn() },
     $transaction: jest.fn()
   }
@@ -118,8 +119,10 @@ describe("ExamAttemptService — anti-IDOR", () => {
     );
   });
 
-  it("start(): staff (GURU, exam:attempt:school) boleh memakai dto.student_id", async () => {
+  it("start(): staff (GURU) yang mengajar kelas siswa boleh memakai dto.student_id", async () => {
     db.examSession.findUnique.mockResolvedValue(sessionRow());
+    // GURU mengajar kelas target → Enrollment ACTIVE ketemu (hardening kelas).
+    (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
     const tx = txMock({
       examAttempt: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -135,7 +138,7 @@ describe("ExamAttemptService — anti-IDOR", () => {
     await service.start(
       "s1",
       { student_id: "siswa-target", access_token: TOKEN },
-      { userId: "guru-1", roles: ["GURU"] }
+      { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
     );
 
     const createCall = tx.examAttempt.create as jest.Mock;
@@ -144,6 +147,19 @@ describe("ExamAttemptService — anti-IDOR", () => {
         data: expect.objectContaining({ student_id: "siswa-target" })
       })
     );
+  });
+
+  it("start(): GURU tanpa keanggotaan kelas siswa -> ForbiddenException", async () => {
+    db.examSession.findUnique.mockResolvedValue(sessionRow());
+    (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      service.start(
+        "s1",
+        { student_id: "siswa-target", access_token: TOKEN },
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
+      )
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it("start(): staf tanpa student_id -> BadRequestException", async () => {

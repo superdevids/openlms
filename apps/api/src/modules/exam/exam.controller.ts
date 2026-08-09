@@ -59,7 +59,12 @@ export class ExamController {
     if (!user) {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
-    return { userId: user.id, roles: user.roles };
+    return {
+      userId: user.id,
+      roles: user.roles,
+      classIds: user.classIds,
+      homeroomClassId: user.homeroomClassId
+    };
   }
 
   private userId(user: AuthUser | undefined): string {
@@ -243,8 +248,12 @@ export class ExamController {
 
   @Post("attempts/:attemptId/grade")
   @RequirePermission("exam:grade-esai:class")
-  manualGrade(@Param("attemptId") attemptId: string, @Body() dto: GradeExamAttemptDto) {
-    return this.examAttemptService.manualGrade(attemptId, dto);
+  manualGrade(
+    @Param("attemptId") attemptId: string,
+    @Body() dto: GradeExamAttemptDto,
+    @CurrentUser() user: AuthUser | undefined
+  ) {
+    return this.examAttemptService.manualGrade(attemptId, dto, this.actor(user));
   }
 
   @Post("attempts/:attemptId/log")

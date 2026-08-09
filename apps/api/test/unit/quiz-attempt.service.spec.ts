@@ -9,6 +9,7 @@ jest.mock("@opensis/database", () => ({
   prisma: {
     quiz: { findUnique: jest.fn() },
     quizAttempt: { findUnique: jest.fn(), findMany: jest.fn() },
+    enrollment: { findFirst: jest.fn() },
     grade: { upsert: jest.fn() },
     $transaction: jest.fn()
   }
@@ -20,6 +21,7 @@ import { QuizAttemptService } from "../../src/modules/quiz/quiz-attempt.service"
 const db = prisma as unknown as {
   quiz: { findUnique: jest.Mock };
   quizAttempt: { findUnique: jest.Mock; findMany: jest.Mock };
+  enrollment: { findFirst: jest.Mock };
   $transaction: jest.Mock;
 };
 
@@ -78,8 +80,10 @@ describe("QuizAttemptService — anti-IDOR", () => {
     );
   });
 
-  it("start(): staff (GURU, quiz:attempt:school) boleh memakai dto.student_id", async () => {
+  it("start(): staff (GURU) yang mengajar kelas siswa boleh memakai dto.student_id", async () => {
     db.quiz.findUnique.mockResolvedValue(BASE_QUIZ);
+    // GURU mengajar kelas target → Enrollment ACTIVE ketemu (hardening kelas).
+    db.enrollment.findFirst.mockResolvedValue({ id: "e1" });
     const tx = txMock({
       quizAttempt: {
         create: jest.fn().mockResolvedValue({
@@ -95,7 +99,7 @@ describe("QuizAttemptService — anti-IDOR", () => {
     await service.start(
       "q1",
       { student_id: "siswa-target" },
-      { userId: "guru-1", roles: ["GURU"] }
+      { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
     );
 
     const createCall = tx.quizAttempt.create as jest.Mock;
@@ -104,6 +108,15 @@ describe("QuizAttemptService — anti-IDOR", () => {
         data: expect.objectContaining({ student_id: "siswa-target" })
       })
     );
+  });
+
+  it("start(): GURU tanpa keanggotaan kelas siswa -> ForbiddenException", async () => {
+    db.quiz.findUnique.mockResolvedValue(BASE_QUIZ);
+    db.enrollment.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.start("q1", { student_id: "siswa-target" }, { userId: "guru-1", roles: ["GURU"] })
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it("start(): staf tanpa student_id -> BadRequestException", async () => {
@@ -173,7 +186,8 @@ describe("QuizAttemptService — anti-IDOR", () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it("staff (GURU) boleh operasikan attempt siswa lain (ownership dilewati)", async () => {
+  it("GURU yang mengajar kelas siswa boleh operasikan attempt siswa lain", async () => {
+    db.enrollment.findFirst.mockResolvedValue({ id: "e1" });
     const tx = txMock({
       quizAttempt: {
         findUnique: jest.fn().mockResolvedValue({
@@ -193,8 +207,34 @@ describe("QuizAttemptService — anti-IDOR", () => {
       service.saveAnswer(
         "att-lain",
         { question_id: "qq1", answer: "A" },
-        { userId: "guru-1", roles: ["GURU"] }
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
       )
     ).resolves.toBeDefined();
+  });
+
+  it("GURU tanpa keanggotaan kelas siswa -> ForbiddenException (anti-IDOR lintas kelas)", async () => {
+    db.enrollment.findFirst.mockResolvedValue(null);
+    const tx = txMock({
+      quizAttempt: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "att-lain",
+          student_id: "siswa-lain",
+          status: AttemptStatus.IN_PROGRESS,
+          started_at: new Date(),
+          answers: {},
+          quiz: { questions: [], class_subject: null, duration_min: 600 }
+        }),
+        update: jest.fn().mockResolvedValue({ id: "att-lain" })
+      }
+    });
+    db.$transaction.mockImplementation((cb: (t: unknown) => Promise<unknown>) => cb(tx));
+
+    await expect(
+      service.saveAnswer(
+        "att-lain",
+        { question_id: "qq1", answer: "A" },
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
+      )
+    ).rejects.toThrow(ForbiddenException);
   });
 });

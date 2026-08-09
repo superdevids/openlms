@@ -3,15 +3,17 @@
 ## Fungsi Folder
 
 Paket bersama komponen UI berbasis **shadcn/ui** untuk semua workspace.
-Saat ini berisi utilitas classname (`cn`) sebagai fondasi; komponen primitives
-lengkap ada di `apps/web/src/components/ui/`.
+Berisi utilitas classname (`cn`) plus **seluruh primitives UI** (25 file di
+`src/components/`) yang diekspor via `@opensis/ui` — dipakai `apps/web` dan
+seluruh workspace.
 
 ## Struktur Folder
 
-| Path           | Isi                                  |
-| -------------- | ------------------------------------ |
-| `src/index.ts` | Export publik paket (saat ini: `cn`) |
-| `package.json` | Workspace `@opensis/ui` (build tsc)  |
+| Path              | Isi                                                              |
+| ----------------- | ---------------------------------------------------------------- |
+| `src/index.ts`    | Barrel export publik (cn + seluruh primitives)                   |
+| `src/components/` | 25 file primitives shadcn/ui (button, card, dialog, table, dll.) |
+| `package.json`    | Workspace `@opensis/ui` (build tsc)                              |
 
 ## Ekspor
 
@@ -31,5 +33,6 @@ import { cn } from "@opensis/ui";
 
 - Basis: **Tailwind CSS v4** + pola shadcn/ui.
 - Komponen primitives (button, card, dialog, dsb.) hidup di
-  `apps/web/src/components/ui/` — lihat `README.components.md`.
+  `src/components/` paket ini dan diekspor via `@opensis/ui` — lihat
+  `apps/web/src/components/README.components.md`.
 - Komponen stateless; data lewat props.

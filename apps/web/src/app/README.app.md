@@ -19,6 +19,9 @@ redirect UX-level diatur `src/proxy.ts`.
 | `(ppdb)`       | `/ppdb/*`       | Publik/CALON_SISWA                | ppdb (beranda), daftar, status                                                                        |
 | `(landing)`    | `/berita/*`     | Publik                            | berita (+detail)                                                                                      |
 | `(auth)`       | `/login`        | Publik                            | halaman login                                                                                         |
+| `(calonsiswa)` | `/calonsiswa/*` | CALON_SISWA                       | dashboard, pengumuman                                                                                 |
+| `(pembimbing)` | `/pembimbing/*` | PEMBIMBING_INDUSTRI               | dashboard, siswa (bimbingan)                                                                          |
+| `(penguji)`    | `/penguji/*`    | PENGUJI_EKSTERNAL                 | dashboard, jadwal                                                                                     |
 | `support`      | `/support`      | Publik                            | halaman dukungan                                                                                      |
 
 ## Detail Route Group
@@ -36,6 +39,9 @@ redirect UX-level diatur `src/proxy.ts`.
 - **PPDB** (`(ppdb)/ppdb/`): `ppdb` (informasi & daftar), `daftar`, `status`.
 - **Landing** (`(landing)/`): `berita` + `berita/[slug]`.
 - **Auth** (`(auth)/`): `login`.
+- **Calon Siswa** (`(calonsiswa)/calonsiswa/`): `dashboard`, `pengumuman`.
+- **Pembimbing** (`(pembimbing)/pembimbing/`): `dashboard`, `siswa`.
+- **Penguji** (`(penguji)/penguji/`): `dashboard`, `jadwal`.
 - **Support** (`support/`): `support`.
 
 ## File Root

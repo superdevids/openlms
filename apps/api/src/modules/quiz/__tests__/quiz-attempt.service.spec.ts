@@ -12,6 +12,7 @@ jest.mock("@opensis/database", () => ({
       findMany: jest.fn(),
       update: jest.fn()
     },
+    enrollment: { findFirst: jest.fn() },
     grade: { upsert: jest.fn() }
   }
 }));
@@ -32,28 +33,32 @@ describe("QuizAttemptService", () => {
   });
 
   describe("submit", () => {
+    const attemptFixture = () => ({
+      id: "att1",
+      quiz_id: "q1",
+      student_id: "s1",
+      started_at: new Date(),
+      submitted_at: null,
+      status: AttemptStatus.IN_PROGRESS,
+      score: null,
+      answers: { q1: { answer: "B" }, q2: { answer: " jakarta " } },
+      quiz: {
+        id: "q1",
+        class_subject_id: "cs1",
+        duration_min: 30,
+        status: AssessmentStatus.PUBLISHED,
+        class_subject: { semester: "GANJIL" },
+        questions: [
+          { id: "q1", type: QuestionType.PILIHAN_GANDA, correct_answer: "B" },
+          { id: "q2", type: QuestionType.ISIAN_SINGKAT, correct_answer: "Jakarta" }
+        ]
+      }
+    });
+
     it("auto-grade PG/isian, status SUBMITTED, tulis Grade KUIS", async () => {
-      mockAttemptFindUnique.mockResolvedValue({
-        id: "att1",
-        quiz_id: "q1",
-        student_id: "s1",
-        started_at: new Date(),
-        submitted_at: null,
-        status: AttemptStatus.IN_PROGRESS,
-        score: null,
-        answers: { q1: { answer: "B" }, q2: { answer: " jakarta " } },
-        quiz: {
-          id: "q1",
-          class_subject_id: "cs1",
-          duration_min: 30,
-          status: AssessmentStatus.PUBLISHED,
-          class_subject: { semester: "GANJIL" },
-          questions: [
-            { id: "q1", type: QuestionType.PILIHAN_GANDA, correct_answer: "B" },
-            { id: "q2", type: QuestionType.ISIAN_SINGKAT, correct_answer: "Jakarta" }
-          ]
-        }
-      });
+      mockAttemptFindUnique.mockResolvedValue(attemptFixture());
+      // GURU mengajar kelas siswa "s1" → lolos cek keanggotaan.
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue({ id: "e1" });
       mockAttemptUpdate.mockResolvedValue({
         id: "att1",
         status: AttemptStatus.SUBMITTED,
@@ -61,7 +66,11 @@ describe("QuizAttemptService", () => {
       });
       mockGradeUpsert.mockResolvedValue({ id: "g1" });
 
-      const result = await service.submit("att1", {}, { userId: "guru-1", roles: ["GURU"] });
+      const result = await service.submit(
+        "att1",
+        {},
+        { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] }
+      );
       expect(result.score).toBe(100);
       expect(result.status).toBe(AttemptStatus.SUBMITTED);
 
@@ -77,6 +86,16 @@ describe("QuizAttemptService", () => {
       expect(gradeArg.create.type).toBe(GradeType.KUIS);
       expect(gradeArg.create.source_id).toBe("att1");
       expect(gradeArg.create.score).toBe(100);
+    });
+
+    it("GURU tanpa keanggotaan kelas siswa → 403 (anti-IDOR lintas kelas)", async () => {
+      mockAttemptFindUnique.mockResolvedValue(attemptFixture());
+      (prisma.enrollment.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.submit("att1", {}, { userId: "guru-1", roles: ["GURU"], classIds: ["c1"] })
+      ).rejects.toThrow("di luar kelas yang diampu");
+      expect(mockAttemptUpdate).not.toHaveBeenCalled();
     });
   });
 

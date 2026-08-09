@@ -191,10 +191,10 @@ Aturan: halaman ujian online adalah Client Component (butuh timer + autosave + v
 
 ### 5.3 State Management
 
-- **Server state** (data dari API): TanStack Query — cache, retry, optimistic update untuk nilai & notifikasi.
-- **Client state** (UI): Zustand untuk state kecil lintas komponen (mode data-saver, dsb.); local state untuk form.
-- **Offline queue**: IndexedDB (lib `idb`) — antrean absensi QR & autosave ujian, disinkronkan dengan background sync (lihat §10).
-- **Realtime**: hook Socket.IO (`useSocket`) namespace `/ws`; event → invalidate TanStack Query / toast.
+- **Server state** (data dari API): hook `useApi`/`useAsyncData` (`apps/web/src/lib/use-api.ts`) — status loading/error/disabled/empty/success, refetch, fallback demo; tanpa TanStack Query.
+- **Client state** (UI): React Context untuk state lintas komponen (auth, branding, mode data-saver dsb.); local state untuk form.
+- **Offline queue**: `localStorage`/`sessionStorage` (`apps/web/src/lib/storage.ts`, key `opensis_*`) — draft PPDB & cache TTL di localStorage; attempt ujian & antrean jawaban offline di sessionStorage (lihat §10).
+- **Realtime**: hook Socket.IO (`useSocket`) namespace `/ws`; event → refetch `useApi`/toast (REST tetap sumber kebenaran).
 
 ---
 
@@ -329,13 +329,15 @@ Client → GET /api/v1/storage/files/{bucket}/{path} (public branding/avatars; p
 
 ```sql
 -- RLS opsional (defense-in-depth RBAC) berbasis role/scope — tanpa school_id
+-- Tabel role aktual: "user_role" (schema @@map). Helper app.current_user_id()
+-- mengembalikan text (PK user_* bertipe String/cuid) — jangan pakai ::uuid.
 CREATE POLICY "materials_read_owner_class"
   ON storage.objects FOR SELECT
   USING (
     bucket_id = 'materials'
     AND EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = current_setting('app.user_id')::uuid
+      SELECT 1 FROM "user_role" ur
+      WHERE ur.user_id = app.current_user_id()
         AND ur.status = 'ACTIVE'
         AND (ur.role IN ('GURU','OPERATOR','WAKEPSEK','KEPSEK','SUPERADMIN')  -- pengajar/admin
              OR (ur.role = 'SISWA' AND <siswa di kelas pemilik materi>))
@@ -370,8 +372,15 @@ Konvensi path: `{bucket}/{module}/{entity_id}/{file}` (tanpa school_id) agar keb
 
 Keputusan scope: **MVP = queue absensi QR + cache materi dasar** (dibangun di M-ABSQR-T8 & F2-T5); **PWA penuh/luas ditunda** sampai ada bukti kebutuhan sekolah pilot (prd03 G10). Arsitektur di bawah disiapkan modular agar tinggal diaktifkan saat PWA penuh diizinkan.
 
+> **Status implementasi (2026-08):** PWA penuh (Service Worker/Workbox, background sync,
+> `queue.absensi`, `cache.materi`) **belum diimplementasikan** — diagram di bawah adalah
+> desain target/roadmap. Yang sudah berjalan hari ini: antrean jawaban ujian offline via
+> **sessionStorage** (`opensis_exam_pending_answers`, `apps/web/src/lib/storage.ts`) dan
+> cache ber-TTL via **localStorage** (branding, dashboard config); data fetching memakai
+> hook `useApi`/`useAsyncData`, **tanpa TanStack Query, Zustand, maupun IndexedDB**.
+
 ```
-Web (Next.js + next-pwa/Workbox)
+Web (Next.js + next-pwa/Workbox)                          ← desain target PWA (roadmap)
 ├── Service Worker
 │   ├── Precache: shell aplikasi (JS/CSS)
 │   ├── Runtime cache: materi (stale-while-revalidate), gambar (cache-first + data-saver)
@@ -380,18 +389,20 @@ Web (Next.js + next-pwa/Workbox)
 │   ├── queue.absensi  → { sessionId, studentId, scannedAt, idempotencyKey }
 │   ├── queue.autosave → { attemptId, answerId, payload, idempotencyKey }
 │   └── cache.materi   → materi yang sudah dibuka
-└── TanStack Query (stale data + refetch saat online)
+└── TanStack Query (stale data + refetch saat online)    ← diimplementasi sebagai useApi/useAsyncData
 ```
 
 ### 10.2 Alur Kritis
 
-**Absensi QR offline** (prd02 §3.3 + prd03 G10):
+**Absensi QR offline** (prd02 §3.3 + prd03 G10): **belum ada queue offline di klien** —
+scan absensi berjalan online (`POST /api/v1/attendance/records/scan`, idempotent). Alur
+di bawah adalah desain target PWA:
 
 1. Siswa scan QR saat offline → simpan ke `queue.absensi` (token QR + idempotencyKey di-generate client).
 2. Online → background sync kirim `POST /api/v1/attendance/records/scan` dengan key yang sama.
 3. Server validasi (token sekali pakai + waktu) → sukses/tolak; duplikat key → `200` idempotent (tidak dobel absen).
 
-**Autosave ujian offline**: jawaban ditulis ke IndexedDB setiap 15 detik + pada `visibilitychange`/beforeunload; flush ke `POST /api/v1/exam/attempts/:id/answers` (idempotent); waktu habis tetap diputus **server-side** (`exam:force-submit`).
+**Autosave ujian offline**: jawaban ditulis ke **sessionStorage** (`opensis_exam_pending_answers`) setiap 15 detik + pada `visibilitychange`; flush ke `POST /api/v1/exam/attempts/:id/answers` (idempotent); waktu habis tetap diputus **server-side** (`exam:force-submit`).
 
 **Data-saver (G16, digabung G10)**: kompresi otomatis gambar/dokumen di sisi server sebelum disimpan (prd03 §6); mode hemat data mengirim header `Save-Data` → Next.js image optimizer mengirim versi lebih kecil.
 
@@ -423,17 +434,17 @@ Web (Next.js + next-pwa/Workbox)
 
 ## 13. Security Hardening (G11)
 
-| Area                | Langkah                                                                                                                                 |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Rate limiting       | `@nestjs/throttler`: login 5 gagal/15 mnt/user; submit ujian 20/mnt/user; scan QR 30/mnt/user; API global 1000/mnt/IP                   |
-| Brute-force lockout | Kolom `failed_login_attempts` (User): 5 gagal → lock 15 mnt                                                                             |
-| CSRF                | Cookie session `SameSite=Lax`; mutasi lintas-origin pakai double-submit token; Next.js Server Actions memakai proteksi bawaan           |
-| CSP                 | Strict: `default-src 'self'`, script nonce; **connect-src hanya API sendiri + Socket.IO** (tanpa Jitsi/Supabase)                        |
-| Header keamanan     | Helmet di NestJS; `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`                                                     |
-| Dependency          | `npm audit` di CI (fail on high/critical), Dependabot/Renovate, lockfile terverifikasi                                                  |
-| Secret              | `.env.example` tanpa nilai; secret di env CI/Vault; rotasi rutin; scan secret di repo (gitleaks)                                        |
-| RLS                 | **Opsional** (defense-in-depth RBAC, tanpa session var tenant); test **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)** di integration test |
-| Privacy (G14)       | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **BK/WAKEPSEK/KEPSEK**)                   |
+| Area                | Langkah                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rate limiting       | `@nestjs/throttler`: login 5 gagal/15 mnt/user; submit ujian 20/mnt/user; scan QR 30/mnt/user; API global 1000/mnt/IP                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Brute-force lockout | Kolom `failed_login_attempts` (User): 5 gagal → lock 15 mnt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| CSRF                | Cookie session `SameSite=Lax`; mutasi lintas-origin pakai double-submit token; Next.js Server Actions memakai proteksi bawaan                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| CSP                 | Web (`next.config.ts`): `default-src 'self'`; `script-src 'self' 'unsafe-inline'` di production (tanpa nonce, tanpa `'unsafe-eval'`; dev menambah `'unsafe-eval'` untuk React dev/Turbopack); `style-src 'self' 'unsafe-inline'` (branding CSS vars); `img-src 'self' data:`; `connect-src 'self' ws: wss:` (realtime Socket.IO, tanpa Jitsi/Supabase). API (`main.ts`): helmet default + `style-src 'self' 'unsafe-inline'`, `img-src 'self' data:`, `upgrade-insecure-requests` saat HTTPS. **Roadmap/target: script nonce — saat ini memakai `'unsafe-inline'`** |
+| Header keamanan     | Helmet di NestJS; `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Dependency          | `npm audit` di CI (fail on high/critical), Dependabot/Renovate, lockfile terverifikasi                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Secret              | `.env.example` tanpa nilai; secret di env CI/Vault; rotasi rutin; scan secret di repo (gitleaks)                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| RLS                 | **Opsional** (defense-in-depth RBAC, tanpa session var tenant); test **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)** di integration test                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Privacy (G14)       | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **BK/WAKEPSEK/KEPSEK**)                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ---
 
@@ -458,8 +469,8 @@ Web (Next.js + next-pwa/Workbox)
                         │  Route groups: (siswa)(guru)(admin)(ortu)    │
                         │  (superadmin)/admin-sistem                   │
                         │  Server Components + Client Components       │
-                        │  TanStack Query · Zustand · PWA/Workbox      │
-                        │  IndexedDB offline queue · Socket.IO client  │
+                        │  useApi/useAsyncData · React Context ·       │
+                        │  localStorage/sessionStorage (offline queue) │
                         └───────┬───────────────────────┬──────────────┘
                                 │ HTTPS (REST /api/v1)  │ WSS (Socket.IO)
                                 │ Bearer JWT (cookie)   │ namespace /ws
@@ -492,7 +503,7 @@ Siswa buka jadwal ujian (web)
       ├─ buat ExamAttempt (IN_PROGRESS) + acak soal & opsi (paket A/B/C)
       └─ response { attemptId, questions[], remainingSeconds }
 
-Loop autosave (Client Component + IndexedDB)
+Loop autosave (Client Component + sessionStorage queue)
   → setiap 15s / pada visibilitychange
   → POST /exam/attempts/:id/answers { answer, idempotencyKey }
       ├─ validasi masih IN_PROGRESS & dalam waktu

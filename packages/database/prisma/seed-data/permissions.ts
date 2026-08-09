@@ -472,7 +472,10 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
       "submission:grade:class"
     ),
     ...s("KELAS", "question:read:class", "question:write:class", "quiz:write:class"),
-    ...s("KELAS", "quiz:attempt:school"),
+    // quiz:attempt:school wajib scope SEKOLAH agar lolos guard scope-rank
+    // (KELAS tidak memenuhi :school); batasan kelas ditegakkan di service
+    // (QuizAttemptService.canAccessStudent).
+    ...s("SEKOLAH", "quiz:attempt:school"),
     ...s(
       "SEKOLAH",
       "exam:read:school",
@@ -624,9 +627,12 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("KELAS", "assignment:read:class", "assignment:write:class", "assignment:publish:class"),
     ...s("KELAS", "submission:read:class", "submission:grade:class"),
     ...s("KELAS", "question:read:class", "question:write:class", "quiz:write:class"),
-    ...s("KELAS", "quiz:attempt:school"),
+    // quiz:attempt:school / exam:attempt:school wajib scope SEKOLAH agar lolos
+    // guard scope-rank (KELAS tidak memenuhi :school); batasan kelas ditegakkan
+    // di service (QuizAttemptService/ExamAttemptService.canAccessStudent).
+    ...s("SEKOLAH", "quiz:attempt:school"),
     ...s("SEKOLAH", "exam:read:school", "exam:write:school", "exam:session:write:school"),
-    ...s("KELAS", "exam:attempt:school"),
+    ...s("SEKOLAH", "exam:attempt:school"),
     ...s("KELAS", "exam:token:class", "exam:grade-esai:class"),
     ...s("SEKOLAH", "exam:log:read:school", "exam:analysis:read:school"),
     ...s(

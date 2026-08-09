@@ -55,7 +55,12 @@ export class QuizController {
     if (!user) {
       throw new UnauthorizedException("Konteks autentikasi tidak ditemukan.");
     }
-    return { userId: user.id, roles: user.roles };
+    return {
+      userId: user.id,
+      roles: user.roles,
+      classIds: user.classIds,
+      homeroomClassId: user.homeroomClassId
+    };
   }
 
   private userId(user: AuthUser | undefined): string {

@@ -22,7 +22,8 @@ semua peran (siswa, guru, admin, superadmin, wali murid) + halaman publik
 | File                                         | Isi                                                                                   |
 | -------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `api-client.ts`                              | HTTP client `/api/v1` (cookie httpOnly, ApiError standar, idempotency-key, save-data) |
-| `use-api.ts`                                 | Hook React untuk pemanggilan API                                                      |
+| `use-api.ts`                                 | Hook React untuk pemanggilan API (`useApi`/`useAsyncData`)                            |
+| `use-socket.ts`                              | Client Socket.IO `/ws` (singleton, reconnect; URL dari `NEXT_PUBLIC_SOCKET_URL`)      |
 | `session.ts`                                 | Helper session/cookie                                                                 |
 | `feature-flags.ts` + `feature-flags-hook.ts` | Baca & hook feature flags                                                             |
 | `idempotency.ts`                             | Generator/helper Idempotency-Key                                                      |
@@ -33,5 +34,6 @@ semua peran (siswa, guru, admin, superadmin, wali murid) + halaman publik
 ## Catatan
 
 - Base URL API: `NEXT_PUBLIC_API_BASE` (default `/api/v1` via proxy Next dev/prod).
+- Socket URL: `NEXT_PUBLIC_SOCKET_URL` (opsional; default diturunkan dari `API_BASE` → origin + `/ws`, dipakai `src/lib/use-socket.ts`).
 - Mode demo: `NEXT_PUBLIC_DEMO=1` → semua route bebas akses tanpa backend.
-- Env yang dipakai web: `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_DEMO`.
+- Env yang dipakai web: `NEXT_PUBLIC_API_BASE`, `NEXT_PUBLIC_DEMO`, `NEXT_PUBLIC_SOCKET_URL`.

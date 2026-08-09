@@ -2,7 +2,7 @@
   "name": "@opensis/database",
   "version": "0.1.0",
   "private": true,
-  "description": "opensis database package — Prisma schema (61 entitas + RBAC), migrasi, seed, RLS opsional",
+  "description": "opensis database package — Prisma schema (90 model + 62 enum + RBAC), migrasi, seed, RLS opsional",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {

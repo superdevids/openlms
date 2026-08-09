@@ -85,6 +85,15 @@ function verifyToken(token: string, secret: string, expectedTyp?: string): JwtPa
   } catch {
     return null;
   }
+  // Tolak signature base64url NON-KANONIK. Buffer.from(..., "base64url")
+  // mengabaikan 2 bit padding di karakter terakhir, jadi mutasi karakter
+  // terakhir yang ber-4-bit-tinggi sama menghasilkan byte IDENTIK (token
+  // "tampered" tetap lolos HMAC). Decode → re-encode kanonik harus sama
+  // persis dengan string asli; token yang ditandatangani sendiri selalu
+  // kanonik (digest("base64url")), sehingga valid check ini tidak menolaknya.
+  if (received.toString("base64url") !== signature) {
+    return null;
+  }
   if (received.length !== expected.length || !timingSafeEqual(received, expected)) {
     return null;
   }

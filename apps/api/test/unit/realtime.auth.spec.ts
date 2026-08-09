@@ -70,7 +70,16 @@ describe("RealtimeAuthService (handshake Socket.IO — docs/02 §7.1)", () => {
   it("menolak token dengan signature tidak valid (tanpa query UserRole)", async () => {
     userRoleModel.findMany.mockResolvedValue([{ role: "GURU" }]);
     const token = signToken({ sub: "u4", exp: futureExp });
-    const tampered = `${token.slice(0, -1)}x`;
+    // JANGAN mengubah karakter TERAKHIR signature: base64url dari digest 32-byte
+    // = 43 karakter, dan karakter terakhir hanya memuat 4 bit data (2 bit sisanya
+    // padding yang DIABAIKAN Buffer.from(sig,"base64url")). Menggantinya dengan
+    // karakter ber-4-bit-tinggi sama (mis. 'w'→'x') tidak mengubah byte digest,
+    // sehingga token "tampered" tetap valid → test flaky (~4/64). Ganti karakter
+    // di TENGAH signature (posisi 10) agar byte digest PASTI berubah.
+    const parts = token.split(".");
+    const signature = parts[2] ?? "";
+    const sigTampered = `${signature.slice(0, 10)}${signature[10] === "A" ? "B" : "A"}${signature.slice(11)}`;
+    const tampered = `${parts[0] ?? ""}.${parts[1] ?? ""}.${sigTampered}`;
 
     await expect(service.authenticate(tampered, undefined)).resolves.toBeNull();
     expect(userRoleModel.findMany).not.toHaveBeenCalled();

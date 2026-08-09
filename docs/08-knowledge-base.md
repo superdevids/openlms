@@ -132,7 +132,7 @@ Alur inti (juga di [docs/02 §15.1](02-technical-architecture.md)):
 
 1. **Persiapan**: Guru membuat ujian → paket soal (soal bisa diacak A/B/C) → sesi ujian → generate token (6 karakter, tanpa karakter ambigu 0/O/1/I/l/o; disimpan sebagai hash deterministik) → publish.
 2. **Start attempt**: Siswa membuka jadwal → `POST /exam/sessions/:id/attempts` dengan token → validasi: jadwal buka, token sekali pakai, satu akun satu sesi → buat `ExamAttempt` (IN_PROGRESS) + acak soal → response `{ attemptId, questions[], remainingSeconds }`.
-3. **Autosave (idempotent)**: klien menyimpan jawaban tiap 15 detik + saat `visibilitychange`/`beforeunload` (juga ke IndexedDB untuk offline) → `POST /exam/attempts/:id/answers` dengan `Idempotency-Key` → `ExamAnswerLog` **append-only** (timestamp, key per soal) → 200 `{ savedAt }`. Duplikat key tidak membuat log ganda.
+3. **Autosave (idempotent)**: klien menyimpan jawaban tiap 15 detik + saat `visibilitychange` (offline → antrean jawaban di **sessionStorage** `opensis_exam_pending_answers`, `lib/storage.ts`) → `POST /exam/attempts/:id/answers` dengan `Idempotency-Key` → `ExamAnswerLog` **append-only** (timestamp, key per soal) → 200 `{ savedAt }`. Duplikat key tidak membuat log ganda.
 4. **Waktu habis (server-authoritative)**: processor auto-submit menandai attempt melewati durasi → `AUTO_SUBMITTED` → emit `exam:force-submit` ke room sesi; event `exam:tick` memberi peringatan 60/30/10/0 detik.
 5. **Penilaian**: auto-grade PG/isian (skor dihitung dari jawaban terbaru per soal; esai tidak ikut auto-grade) → esai di-nilai manual guru (`exam:grade-esai:class`) → skor masuk `Grade` (sumatif) → bahan e-Rapor → `AuditLog` untuk investigasi sengketa.
 
@@ -264,10 +264,10 @@ Kunci: **otoritas role adalah tabel `UserRole`**, bukan klaim JWT — perubahan 
 ### 6.2 Pola Fetching & State
 
 - **Server Components (default)** untuk data-fetching awal, daftar, detail.
-- **TanStack Query** untuk server state (cache, retry, optimistic update — nilai & notifikasi).
-- **Zustand** untuk client state kecil lintas komponen (mode data-saver dll.); local state untuk form.
-- **IndexedDB** (lib `idb`) untuk offline queue: antrean absensi QR & autosave ujian; disinkronkan via background sync.
-- **Realtime**: hook `useSocket` (namespace `/ws`) — event → invalidate TanStack Query / toast; badge notifikasi live via `useUnreadNotifications`.
+- **`useApi`/`useAsyncData`** (`lib/use-api.ts`) untuk server state (status loading/error/disabled/empty/success, refetch, fallback demo — pengganti TanStack Query).
+- **React Context** untuk client state lintas komponen (auth, branding, mode data-saver dll.); local state untuk form.
+- **localStorage/sessionStorage** (`lib/storage.ts`, key `opensis_*`) untuk cache ber-TTL (branding/dashboard config), draft PPDB (localStorage), serta antrean jawaban ujian offline (sessionStorage). **Bukan** IndexedDB — scan absensi offline belum punya queue di klien.
+- **Realtime**: hook `useSocket` (namespace `/ws`) — event → refetch `useApi` / toast; badge notifikasi live via `useUnreadNotifications` (REST tetap sumber kebenaran).
 - Halaman ujian online adalah **Client Component** (timer + autosave + `visibilitychange`), tetapi token & jadwal diverifikasi dari server; jawaban tidak pernah dikirim via Server Action — selalu via REST dengan idempotency key.
 
 ### 6.3 Auth di Browser
