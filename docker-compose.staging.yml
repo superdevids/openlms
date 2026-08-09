@@ -1,0 +1,160 @@
+# ============================================================
+# opensis — STAGING overlay (mirror PROD, resource & branding khusus)
+#
+# Prasyarat go-live G-67: lingkungan staging = mirror produksi untuk
+# verifikasi sebelum go-live (login SUPERADMIN, feature flags, landing,
+# PPDB flow, ujian smoke, observability).
+#
+# PENTING — staging DIPAKAI BERSAMA overlay PROD (bukan base saja):
+# base (docker-compose.yml) TIDAK punya service api/web. Overlay prod
+# menyediakan definisi api+web dan mengalihkan nginx ke nginx.docker.conf;
+# overlay staging ditumpuk DI ATASNYA untuk: image tag khusus, env staging,
+# resource limits lebih kecil, dan TANPA publish port 3000/3001.
+#
+# Jalankan (semua overlay berurutan — staging di urutan TERAKHIR):
+#   cp .env.example .env.staging            # lalu isi secret staging
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.staging.yml up -d --build
+#   # migrasi + seed dari HOST (DATABASE_URL di .env.staging -> localhost:5432):
+#   npm run db:migrate:deploy
+#   npm run db:seed
+# Akses aplikasi: http://localhost (Nginx :80 -> web:3000 / api:3001 di container)
+# Port 3000/3001 TIDAK dipublish di staging — akses hanya lewat Nginx :80.
+#
+# Konvensi overlay (sama seperti prod):
+# - JANGAN deklarasi ulang `ports` service nginx — base sudah `80:80`;
+#   Compose men-append -> duplikat.
+# - `ports` api/web di-`!reset` agar port prod (3000/3001) dari overlay prod
+#   TIDAK ikut ter-publish di staging (akses via nginx saja).
+# - `env_file` di-`!override` ke .env.staging — staging memakai secret sendiri,
+#   terpisah dari .env prod. (Compose tetap membaca .env root untuk interpolasi
+#   ${POSTGRES_*} dll.)
+# - Resource limits LEBIH KECIL dari prod sebagai penanda staging:
+#   api 1 CPU / 768m (prod 2 / 1g), web 0.5 / 512m (prod 1 / 768m),
+#   nginx 0.25 / 128m (prod 0.5 / 256m).
+# - depends_on + healthcheck mengikuti pola prod (berantai).
+# ============================================================
+
+# Logging default semua service: json-file, rotasi 10MB x 3 file
+# (anchor YAML TIDAK lintas file — diulang di sini, konsisten dengan prod)
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  api:
+    # Tag image khusus staging agar tidak tertukar dengan image prod
+    image: opensis-api:staging
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    # !override: ganti env_file prod (.env) -> .env.staging (jangan di-append)
+    env_file: !override
+      - path: .env.staging
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      # Host postgres/redis = nama service compose (bukan localhost)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-opensis}?schema=public
+      REDIS_URL: redis://redis:6379
+      TRUST_PROXY: "true"
+      STORAGE_LOCAL_DIR: /app/storage
+      # Staging = HTTP (tanpa HTTPS) -> cookie TANPA flag Secure
+      COOKIE_SECURE: "false"
+      COOKIE_SAME_SITE: lax
+      # Akses staging via Nginx :80 -> origin http://localhost (dan :80 eksplisit)
+      CORS_ORIGINS: http://localhost,http://localhost:80
+    # Reset port dari overlay prod — staging TIDAK publish 3001 (akses via nginx)
+    ports: !reset []
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3001/api/v1/health >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 768m
+        reservations:
+          cpus: "0.5"
+          memory: 384m
+
+  web:
+    # Tag image khusus staging
+    image: opensis-web:staging
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_* ter-bake saat build image (client bundle).
+        # API_BASE dipaksa "/api/v1" (same-origin via Nginx :80) — jangan biarkan
+        # ter-interpolasi dari .env (http://localhost:3001) karena port 3001
+        # TIDAK dipublish di staging.
+        NEXT_PUBLIC_API_BASE: "/api/v1"
+        NEXT_PUBLIC_APP_NAME: "opensis (Staging)"
+        NEXT_PUBLIC_DEMO: "0"
+    # !override: ganti env_file prod (.env) -> .env.staging (jangan di-append)
+    env_file: !override
+      - path: .env.staging
+        required: false
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    # Reset port dari overlay prod — staging TIDAK publish 3000 (akses via nginx)
+    ports: !reset []
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+
+  nginx:
+    # Reuse konfigurasi PROD (deploy/nginx.docker.conf) — staging adalah mirror
+    # produksi: upstream web:3000 / api:3001, rate limit, security headers sama.
+    # JANGAN tambah `ports` di sini — base sudah `80:80`; overlay men-append.
+    volumes:
+      - ./deploy/nginx.docker.conf:/etc/nginx/conf.d/opensis.conf:ro
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
+        reservations:
+          cpus: "0.10"
+          memory: 64m

@@ -11,9 +11,10 @@ dibypass oleh `AuthGuard` (selalu publik) meskipun tidak memakai `@Public()`.
 
 ## Endpoint (prefix global `/api/v1`)
 
-| Method | Path      | Permission            | Deskripsi                                  |
-| ------ | --------- | --------------------- | ------------------------------------------ |
-| GET    | `/health` | Publik (bypass guard) | `{ status: "ok", service: "opensis-api" }` |
+| Method | Path       | Permission                        | Deskripsi                                                              |
+| ------ | ---------- | --------------------------------- | ---------------------------------------------------------------------- |
+| GET    | `/health`  | Publik (bypass guard)             | `{ status: "ok", service: "opensis-api" }`                             |
+| GET    | `/metrics` | SUPERADMIN (`system:status:read`) | Metrik proses (uptime, memori, event loop lag) — lihat modul `metrics` |
 
 ## Struktur File
 

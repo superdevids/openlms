@@ -6,6 +6,7 @@ import { MaintenanceMiddleware } from "./common/middleware/maintenance.middlewar
 import { RateLimitMiddleware } from "./common/middleware/rate-limit.middleware";
 import { AuthModule } from "./modules/auth/auth.module";
 import { HealthModule } from "./modules/health/health.module";
+import { MetricsModule } from "./modules/metrics/metrics.module";
 import { FeatureFlagsModule } from "./modules/feature-flags/feature-flags.module";
 import { AppSettingsModule } from "./modules/app-settings/app-settings.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
@@ -67,6 +68,7 @@ import { UsersAdminModule } from "./modules/users-admin/users-admin.module";
     }),
     // Infrastruktur inti
     HealthModule,
+    MetricsModule, // observability ringan (GET /metrics — SUPERADMIN, system:status:read)
     AuthModule, // menempel APP_GUARD global (AuthGuard → PermissionsGuard → FeatureFlagGuard)
     RealtimeModule,
     NotificationsModule,

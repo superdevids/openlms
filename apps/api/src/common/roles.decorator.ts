@@ -7,6 +7,7 @@ export const ROLES_KEY = "opensis:roles";
 /**
  * @Roles("SUPERADMIN", "OPERATOR") — gula sintaks; memeriksa UserRole aktif
  * (satu-satunya otoritas role, prd04 §4.3). Bisa dikombinasikan dengan
- * @RequirePermission (keduanya OR dalam satu handler).
+ * @RequirePermission (keduanya AND — role DAN permission wajib lolos,
+ * lihat PermissionsGuard).
  */
 export const Roles = (...roles: Role[]): MethodDecorator => SetMetadata(ROLES_KEY, roles);

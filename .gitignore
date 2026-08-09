@@ -17,6 +17,8 @@ packages/database/prisma/migrations/dev.db
 # Environment
 .env
 .env.local
+.env.staging
+.env.staging.*
 .env.*.local
 !.env.example
 
@@ -37,6 +39,9 @@ Thumbs.db
 
 # Tests
 .nyc_output/
+test-results/
+playwright-report/
+blob-report/
 
 # TypeScript build info
 *.tsbuildinfo
