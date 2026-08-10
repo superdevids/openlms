@@ -8,19 +8,19 @@ import { useApi } from "@/lib/use-api";
 import {
   DataView,
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
   CardTitle,
+  CardDescription,
   Button,
   Input,
   Label,
   Dialog,
   toast,
-  EmptyState
+  IconBook,
+  IconChevronRight
 } from "@opensis/ui";
 
 import { DEMO_CLASSES } from "@/lib/demo";
+import { PageHeader, EmptyStateV3 } from "@/components/ui";
 
 interface ClassItem {
   id: string;
@@ -55,10 +55,16 @@ export default function GuruKelasPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Kelas Saya</h1>
-        <Button onClick={() => setOpen(true)}>Buat Kelas</Button>
-      </div>
+      <PageHeader
+        title="Kelas Saya"
+        description="Kelas-mapel yang Anda ampu. Pilih kelas untuk mengelola materi, tugas, dan siswa."
+        actions={
+          <Button onClick={() => setOpen(true)} size="sm">
+            Buat Kelas
+          </Button>
+        }
+      />
+
       <DataView
         status={list.status}
         error={list.error}
@@ -66,25 +72,43 @@ export default function GuruKelasPage(): JSX.Element {
         fallbackLabel="Daftar kelas"
       >
         {list.data?.length === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconBook className="h-5 w-5" />}
             title="Belum ada kelas"
-            description="Kelas di-assign oleh admin atau buat kelas baru."
+            desc="Kelas di-assign oleh admin atau buat kelas baru dari sini."
+            action={
+              <Button size="sm" onClick={() => setOpen(true)}>
+                Buat Kelas
+              </Button>
+            }
           />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {(list.data ?? []).map((c) => (
               <li key={c.id}>
-                <Link href={`/guru/kelas/${c.id}`} className="block h-full">
-                  <Card className="h-full transition-colors hover:border-primary-600">
-                    <CardHeader>
-                      <CardTitle>{c.name}</CardTitle>
-                      <CardDescription>{c.subject}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" size="sm">
-                        Kelola Kelas
-                      </Button>
-                    </CardContent>
+                <Link href={`/guru/kelas/${c.id}`} className="group block h-full">
+                  <Card className="flex h-full flex-col rounded-lg border-border bg-app-surface p-5 shadow-app-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-app-floating">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle className="truncate text-sm font-semibold">{c.name}</CardTitle>
+                        <CardDescription className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {c.subject}
+                        </CardDescription>
+                      </div>
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary"
+                        aria-hidden="true"
+                      >
+                        <IconBook className="h-5 w-5" />
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
+                      <span>Kelola Kelas</span>
+                      <IconChevronRight
+                        className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </div>
                   </Card>
                 </Link>
               </li>

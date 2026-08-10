@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { JSX } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
+import { PageContainer, PageHeader } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: `Bantuan & FAQ — ${APP_NAME}`
@@ -37,18 +38,18 @@ const FAQ = [
 export default function SupportPage(): JSX.Element {
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-10">
+      <PageContainer className="max-w-3xl">
         <header className="mb-8">
           <p className="text-lg font-bold text-primary">{APP_NAME}</p>
-          <h1 className="mt-2 text-2xl font-bold text-foreground">Bantuan & FAQ</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Butuh bantuan? Hubungi operator sekolah. Pertanyaan umum di bawah ini dijawab ringkas.
-          </p>
+          <PageHeader
+            title="Bantuan & FAQ"
+            description="Butuh bantuan? Hubungi operator sekolah. Pertanyaan umum di bawah ini dijawab ringkas."
+          />
         </header>
 
         <div className="space-y-3">
           {FAQ.map((f) => (
-            <Card key={f.q}>
+            <Card key={f.q} className="rounded-lg border-border bg-app-surface shadow-app-card">
               <CardHeader>
                 <CardTitle>{f.q}</CardTitle>
               </CardHeader>
@@ -59,7 +60,7 @@ export default function SupportPage(): JSX.Element {
           ))}
         </div>
 
-        <Card className="mt-8 bg-primary-100 dark:bg-primary-100/20 dark:text-primary-foreground">
+        <Card className="mt-8 rounded-lg border-status-info-border bg-status-info-bg/60 shadow-app-card">
           <CardHeader>
             <CardTitle>Kontak Operator Sekolah</CardTitle>
             <CardDescription>
@@ -67,7 +68,7 @@ export default function SupportPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
         </Card>
-      </div>
+      </PageContainer>
     </main>
   );
 }

@@ -9,31 +9,17 @@ import {
   SUBMISSION_GRADED_EVENT,
   GRADE_RECORDED_EVENT
 } from "@/lib/use-socket";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState
-} from "@opensis/ui";
+import { DataView, IconChart } from "@opensis/ui";
 
 import { DEMO_GRADES } from "@/lib/demo";
-
-// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
-const GRADE_KOLOM: { key: string; label: string }[] = [
-  { key: "mapel", label: "Mata Pelajaran" },
-  { key: "tugas", label: "Tugas" },
-  { key: "kuis", label: "Kuis" },
-  { key: "ujian", label: "Ujian" },
-  { key: "rata", label: "Rata-rata" }
-];
+import {
+  PageHeader,
+  DataTable,
+  type DataTableColumn,
+  StatusBadge,
+  type StatusTone,
+  EmptyStateV3
+} from "@/components/ui";
 
 interface GradeRow {
   subject: string;
@@ -43,15 +29,67 @@ interface GradeRow {
   rata: number | null;
 }
 
+/** Presentasi (bukan kontrak): status rata-rata per mapel — TUNTAS ≥75, CUKUP ≥60, selain itu BELUM TUNTAS. */
+function gradeStatus(rata: number | null): { status: string; tone: StatusTone } {
+  if (rata === null) return { status: "BELUM DINILAI", tone: "neutral" };
+  if (rata >= 75) return { status: "TUNTAS", tone: "success" };
+  if (rata >= 60) return { status: "CUKUP", tone: "warning" };
+  return { status: "BELUM TUNTAS", tone: "danger" };
+}
+
 export default function SiswaNilaiPage(): JSX.Element {
   const list = useApi<GradeRow[]>(() => api.get("/grades"), [], { fallbackData: DEMO_GRADES });
 
   // Nilai dinilai/di-record → refetch REST (best-effort; REST sumber kebenaran).
   useRealtimeRefetch([SUBMISSION_GRADED_EVENT, GRADE_RECORDED_EVENT], list.refetch);
 
+  const columns: DataTableColumn<GradeRow>[] = [
+    {
+      key: "subject",
+      label: "Mata Pelajaran",
+      render: (g) => <span className="font-medium text-foreground">{g.subject}</span>
+    },
+    {
+      key: "tugas",
+      label: "Tugas",
+      render: (g) => <span className="tabular-nums">{g.tugas ?? "-"}</span>
+    },
+    {
+      key: "kuis",
+      label: "Kuis",
+      render: (g) => <span className="tabular-nums">{g.kuis ?? "-"}</span>
+    },
+    {
+      key: "ujian",
+      label: "Ujian",
+      hideBelow: "sm",
+      render: (g) => <span className="tabular-nums">{g.ujian ?? "-"}</span>
+    },
+    {
+      key: "rata",
+      label: "Rata-rata",
+      render: (g) => (
+        <span className="font-semibold tabular-nums text-foreground">
+          {g.rata?.toFixed(1) ?? "-"}
+        </span>
+      )
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (g) => {
+        const s = gradeStatus(g.rata);
+        return <StatusBadge status={s.status} mapping={{ [s.status]: s.tone }} />;
+      }
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Nilai Saya</h1>
+      <PageHeader
+        title="Nilai Saya"
+        description="Rekap nilai tugas, kuis, dan ujian per mata pelajaran."
+      />
       <DataView
         status={list.status}
         error={list.error}
@@ -59,38 +97,19 @@ export default function SiswaNilaiPage(): JSX.Element {
         fallbackLabel="Rekap nilai"
       >
         {list.data?.length === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconChart className="h-5 w-5" />}
             title="Belum ada nilai"
-            description="Nilai akan muncul setelah guru menilai tugas/kuis/ujian Anda."
+            desc="Nilai akan muncul setelah guru menilai tugas/kuis/ujian Anda."
           />
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Rekap Nilai</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {GRADE_KOLOM.map((k) => (
-                      <TableHead key={k.key}>{k.label}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(list.data ?? []).map((g) => (
-                    <TableRow key={g.subject}>
-                      <TableCell className="font-medium">{g.subject}</TableCell>
-                      <TableCell>{g.tugas ?? "-"}</TableCell>
-                      <TableCell>{g.kuis ?? "-"}</TableCell>
-                      <TableCell>{g.ujian ?? "-"}</TableCell>
-                      <TableCell className="font-semibold">{g.rata?.toFixed(1) ?? "-"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <DataTable<GradeRow>
+            columns={columns}
+            rows={list.data ?? []}
+            keyField="subject"
+            emptyTitle="Belum ada nilai"
+            emptyDesc="Nilai akan muncul setelah guru menilai tugas/kuis/ujian Anda."
+          />
         )}
       </DataView>
     </div>

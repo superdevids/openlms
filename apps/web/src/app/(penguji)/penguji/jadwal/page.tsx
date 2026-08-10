@@ -10,12 +10,11 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Badge,
   Alert,
-  EmptyState,
   Skeleton,
   IconCalendar
 } from "@opensis/ui";
+import { PageHeader, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface RubricItem {
   id: string;
@@ -61,7 +60,10 @@ export default function PengujiJadwalPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Jadwal UKK</h1>
+      <PageHeader
+        title="Jadwal UKK"
+        description="Sesi uji kompetensi yang dijadwalkan untuk Anda."
+      />
 
       {list.status === "loading" ? (
         <Skeleton className="h-48 w-full" />
@@ -70,20 +72,19 @@ export default function PengujiJadwalPage(): JSX.Element {
           {list.error?.message ?? "Gagal memuat jadwal UKK."}
         </Alert>
       ) : tests.length === 0 ? (
-        <EmptyState
+        <EmptyStateV3
+          icon={<IconCalendar className="h-5 w-5" />}
           title="Belum ada UKK ditugaskan"
-          description="Jadwal UKK yang ditugaskan ke Anda akan tampil di sini."
+          desc="Jadwal UKK yang ditugaskan ke Anda akan tampil di sini."
         />
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           {tests.map((test) => (
-            <Card key={test.id}>
+            <Card key={test.id} className="rounded-lg border-border bg-app-surface shadow-app-card">
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="text-base">{test.title}</CardTitle>
-                  <Badge variant={test.status === "SCHEDULED" ? "warning" : "success"}>
-                    {test.status}
-                  </Badge>
+                  <StatusBadge status={test.status} />
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">

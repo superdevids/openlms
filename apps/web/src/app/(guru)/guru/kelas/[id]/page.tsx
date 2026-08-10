@@ -9,17 +9,25 @@ import { useApi } from "@/lib/use-api";
 import {
   DataView,
   Card,
-  CardContent,
   Tabs,
   TabPanel,
   Badge,
   Button,
-  EmptyState
+  IconBook,
+  IconQr,
+  IconFile
 } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_TASKS } from "@/lib/demo";
-import { TASK_STATUS_BADGE } from "@/lib/constants";
+import { PageHeader, EmptyStateV3, DataTable, StatusBadge } from "@/components/ui";
+
+interface TaskRow {
+  id: string;
+  title: string;
+  dueAt: string;
+  status: string;
+}
 
 export default function GuruKelasDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -33,10 +41,10 @@ export default function GuruKelasDetailPage(): JSX.Element {
       fallbackData: DEMO_CLASSES.find((c) => c.id === id)
     }
   );
-  const tasks = useApi<{ id: string; title: string; dueAt: string; status: string }[]>(
+  const tasks = useApi<TaskRow[]>(
     () => api.get("/assignments", { query: { class_subject_id: id } }),
     [id],
-    { fallbackData: DEMO_TASKS }
+    { fallbackData: DEMO_TASKS as unknown as TaskRow[] }
   );
   const students = useApi<{ id: string; fullName: string }[]>(
     () => api.get(`/classes/${id}/students`),
@@ -47,14 +55,13 @@ export default function GuruKelasDetailPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/guru/kelas" className="text-sm font-medium text-primary">
-          &larr; Kembali ke kelas
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-foreground">
-          {cls?.name ?? "Detail Kelas"} {cls ? `— ${cls.subject}` : ""}
-        </h1>
-      </div>
+      <PageHeader
+        title={cls?.name ?? "Detail Kelas"}
+        description={
+          cls ? `${cls.subject} — kelola materi, tugas, absensi, dan siswa kelas ini.` : undefined
+        }
+        backHref="/guru/kelas"
+      />
 
       <DataView
         status={detail.status}
@@ -74,12 +81,13 @@ export default function GuruKelasDetailPage(): JSX.Element {
         />
 
         <TabPanel value="materi" activeValue={tab}>
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconFile className="h-5 w-5" />}
             title="Kelola materi"
-            description="Unggah materi dan dokumen untuk kelas ini."
+            desc="Unggah materi dan dokumen untuk kelas ini."
             action={
               <Link href="/guru/materi">
-                <Button>Ke Halaman Materi</Button>
+                <Button size="sm">Ke Halaman Materi</Button>
               </Link>
             }
           />
@@ -88,7 +96,7 @@ export default function GuruKelasDetailPage(): JSX.Element {
         <TabPanel value="tugas" activeValue={tab}>
           <div className="mb-3 flex justify-end">
             <Link href="/guru/tugas">
-              <Button>Buat Tugas</Button>
+              <Button size="sm">Buat Tugas</Button>
             </Link>
           </div>
           <DataView
@@ -97,42 +105,52 @@ export default function GuruKelasDetailPage(): JSX.Element {
             onRetry={tasks.refetch}
             fallbackLabel="Daftar tugas"
           >
-            {tasks.data?.length === 0 ? (
-              <EmptyState
-                title="Belum ada tugas"
-                description="Buat tugas pertama untuk kelas ini."
-              />
-            ) : (
-              <ul className="space-y-2">
-                {(tasks.data ?? []).map((t) => (
-                  <li key={t.id}>
-                    <Card>
-                      <CardContent className="flex min-h-14 items-center justify-between gap-3">
-                        <span className="min-w-0">
-                          <span className="block truncate font-medium text-foreground">
-                            {t.title}
-                          </span>
-                          <span className="block text-sm text-muted-foreground">
-                            Tenggat {formatRelative(t.dueAt)}
-                          </span>
-                        </span>
-                        <Badge variant={TASK_STATUS_BADGE[t.status] ?? "primary"}>{t.status}</Badge>
-                      </CardContent>
-                    </Card>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <DataTable
+              keyField="id"
+              columns={[
+                {
+                  key: "title",
+                  label: "Judul",
+                  render: (t) => <span className="font-medium text-foreground">{t.title}</span>
+                },
+                {
+                  key: "dueAt",
+                  label: "Tenggat",
+                  render: (t) => (
+                    <span className="text-muted-foreground">{formatRelative(t.dueAt)}</span>
+                  )
+                },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (t) => (
+                    <StatusBadge
+                      status={t.status}
+                      mapping={{ BUKA: "success", DINILAI: "success", TERSUBMIT: "info" }}
+                    />
+                  )
+                }
+              ]}
+              rows={tasks.data ?? []}
+              emptyTitle="Belum ada tugas"
+              emptyDesc="Buat tugas pertama untuk kelas ini."
+              emptyAction={
+                <Link href="/guru/tugas">
+                  <Button size="sm">Buat Tugas</Button>
+                </Link>
+              }
+            />
           </DataView>
         </TabPanel>
 
         <TabPanel value="absensi" activeValue={tab}>
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconQr className="h-5 w-5" />}
             title="Absensi kelas"
-            description="Buat sesi absensi QR untuk pertemuan hari ini."
+            desc="Buat sesi absensi QR untuk pertemuan hari ini."
             action={
               <Link href="/guru/absensi">
-                <Button>Generate QR Absensi</Button>
+                <Button size="sm">Generate QR Absensi</Button>
               </Link>
             }
           />
@@ -146,18 +164,27 @@ export default function GuruKelasDetailPage(): JSX.Element {
             fallbackLabel="Daftar siswa"
           >
             {students.data?.length === 0 ? (
-              <EmptyState
+              <EmptyStateV3
+                icon={<IconBook className="h-5 w-5" />}
                 title="Belum ada siswa"
-                description="Siswa akan muncul setelah admin enroll ke kelas."
+                desc="Siswa akan muncul setelah admin enroll ke kelas."
               />
             ) : (
-              <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-                {(students.data ?? []).map((s) => (
-                  <li key={s.id} className="flex min-h-12 items-center px-4 py-2">
-                    <span className="text-base font-medium text-foreground">{s.fullName}</span>
-                  </li>
-                ))}
-              </ul>
+              <Card className="overflow-hidden rounded-lg border-border bg-app-surface shadow-app-card">
+                <ul className="divide-y divide-border">
+                  {(students.data ?? []).map((s) => (
+                    <li
+                      key={s.id}
+                      className="flex min-h-12 items-center justify-between gap-3 px-4 py-2"
+                    >
+                      <span className="text-sm font-medium text-foreground">{s.fullName}</span>
+                      <Badge variant="neutral" className="text-xs">
+                        Siswa
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             )}
           </DataView>
         </TabPanel>

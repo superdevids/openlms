@@ -6,22 +6,19 @@ import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import {
   DataView,
-  Card,
-  CardContent,
   Button,
   Input,
   Label,
   Textarea,
-  Badge,
   Dialog,
-  EmptyState,
-  toast
+  toast,
+  IconClipboard
 } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
-import { TASK_STATUS_BADGE } from "@/lib/constants";
 
 import { DEMO_TASKS } from "@/lib/demo";
+import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
 
 interface Task {
   id: string;
@@ -70,41 +67,78 @@ export default function GuruTugasPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Tugas</h1>
-        <Button onClick={() => setOpen(true)}>Buat Tugas</Button>
-      </div>
+      <PageHeader
+        title="Tugas"
+        description="Buat dan pantau tugas untuk kelas yang Anda ampu."
+        actions={
+          <Button onClick={() => setOpen(true)} size="sm">
+            Buat Tugas
+          </Button>
+        }
+      />
+
       <DataView
         status={list.status}
         error={list.error}
         onRetry={list.refetch}
         fallbackLabel="Daftar tugas"
       >
-        {list.data?.length === 0 ? (
-          <EmptyState
-            title="Belum ada tugas"
-            description="Buat tugas pertama untuk kelas Anda."
-            action={<Button onClick={() => setOpen(true)}>Buat Tugas</Button>}
-          />
-        ) : (
-          <ul className="space-y-2">
-            {(list.data ?? []).map((t) => (
-              <li key={t.id}>
-                <Card>
-                  <CardContent className="flex min-h-14 items-center justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-foreground">{t.title}</span>
-                      <span className="block text-sm text-muted-foreground">
-                        {t.subject} · Tenggat {formatRelative(t.dueAt)}
-                      </span>
-                    </span>
-                    <Badge variant={TASK_STATUS_BADGE[t.status] ?? "primary"}>{t.status}</Badge>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DataTable
+          keyField="id"
+          columns={[
+            {
+              key: "title",
+              label: "Judul",
+              render: (t) => (
+                <span className="flex items-center gap-2 font-medium text-foreground">
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary"
+                    aria-hidden="true"
+                  >
+                    <IconClipboard className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 truncate">{t.title}</span>
+                </span>
+              )
+            },
+            {
+              key: "subject",
+              label: "Mapel",
+              hideBelow: "md",
+              render: (t) => <span className="text-muted-foreground">{t.subject}</span>
+            },
+            {
+              key: "dueAt",
+              label: "Tenggat",
+              render: (t) => (
+                <span className="text-muted-foreground">{formatRelative(t.dueAt)}</span>
+              )
+            },
+            {
+              key: "status",
+              label: "Status",
+              render: (t) => (
+                <StatusBadge
+                  status={t.status}
+                  mapping={{
+                    BUKA: "success",
+                    TERSUBMIT: "info",
+                    DINILAI: "success",
+                    TERLAMBAT: "danger"
+                  }}
+                />
+              )
+            }
+          ]}
+          rows={list.data ?? []}
+          emptyTitle="Belum ada tugas"
+          emptyDesc="Buat tugas pertama untuk kelas Anda."
+          emptyAction={
+            <Button size="sm" onClick={() => setOpen(true)}>
+              Buat Tugas
+            </Button>
+          }
+        />
       </DataView>
 
       <Dialog

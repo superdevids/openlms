@@ -4,23 +4,10 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Button,
-  Label,
-  Select,
-  Textarea,
-  Badge,
-  Dialog,
-  EmptyState,
-  toast
-} from "@opensis/ui";
+import { DataView, Button, Label, Select, Textarea, Dialog, toast } from "@opensis/ui";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
+import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
 
 interface Question {
   id: string;
@@ -28,6 +15,18 @@ interface Question {
   text: string;
   difficulty?: string;
 }
+
+const TYPE_LABEL: Record<Question["type"], string> = {
+  PILIHAN_GANDA: "PG",
+  ESAI: "Esai",
+  ISIAN_SINGKAT: "Isian"
+};
+
+const AUTO_GRADE_LABEL: Record<Question["type"], string> = {
+  PILIHAN_GANDA: "Ya",
+  ESAI: "Manual",
+  ISIAN_SINGKAT: "Ya (normalisasi)"
+};
 
 export default function GuruBankSoalPage(): JSX.Element {
   const list = useApi<Question[]>(
@@ -67,49 +66,81 @@ export default function GuruBankSoalPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Bank Soal</h1>
-        <Button onClick={() => setOpen(true)}>Buat Soal</Button>
-      </div>
+      <PageHeader
+        title="Bank Soal"
+        description="Kumpulan soal PG, esai, dan isian untuk kuis dan ujian."
+        actions={
+          <Button onClick={() => setOpen(true)} size="sm">
+            Buat Soal
+          </Button>
+        }
+      />
+
       <DataView
         status={list.status}
         error={list.error}
         onRetry={list.refetch}
         fallbackLabel="Bank soal"
       >
-        {list.data?.length === 0 ? (
-          <EmptyState
-            title="Bank soal kosong"
-            description="Tambahkan soal PG/esai/isian untuk kuis dan ujian."
-            action={<Button onClick={() => setOpen(true)}>Buat Soal</Button>}
-          />
-        ) : (
-          <ul className="space-y-2">
-            {(list.data ?? []).map((q) => (
-              <li key={q.id}>
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge variant="primary">
-                        {q.type === "PILIHAN_GANDA" ? "PG" : q.type === "ESAI" ? "Esai" : "Isian"}
-                      </Badge>
-                      {q.difficulty ? <Badge variant="neutral">{q.difficulty}</Badge> : null}
-                    </div>
-                    <CardTitle className="text-base font-medium">{q.text}</CardTitle>
-                    <CardDescription className="text-xs">
-                      Auto-grade:{" "}
-                      {q.type === "PILIHAN_GANDA"
-                        ? "Ya"
-                        : q.type === "ESAI"
-                          ? "Manual"
-                          : "Ya (normalisasi)"}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DataTable
+          keyField="id"
+          columns={[
+            {
+              key: "type",
+              label: "Tipe",
+              render: (q) => (
+                <StatusBadge
+                  status={q.type}
+                  mapping={{
+                    PILIHAN_GANDA: "info",
+                    ESAI: "warning",
+                    ISIAN_SINGKAT: "success"
+                  }}
+                  label={TYPE_LABEL[q.type]}
+                />
+              )
+            },
+            {
+              key: "text",
+              label: "Pertanyaan",
+              render: (q) => (
+                <span className="block max-w-xl truncate font-medium text-foreground">
+                  {q.text}
+                </span>
+              )
+            },
+            {
+              key: "difficulty",
+              label: "Kesukaran",
+              hideBelow: "md",
+              render: (q) =>
+                q.difficulty ? (
+                  <StatusBadge
+                    status={q.difficulty}
+                    mapping={{ MUDAH: "success", SEDANG: "warning", SULIT: "danger" }}
+                  />
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )
+            },
+            {
+              key: "autoGrade",
+              label: "Auto-grade",
+              hideBelow: "lg",
+              render: (q) => (
+                <span className="text-muted-foreground">{AUTO_GRADE_LABEL[q.type]}</span>
+              )
+            }
+          ]}
+          rows={list.data ?? []}
+          emptyTitle="Bank soal kosong"
+          emptyDesc="Tambahkan soal PG/esai/isian untuk kuis dan ujian."
+          emptyAction={
+            <Button size="sm" onClick={() => setOpen(true)}>
+              Buat Soal
+            </Button>
+          }
+        />
       </DataView>
 
       <Dialog

@@ -2,48 +2,47 @@
 
 import { type JSX } from "react";
 
+import Link from "next/link";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Badge,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState
-} from "@opensis/ui";
+import { DataView, Button, IconWallet } from "@opensis/ui";
 
 import { formatRupiah, formatDate } from "@/lib/format";
 import { DEMO_INVOICES } from "@/lib/demo";
+import {
+  PageHeader,
+  DataTable,
+  type DataTableColumn,
+  StatusBadge,
+  type StatusTone,
+  EmptyStateV3
+} from "@/components/ui";
 
-// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
-const INVOICE_KOLOM: { key: string; label: string }[] = [
-  { key: "jenis", label: "Jenis" },
-  { key: "periode", label: "Periode" },
-  { key: "jumlah", label: "Jumlah" },
-  { key: "dibayar", label: "Dibayar" },
-  { key: "jatuhTempo", label: "Jatuh Tempo" },
-  { key: "status", label: "Status" }
-];
+interface InvoiceRow {
+  type: string;
+  period: string;
+  amount: number;
+  paid: number;
+  dueDate: string;
+  status: string;
+}
+
+const INVOICE_TONE: Record<string, StatusTone> = {
+  PAID: "success",
+  PARTIAL: "warning",
+  PENDING: "warning",
+  OVERDUE: "danger"
+};
+
+const INVOICE_LABEL: Record<string, string> = {
+  PAID: "LUNAS",
+  PARTIAL: "CICILAN",
+  PENDING: "PENDING",
+  OVERDUE: "MENUNGGAK"
+};
 
 export default function OrtuTagihanPage(): JSX.Element {
-  const list = useApi<
-    {
-      type: string;
-      period: string;
-      amount: number;
-      paid: number;
-      dueDate: string;
-      status: string;
-    }[]
-  >(
+  const list = useApi<InvoiceRow[]>(
     async () => {
       const rows = await api.get<
         Array<{
@@ -68,9 +67,77 @@ export default function OrtuTagihanPage(): JSX.Element {
     { fallbackData: DEMO_INVOICES }
   );
 
+  const columns: DataTableColumn<InvoiceRow>[] = [
+    {
+      key: "type",
+      label: "Jenis",
+      render: (i) => <span className="font-medium text-foreground">{i.type}</span>
+    },
+    {
+      key: "period",
+      label: "Periode",
+      hideBelow: "sm",
+      render: (i) => <span className="text-muted-foreground">{i.period}</span>
+    },
+    {
+      key: "amount",
+      label: "Jumlah",
+      render: (i) => <span className="tabular-nums">{formatRupiah(i.amount)}</span>
+    },
+    {
+      key: "paid",
+      label: "Dibayar",
+      hideBelow: "sm",
+      render: (i) => (
+        <span className="tabular-nums text-muted-foreground">{formatRupiah(i.paid)}</span>
+      )
+    },
+    {
+      key: "dueDate",
+      label: "Jatuh Tempo",
+      hideBelow: "md",
+      render: (i) => <span className="text-muted-foreground">{formatDate(i.dueDate)}</span>
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (i) => (
+        <StatusBadge
+          status={i.status}
+          mapping={INVOICE_TONE}
+          label={INVOICE_LABEL[i.status] ?? i.status}
+        />
+      )
+    },
+    {
+      key: "action",
+      label: "Aksi",
+      className: "text-right",
+      render: (i) =>
+        i.status === "OVERDUE" ? (
+          <Link href="/support">
+            <Button variant="outline" size="sm">
+              Hubungi Operator
+            </Button>
+          </Link>
+        ) : null
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Tagihan Anak (read-only)</h1>
+      <PageHeader
+        title="Tagihan Anak"
+        description="Status tagihan SPP dan tunggakan anak Anda (read-only)."
+        meta={<StatusBadge status="INFO" label="READ-ONLY" />}
+        actions={
+          <Link href="/support">
+            <Button variant="outline" size="sm">
+              Hubungi Operator
+            </Button>
+          </Link>
+        }
+      />
       <DataView
         status={list.status}
         error={list.error}
@@ -78,59 +145,19 @@ export default function OrtuTagihanPage(): JSX.Element {
         fallbackLabel="Tagihan anak"
       >
         {list.data?.length === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconWallet className="h-5 w-5" />}
             title="Belum ada data tagihan"
-            description="Tagihan tampil saat modul keuangan aktif."
+            desc="Tagihan tampil saat modul keuangan aktif."
           />
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Status Tagihan SPP</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {INVOICE_KOLOM.map((k) => (
-                      <TableHead key={k.key}>{k.label}</TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(list.data ?? []).map((i) => (
-                    <TableRow key={`${i.period}-${i.type}`}>
-                      <TableCell className="font-medium">{i.type}</TableCell>
-                      <TableCell>{i.period}</TableCell>
-                      <TableCell>{formatRupiah(i.amount)}</TableCell>
-                      <TableCell>{formatRupiah(i.paid)}</TableCell>
-                      <TableCell>{formatDate(i.dueDate)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            i.status === "PAID"
-                              ? "success"
-                              : i.status === "OVERDUE"
-                                ? "danger"
-                                : i.status === "PARTIAL"
-                                  ? "warning"
-                                  : "info"
-                          }
-                        >
-                          {i.status === "PAID"
-                            ? "LUNAS"
-                            : i.status === "OVERDUE"
-                              ? "MENUNGGAK"
-                              : i.status === "PARTIAL"
-                                ? "CICILAN"
-                                : "PENDING"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <DataTable<InvoiceRow>
+            columns={columns}
+            rows={list.data ?? []}
+            keyField={(row) => `${row.period}-${row.type}`}
+            emptyTitle="Belum ada data tagihan"
+            emptyDesc="Tagihan tampil saat modul keuangan aktif."
+          />
         )}
       </DataView>
     </div>

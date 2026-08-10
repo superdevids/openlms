@@ -23,6 +23,7 @@ import { formatDuration } from "@/lib/format";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
 import { cn } from "@opensis/ui";
+import { PageHeader } from "@/components/ui";
 
 interface QuizQuestion {
   id: string;
@@ -196,15 +197,18 @@ export default function SiswaKuisKerjakanPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold text-foreground">{quiz.data?.title ?? "Kuis"}</h1>
-        <div
-          className="rounded-md bg-neutral-900 px-3 py-1 font-mono text-lg font-semibold text-white"
-          aria-live="polite"
-        >
-          {remaining !== null ? formatDuration(remaining) : "--:--"}
-        </div>
-      </div>
+      <PageHeader
+        title={quiz.data?.title ?? "Kuis"}
+        backHref="/siswa/kuis"
+        actions={
+          <div
+            className="inline-flex items-center rounded-md bg-app-surface-2 px-3 py-1.5 font-mono text-lg font-semibold tabular-nums text-foreground"
+            aria-live="polite"
+          >
+            {remaining !== null ? formatDuration(remaining) : "--:--"}
+          </div>
+        }
+      />
 
       <DataView status={quiz.status} error={quiz.error} onRetry={quiz.refetch} fallbackLabel="Kuis">
         {startError ? (
@@ -214,7 +218,7 @@ export default function SiswaKuisKerjakanPage(): JSX.Element {
         ) : null}
         {current ? (
           <>
-            <Card>
+            <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
               <CardContent className="space-y-4">
                 <p className="text-sm font-medium text-muted-foreground">
                   Pertanyaan {index + 1} dari {questions.length}

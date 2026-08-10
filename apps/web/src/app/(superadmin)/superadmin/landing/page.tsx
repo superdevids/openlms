@@ -18,8 +18,11 @@ import {
   ConfirmDialog,
   toast,
   IconPlus,
-  IconX
+  IconX,
+  IconFile
 } from "@opensis/ui";
+
+import { PageHeader, EmptyStateV3, StatusBadge } from "@/components/ui";
 
 /**
  * Editor Landing Page — SUPERADMIN + OPERATOR (permission landing:write:school).
@@ -256,17 +259,19 @@ export default function SuperadminLandingPage(): JSX.Element {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Landing Page Sekolah</h1>
-        <p className="text-sm text-muted-foreground">
-          Kelola konten halaman depan website (hero, tentang, piagam, kontak) dan berita. Perubahan
-          langsung tampil di <code>/</code>.
-        </p>
-      </div>
+      <PageHeader
+        title="Landing Page Sekolah"
+        description={
+          <>
+            Kelola konten halaman depan website (hero, tentang, piagam, kontak) dan berita.
+            Perubahan langsung tampil di <code>/</code>.
+          </>
+        }
+      />
 
       {sectionsApi.status === "error" || newsApi.status === "error" ? (
-        <Card>
-          <CardContent className="p-4 text-sm text-danger-700">
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
+          <CardContent className="p-4 text-sm text-status-danger-fg">
             Tidak dapat memuat data landing dari API. Periksa koneksi backend dan pastikan akun
             memiliki permission <code>landing:write:school</code>.
           </CardContent>
@@ -275,21 +280,35 @@ export default function SuperadminLandingPage(): JSX.Element {
 
       {/* Section konten */}
       <section aria-labelledby="landing-sections-title">
-        <h2 id="landing-sections-title" className="text-lg font-semibold text-foreground">
-          Konten Halaman
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2
+              id="landing-sections-title"
+              className="text-base font-semibold tracking-tight text-foreground"
+            >
+              Konten Halaman
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Edit section hero, tentang, piagam, kontak — masing-masing dapat diterbitkan/draf.
+            </p>
+          </div>
+        </div>
         {sections.length === 0 ? (
-          <Card className="mt-4">
-            <CardContent className="p-4 text-sm text-muted-foreground">
-              Belum ada section. Jalankan seed atau buat section melalui API.
-            </CardContent>
-          </Card>
+          <EmptyStateV3
+            className="mt-4"
+            icon={<IconX className="h-5 w-5" />}
+            title="Belum ada section"
+            desc="Jalankan seed atau buat section melalui API."
+          />
         ) : (
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             {sections.map((section) => {
               const draft = drafts[section.slug] ?? EMPTY_DRAFT(section.slug);
               return (
-                <Card key={section.id}>
+                <Card
+                  key={section.id}
+                  className="rounded-lg border-border bg-app-surface shadow-app-card"
+                >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-2">
                       <Badge variant="primary">
@@ -392,7 +411,10 @@ export default function SuperadminLandingPage(): JSX.Element {
       <section aria-labelledby="landing-news-title">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 id="landing-news-title" className="text-lg font-semibold text-foreground">
+            <h2
+              id="landing-news-title"
+              className="text-base font-semibold tracking-tight text-foreground"
+            >
               Berita
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -405,24 +427,26 @@ export default function SuperadminLandingPage(): JSX.Element {
         </div>
 
         {news.length === 0 ? (
-          <Card className="mt-4">
-            <CardContent className="p-4 text-sm text-muted-foreground">
-              Belum ada berita. Klik &quot;Tambah Berita&quot; untuk membuat berita pertama.
-            </CardContent>
-          </Card>
+          <EmptyStateV3
+            className="mt-4"
+            icon={<IconFile className="h-5 w-5" />}
+            title="Belum ada berita"
+            desc="Klik 'Tambah Berita' untuk membuat berita pertama."
+          />
         ) : (
           <div className="mt-4 space-y-3">
             {news.map((item) => (
-              <Card key={item.id}>
+              <Card
+                key={item.id}
+                className="rounded-lg border-border bg-app-surface shadow-app-card"
+              >
                 <CardContent className="flex items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-base font-semibold text-foreground">
                         {item.title}
                       </p>
-                      <Badge variant={item.isPublished ? "success" : "neutral"}>
-                        {item.isPublished ? "Terbit" : "Draf"}
-                      </Badge>
+                      <StatusBadge status={item.isPublished ? "PUBLISHED" : "DRAFT"} />
                     </div>
                     <p className="mt-0.5 truncate text-sm text-muted-foreground">
                       <code>{item.slug}</code> · {formatTanggal(item.publishedAt)}

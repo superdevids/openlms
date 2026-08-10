@@ -22,6 +22,7 @@ import { EXAM_FORCE_SUBMIT_EVENT, EXAM_TICK_EVENT, getSocket } from "@/lib/use-s
 import { DEMO_QUESTIONS } from "@/lib/demo";
 import { cn } from "@opensis/ui";
 import { STORAGE_KEYS, safeGet, safeRemove, safeSet } from "@/lib/storage";
+import { StatusBadge } from "@/components/ui";
 
 interface ExamQuestion {
   id: string;
@@ -309,7 +310,7 @@ export default function SiswaUjianKerjakanPage(): JSX.Element {
 
   if (finalResult) {
     return (
-      <div className="mx-auto max-w-lg rounded-lg border border-border bg-card p-8 text-center shadow-sm">
+      <div className="mx-auto max-w-lg rounded-lg border border-border bg-app-surface p-8 text-center shadow-app-card">
         <p className="text-2xl font-bold text-foreground">
           Ujian telah {finalResult.auto ? "dikumpulkan otomatis" : "terkirim"}
         </p>
@@ -333,25 +334,23 @@ export default function SiswaUjianKerjakanPage(): JSX.Element {
             <p className="text-lg font-bold text-foreground" aria-live="polite">
               {formatDuration(remaining ?? 0)}
             </p>
-            <p className="text-sm text-muted-foreground" aria-live="polite">
-              {saveStatus === "saving"
-                ? "Menyimpan…"
-                : saveStatus === "offline"
-                  ? "Menunggu koneksi…"
-                  : lastSaved
-                    ? `Tersimpan ${lastSaved}`
-                    : ""}
-            </p>
+            {saveStatus === "saving" ? (
+              <StatusBadge status="PROSES" label="Menyimpan…" />
+            ) : saveStatus === "offline" ? (
+              <StatusBadge status="OVERDUE" label="Menunggu koneksi…" />
+            ) : lastSaved ? (
+              <StatusBadge status="TERSUBMIT" label={`Tersimpan ${lastSaved}`} />
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <span
               className={cn(
-                "rounded px-2 py-0.5 text-xs font-semibold",
+                "rounded-full px-2 py-0.5 text-xs font-semibold",
                 timerDanger
-                  ? "bg-danger-600 text-white"
+                  ? "bg-status-danger-bg text-status-danger-fg"
                   : timerWarn
-                    ? "bg-warning-100 text-warning-700"
-                    : "bg-muted text-foreground"
+                    ? "bg-status-warning-bg text-status-warning-fg"
+                    : "bg-muted text-muted-foreground"
               )}
             >
               {timerDanger ? "≤ 1 menit" : timerWarn ? "≤ 10 menit" : "Waktu berjalan"}
@@ -373,7 +372,7 @@ export default function SiswaUjianKerjakanPage(): JSX.Element {
 
       {current ? (
         <section
-          className="rounded-lg border border-border bg-card p-5 shadow-sm"
+          className="rounded-lg border border-border bg-app-surface p-5 shadow-app-card"
           aria-live="polite"
         >
           <div className="mb-3 flex items-center justify-between">

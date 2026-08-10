@@ -4,11 +4,12 @@ import { type JSX } from "react";
 
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, CardHeader, CardTitle, Badge, EmptyState } from "@opensis/ui";
+import { DataView, Card, IconCalendar } from "@opensis/ui";
 
 import { formatDateLong } from "@/lib/format";
 import { cn } from "@opensis/ui";
 import { SCHEDULE_DAY_NAMES, mapScheduleEntry, type ScheduleEntryView } from "@/lib/schedule";
+import { PageHeader, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 const DAYS = SCHEDULE_DAY_NAMES;
 
@@ -22,8 +23,7 @@ export default function SiswaKalenderPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Kalender & Jadwal</h1>
-      <p className="text-sm text-muted-foreground">{formatDateLong(new Date())}</p>
+      <PageHeader title="Kalender & Jadwal" description={formatDateLong(new Date())} />
       <DataView
         status={schedule.status}
         error={schedule.error}
@@ -31,9 +31,10 @@ export default function SiswaKalenderPage(): JSX.Element {
         fallbackLabel="Jadwal pelajaran"
       >
         {schedule.data?.length === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconCalendar className="h-5 w-5" />}
             title="Belum ada jadwal"
-            description="Jadwal akan tampil setelah sekolah menyusunnya."
+            desc="Jadwal akan tampil setelah sekolah menyusunnya."
           />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -41,17 +42,29 @@ export default function SiswaKalenderPage(): JSX.Element {
               const dayNo = DAYS.indexOf(day) + 1;
               const entries = (schedule.data ?? []).filter((s) => s.dayOfWeek === dayNo);
               return (
-                <Card key={day} className={cn(entries.length === 0 && "opacity-60")}>
-                  <CardHeader>
-                    <CardTitle>{day}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <Card
+                  key={day}
+                  className={cn(
+                    "rounded-lg border-border bg-app-surface shadow-app-card",
+                    entries.length === 0 && "opacity-60"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+                    <p className="text-sm font-semibold text-foreground">{day}</p>
+                    {entries.length > 0 ? (
+                      <StatusBadge status="JAM" label={`${entries.length} jadwal`} />
+                    ) : null}
+                  </div>
+                  <div className="p-4">
                     {entries.length === 0 ? (
                       <p className="text-sm text-muted-foreground">Tidak ada jadwal</p>
                     ) : (
                       <ul className="space-y-2">
                         {entries.map((e) => (
-                          <li key={e.id} className="flex items-center justify-between gap-2">
+                          <li
+                            key={e.id}
+                            className="flex items-center justify-between gap-2 rounded-lg border border-border bg-app-surface-2/40 px-3 py-2"
+                          >
                             <span className="min-w-0">
                               <span className="block truncate text-sm font-medium text-foreground">
                                 {e.subject}
@@ -62,12 +75,16 @@ export default function SiswaKalenderPage(): JSX.Element {
                                 {e.room ? ` · ${e.room}` : ""}
                               </span>
                             </span>
-                            <Badge variant="primary">Jam {e.periods.split("–")[0]}</Badge>
+                            <StatusBadge
+                              status="JAM"
+                              label={`Jam ${e.periods.split("–")[0]}`}
+                              className="shrink-0"
+                            />
                           </li>
                         ))}
                       </ul>
                     )}
-                  </CardContent>
+                  </div>
                 </Card>
               );
             })}

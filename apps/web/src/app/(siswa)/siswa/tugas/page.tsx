@@ -4,25 +4,20 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  Badge,
-  Button,
-  Textarea,
-  Label,
-  Alert,
-  Dialog,
-  EmptyState,
-  toast
-} from "@opensis/ui";
+import { DataView, Button, Textarea, Label, Alert, Dialog, toast } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
 import { DEMO_TASKS } from "@/lib/demo";
 import { errorMessage, ApiError, isFeatureDisabledError } from "@/lib/api-client";
+import {
+  PageHeader,
+  DataTable,
+  type DataTableColumn,
+  StatusBadge,
+  type StatusTone
+} from "@/components/ui";
 
 interface Task {
   id: string;
@@ -31,6 +26,12 @@ interface Task {
   dueAt: string;
   status: string;
 }
+
+const TASK_TONE: Record<string, StatusTone> = {
+  BUKA: "warning",
+  TERSUBMIT: "success",
+  TERLAMBAT: "danger"
+};
 
 export default function SiswaTugasPage(): JSX.Element {
   const list = useApi<Task[]>(() => api.get("/assignments"), [], { fallbackData: DEMO_TASKS });
@@ -66,56 +67,60 @@ export default function SiswaTugasPage(): JSX.Element {
     }
   };
 
+  const columns: DataTableColumn<Task>[] = [
+    {
+      key: "title",
+      label: "Judul",
+      render: (t) => <span className="font-medium text-foreground">{t.title}</span>
+    },
+    {
+      key: "subject",
+      label: "Mapel",
+      hideBelow: "md",
+      render: (t) => <span className="text-muted-foreground">{t.subject}</span>
+    },
+    {
+      key: "dueAt",
+      label: "Tenggat",
+      render: (t) => <span className="text-muted-foreground">{formatRelative(t.dueAt)}</span>
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (t) => <StatusBadge status={t.status} mapping={TASK_TONE} />
+    },
+    {
+      key: "action",
+      label: "Aksi",
+      className: "text-right",
+      render: (t) =>
+        t.status === "BUKA" ? (
+          <Button size="sm" onClick={() => setOpenId(t.id)}>
+            Kerjakan
+          </Button>
+        ) : null
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Tugas Saya</h1>
+      <PageHeader
+        title="Tugas Saya"
+        description="Tugas yang diberikan guru — kerjakan sebelum tenggat, jawaban dikirim sekali dan tidak dapat diubah."
+      />
       <DataView
         status={list.status}
         error={list.error}
         onRetry={list.refetch}
         fallbackLabel="Daftar tugas"
       >
-        {list.data?.length === 0 ? (
-          <EmptyState
-            title="Tidak ada tugas"
-            description="Tugas akan muncul setelah guru membuatnya."
-          />
-        ) : (
-          <ul className="space-y-2">
-            {(list.data ?? []).map((t) => (
-              <li key={t.id}>
-                <Card>
-                  <CardContent className="flex min-h-14 items-center justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-foreground">{t.title}</span>
-                      <span className="block text-sm text-muted-foreground">
-                        {t.subject} · Tenggat {formatRelative(t.dueAt)}
-                      </span>
-                    </span>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Badge
-                        variant={
-                          t.status === "TERLAMBAT"
-                            ? "danger"
-                            : t.status === "TERSUBMIT"
-                              ? "success"
-                              : "primary"
-                        }
-                      >
-                        {t.status}
-                      </Badge>
-                      {t.status === "BUKA" ? (
-                        <Button size="sm" onClick={() => setOpenId(t.id)}>
-                          Kerjakan
-                        </Button>
-                      ) : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DataTable<Task>
+          columns={columns}
+          rows={list.data ?? []}
+          keyField="id"
+          emptyTitle="Tidak ada tugas"
+          emptyDesc="Tugas akan muncul setelah guru membuatnya."
+        />
       </DataView>
 
       <Dialog

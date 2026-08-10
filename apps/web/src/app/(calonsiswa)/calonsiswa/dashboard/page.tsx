@@ -15,13 +15,13 @@ import {
   Input,
   Label,
   Alert,
-  Badge,
-  EmptyState,
   IconCheck,
   IconAlert,
-  IconFile
+  IconFile,
+  IconAcademic
 } from "@opensis/ui";
 import { NewsItem } from "@/lib/constants";
+import { PageHeader, StatCard, StatGrid, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 type TrackStatus = "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "WAITLIST" | "REJECTED";
 
@@ -38,14 +38,6 @@ const CHECKLIST = [
   { label: "Pas foto 3x4", done: false },
   { label: "Kartu NISN", done: false }
 ];
-
-function statusVariant(status: TrackStatus): "success" | "warning" | "info" | "danger" | "primary" {
-  if (status === "ENROLLED") return "success";
-  if (status === "SELECTED") return "primary";
-  if (status === "REJECTED") return "danger";
-  if (status === "WAITLIST") return "warning";
-  return "info";
-}
 
 function statusLabel(status: TrackStatus): string {
   const map: Record<TrackStatus, string> = {
@@ -100,13 +92,38 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
 
   const effectiveStatus =
     DEMO_MODE && track.status !== "success" ? DEMO_STATUS : (track.data ?? null);
+  const checklistDone = CHECKLIST.filter((c) => c.done).length;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard Calon Siswa</h1>
+      <PageHeader
+        title="Beranda Calon Siswa"
+        description="Pendaftaran & pengumuman — pantau status PPDB dan lengkapi berkas."
+      />
+
+      <StatGrid className="grid-cols-1 sm:grid-cols-2">
+        <StatCard
+          label="Status Pendaftaran"
+          value={effectiveStatus ? statusLabel(effectiveStatus.status) : "-"}
+          tone="info"
+          icon={<IconAcademic className="h-5 w-5" />}
+          hint={effectiveStatus ? effectiveStatus.registration_no : "masukkan nomor pendaftaran"}
+        />
+        <StatCard
+          label="Kelengkapan Berkas"
+          value={`${checklistDone}/${CHECKLIST.length}`}
+          tone={checklistDone === CHECKLIST.length ? "success" : "warning"}
+          icon={<IconFile className="h-5 w-5" />}
+          hint={
+            checklistDone === CHECKLIST.length
+              ? "semua berkas lengkap"
+              : `${CHECKLIST.length - checklistDone} berkas belum lengkap`
+          }
+        />
+      </StatGrid>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Status Pendaftaran</CardTitle>
             <CardDescription>
@@ -145,16 +162,17 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
                 <div className="flex items-center gap-2">
                   {effectiveStatus.status === "SELECTED" ||
                   effectiveStatus.status === "ENROLLED" ? (
-                    <IconCheck className="h-5 w-5 text-success-600" />
+                    <IconCheck className="h-5 w-5 text-status-success-fg" />
                   ) : (
-                    <IconAlert className="h-5 w-5 text-warning-700" />
+                    <IconAlert className="h-5 w-5 text-status-warning-fg" />
                   )}
                   <p className="font-semibold text-foreground">{effectiveStatus.full_name}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Badge variant={statusVariant(effectiveStatus.status)}>
-                    {statusLabel(effectiveStatus.status)}
-                  </Badge>
+                  <StatusBadge
+                    status={effectiveStatus.status}
+                    label={statusLabel(effectiveStatus.status)}
+                  />
                   <span className="font-mono text-xs text-muted-foreground">
                     {effectiveStatus.registration_no}
                   </span>
@@ -164,7 +182,7 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Checklist Dokumen</CardTitle>
             <CardDescription>Pastikan seluruh berkas pendaftaran sudah lengkap.</CardDescription>
@@ -177,11 +195,7 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
                   className="flex items-center justify-between rounded-md border border-border px-3 py-2"
                 >
                   <span className="text-sm font-medium text-foreground">{item.label}</span>
-                  {item.done ? (
-                    <Badge variant="success">Lengkap</Badge>
-                  ) : (
-                    <Badge variant="warning">Kurang</Badge>
-                  )}
+                  <StatusBadge status={item.done ? "LENGKAP" : "PENDING"} />
                 </li>
               ))}
             </ul>
@@ -189,16 +203,17 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
         </Card>
       </div>
 
-      <Card>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <CardTitle>Pengumuman Sekolah</CardTitle>
           <CardDescription>Informasi terbaru dari halaman resmi sekolah.</CardDescription>
         </CardHeader>
         <CardContent>
           {(berita.data ?? []).length === 0 ? (
-            <EmptyState
+            <EmptyStateV3
+              icon={<IconFile className="h-5 w-5" />}
               title="Belum ada pengumuman"
-              description="Pengumuman akan tampil saat sekolah menerbitkan berita."
+              desc="Pengumuman akan tampil saat sekolah menerbitkan berita."
             />
           ) : (
             <ul className="space-y-2">

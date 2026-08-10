@@ -4,9 +4,21 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Button, Input, Label, Select, Textarea, Alert, Dialog, Badge, EmptyState, toast } from "@opensis/ui";
+import {
+  DataView,
+  Button,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  Alert,
+  Dialog,
+  toast,
+  IconFile
+} from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
+import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
 
 interface Material {
   id: string;
@@ -14,6 +26,12 @@ interface Material {
   kind: "FILE" | "VIDEO" | "LINK";
   updatedAt: string;
 }
+
+const KIND_LABEL: Record<Material["kind"], string> = {
+  FILE: "Dokumen",
+  VIDEO: "Video",
+  LINK: "Tautan"
+};
 
 export default function GuruMateriPage(): JSX.Element {
   const list = useApi<Material[]>(() => api.get("/materials"), [], {
@@ -63,42 +81,69 @@ export default function GuruMateriPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Materi</h1>
-        <Button onClick={() => setOpen(true)}>Tambah Materi</Button>
-      </div>
+      <PageHeader
+        title="Materi"
+        description="Dokumen, video, dan tautan belajar yang dibagikan ke siswa."
+        actions={
+          <Button onClick={() => setOpen(true)} size="sm">
+            Tambah Materi
+          </Button>
+        }
+      />
+
       <DataView
         status={list.status}
         error={list.error}
         onRetry={list.refetch}
         fallbackLabel="Daftar materi"
       >
-        {list.data?.length === 0 ? (
-          <EmptyState
-            title="Belum ada materi"
-            description="Unggah materi pertama untuk siswa."
-            action={<Button onClick={() => setOpen(true)}>Tambah Materi</Button>}
-          />
-        ) : (
-          <ul className="space-y-2">
-            {(list.data ?? []).map((m) => (
-              <li key={m.id}>
-                <Card>
-                  <CardContent className="flex min-h-14 items-center justify-between gap-3">
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-foreground">{m.title}</span>
-                      <span className="block text-sm text-muted-foreground">
-                        {m.kind === "FILE" ? "Dokumen" : m.kind === "VIDEO" ? "Video" : "Tautan"} ·{" "}
-                        {formatRelative(m.updatedAt)}
-                      </span>
-                    </span>
-                    <Badge variant="primary">{m.kind}</Badge>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DataTable
+          keyField="id"
+          columns={[
+            {
+              key: "title",
+              label: "Judul",
+              render: (m) => (
+                <span className="flex items-center gap-2 font-medium text-foreground">
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary"
+                    aria-hidden="true"
+                  >
+                    <IconFile className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 truncate">{m.title}</span>
+                </span>
+              )
+            },
+            {
+              key: "kind",
+              label: "Jenis",
+              render: (m) => (
+                <StatusBadge
+                  status={m.kind}
+                  mapping={{ FILE: "info", VIDEO: "warning", LINK: "neutral" }}
+                  label={KIND_LABEL[m.kind]}
+                />
+              )
+            },
+            {
+              key: "updatedAt",
+              label: "Diperbarui",
+              hideBelow: "md",
+              render: (m) => (
+                <span className="text-muted-foreground">{formatRelative(m.updatedAt)}</span>
+              )
+            }
+          ]}
+          rows={list.data ?? []}
+          emptyTitle="Belum ada materi"
+          emptyDesc="Unggah materi pertama untuk siswa."
+          emptyAction={
+            <Button size="sm" onClick={() => setOpen(true)}>
+              Tambah Materi
+            </Button>
+          }
+        />
       </DataView>
 
       <Dialog

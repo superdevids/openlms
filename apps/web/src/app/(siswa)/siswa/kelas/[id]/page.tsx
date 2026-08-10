@@ -6,10 +6,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Tabs, TabPanel, Badge, Button, EmptyState } from "@opensis/ui";
+import { DataView, Card, CardContent, Tabs, TabPanel, Button, IconFile } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { DEMO_CLASSES, DEMO_TASKS } from "@/lib/demo";
+import { PageHeader, StatusBadge, type StatusTone, EmptyStateV3 } from "@/components/ui";
 
 interface Material {
   id: string;
@@ -17,6 +18,12 @@ interface Material {
   kind: "FILE" | "VIDEO" | "LINK";
   updatedAt: string;
 }
+
+const TASK_TONE: Record<string, StatusTone> = {
+  BUKA: "warning",
+  TERSUBMIT: "success",
+  TERLAMBAT: "danger"
+};
 
 export default function SiswaKelasDetailPage(): JSX.Element {
   const params = useParams<{ id: string }>();
@@ -42,14 +49,11 @@ export default function SiswaKelasDetailPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/siswa/kelas" className="text-sm font-medium text-primary">
-          &larr; Kembali ke kelas
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-foreground">
-          {cls?.name ?? "Detail Kelas"} {cls ? `— ${cls.subject}` : ""}
-        </h1>
-      </div>
+      <PageHeader
+        title={cls?.name ?? "Detail Kelas"}
+        description={cls ? `${cls.subject} · Guru: ${cls.teacher}` : "Memuat detail kelas..."}
+        backHref="/siswa/kelas"
+      />
 
       <DataView
         status={detail.status}
@@ -76,21 +80,22 @@ export default function SiswaKelasDetailPage(): JSX.Element {
             fallbackLabel="Daftar materi"
           >
             {materials.data?.length === 0 ? (
-              <EmptyState
+              <EmptyStateV3
+                icon={<IconFile className="h-5 w-5" />}
                 title="Guru belum menambah materi"
-                description="Materi akan tampil di sini setelah diunggah guru."
+                desc="Materi akan tampil di sini setelah diunggah guru."
               />
             ) : (
               <ul className="space-y-2">
                 {(materials.data ?? []).map((m) => (
                   <li key={m.id}>
-                    <Card>
+                    <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
                       <CardContent className="flex min-h-14 items-center justify-between gap-3">
                         <span className="min-w-0">
-                          <span className="block truncate font-medium text-foreground">
+                          <span className="block truncate text-sm font-medium text-foreground">
                             {m.title}
                           </span>
-                          <span className="block text-sm text-muted-foreground">
+                          <span className="block text-xs text-muted-foreground">
                             {m.kind === "FILE"
                               ? "Dokumen"
                               : m.kind === "VIDEO"
@@ -121,36 +126,26 @@ export default function SiswaKelasDetailPage(): JSX.Element {
             fallbackLabel="Daftar tugas"
           >
             {tasks.data?.length === 0 ? (
-              <EmptyState
+              <EmptyStateV3
                 title="Belum ada tugas"
-                description="Tugas akan muncul setelah guru membuatnya."
+                desc="Tugas akan muncul setelah guru membuatnya."
               />
             ) : (
               <ul className="space-y-2">
                 {(tasks.data ?? []).map((t) => (
                   <li key={t.id}>
                     <Link href="/siswa/tugas" className="block">
-                      <Card className="transition-colors hover:border-primary-600">
+                      <Card className="rounded-lg border-border bg-app-surface shadow-app-card transition-colors hover:border-brand-primary/60">
                         <CardContent className="flex min-h-14 items-center justify-between gap-3">
                           <span className="min-w-0">
-                            <span className="block truncate font-medium text-foreground">
+                            <span className="block truncate text-sm font-medium text-foreground">
                               {t.title}
                             </span>
-                            <span className="block text-sm text-muted-foreground">
+                            <span className="block text-xs text-muted-foreground">
                               Tenggat {formatRelative(t.dueAt)}
                             </span>
                           </span>
-                          <Badge
-                            variant={
-                              t.status === "TERLAMBAT"
-                                ? "danger"
-                                : t.status === "TERSUBMIT"
-                                  ? "success"
-                                  : "primary"
-                            }
-                          >
-                            {t.status}
-                          </Badge>
+                          <StatusBadge status={t.status} mapping={TASK_TONE} className="shrink-0" />
                         </CardContent>
                       </Card>
                     </Link>
@@ -162,11 +157,11 @@ export default function SiswaKelasDetailPage(): JSX.Element {
         </TabPanel>
 
         <TabPanel value="kuis" activeValue={tab}>
-          <EmptyState title="Kuis" description="Kuis kelas akan tampil di sini." />
+          <EmptyStateV3 title="Kuis" desc="Kuis kelas akan tampil di sini." />
         </TabPanel>
 
         <TabPanel value="nilai" activeValue={tab}>
-          <EmptyState title="Nilai" description="Lihat rekap nilai lengkap di halaman Nilai." />
+          <EmptyStateV3 title="Nilai" desc="Lihat rekap nilai lengkap di halaman Nilai." />
         </TabPanel>
       </DataView>
     </div>

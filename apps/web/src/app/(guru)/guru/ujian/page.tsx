@@ -19,14 +19,15 @@ import {
   Dialog,
   Tabs,
   TabPanel,
-  EmptyState,
   toast,
-  IconClock
+  IconClock,
+  IconExam
 } from "@opensis/ui";
 
 import { useAuth } from "@/components/auth/auth-provider";
 
 import { DEMO_EXAMS } from "@/lib/demo";
+import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
 
 interface Exam {
   id: string;
@@ -140,10 +141,15 @@ export default function GuruUjianPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Ujian</h1>
-        <Button onClick={() => setOpen(true)}>Buat Ujian</Button>
-      </div>
+      <PageHeader
+        title="Ujian"
+        description="Jadwalkan ujian, kelola paket soal, dan terbitkan token sesi untuk siswa."
+        actions={
+          <Button onClick={() => setOpen(true)} size="sm">
+            Buat Ujian
+          </Button>
+        }
+      />
 
       <Tabs
         tabs={[
@@ -161,48 +167,97 @@ export default function GuruUjianPage(): JSX.Element {
           onRetry={list.refetch}
           fallbackLabel="Daftar ujian"
         >
-          {list.data?.length === 0 ? (
-            <EmptyState
-              title="Belum ada ujian"
-              description="Buat ujian, paket soal, dan sesi dari sini."
-              action={<Button onClick={() => setOpen(true)}>Buat Ujian</Button>}
-            />
-          ) : (
-            <ul className="space-y-2">
-              {(list.data ?? []).map((e) => (
-                <li key={e.id}>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{e.title}</CardTitle>
-                      <CardDescription>
-                        {EXAM_TYPE_LABEL[e.type ?? ""] ?? e.type ?? "-"} ·{" "}
-                        {subjectNameById[e.subject_id ?? ""] ?? "Mapel tidak diketahui"} ·{" "}
-                        {e.duration_min ? `${e.duration_min} mnt` : "-"} · {e.status}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void generateToken(e.id)}
-                        loading={tokenLoading && tokenExamId === e.id}
-                      >
-                        Generate Token Sesi
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          )}
+          <DataTable
+            keyField="id"
+            columns={[
+              {
+                key: "title",
+                label: "Judul",
+                render: (e) => (
+                  <span className="flex items-center gap-2 font-medium text-foreground">
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary"
+                      aria-hidden="true"
+                    >
+                      <IconExam className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 truncate">{e.title}</span>
+                  </span>
+                )
+              },
+              {
+                key: "type",
+                label: "Tipe",
+                hideBelow: "md",
+                render: (e) => (
+                  <span className="text-muted-foreground">
+                    {EXAM_TYPE_LABEL[e.type ?? ""] ?? e.type ?? "-"}
+                  </span>
+                )
+              },
+              {
+                key: "subject",
+                label: "Mapel",
+                hideBelow: "lg",
+                render: (e) => (
+                  <span className="text-muted-foreground">
+                    {subjectNameById[e.subject_id ?? ""] ?? "Mapel tidak diketahui"}
+                  </span>
+                )
+              },
+              {
+                key: "duration",
+                label: "Durasi",
+                hideBelow: "lg",
+                render: (e) => (
+                  <span className="text-muted-foreground">
+                    {e.duration_min ? `${e.duration_min} mnt` : "-"}
+                  </span>
+                )
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (e) => (
+                  <StatusBadge
+                    status={e.status}
+                    mapping={{ SCHEDULED: "warning", ONGOING: "info", ENDED: "success" }}
+                  />
+                )
+              },
+              {
+                key: "action",
+                label: "",
+                className: "text-right",
+                render: (e) => (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void generateToken(e.id)}
+                    loading={tokenLoading && tokenExamId === e.id}
+                  >
+                    Generate Token Sesi
+                  </Button>
+                )
+              }
+            ]}
+            rows={list.data ?? []}
+            emptyTitle="Belum ada ujian"
+            emptyDesc="Buat ujian, paket soal, dan sesi dari sini."
+            emptyAction={
+              <Button size="sm" onClick={() => setOpen(true)}>
+                Buat Ujian
+              </Button>
+            }
+          />
         </DataView>
       </TabPanel>
 
       <TabPanel value="token" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
-            <CardTitle>Token Sesi Ujian</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-sm font-semibold">Token Sesi Ujian</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
               6 karakter alfanumerik uppercase tanpa 0/O/1/I; sekali pakai per attempt
               (04-api-contract §2.4).
             </CardDescription>
@@ -218,7 +273,7 @@ export default function GuruUjianPage(): JSX.Element {
                 {(list.data ?? []).map((e) => (
                   <li
                     key={e.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-app-surface-2/40 px-3 py-2"
                   >
                     <span className="font-medium text-foreground">{e.title}</span>
                     <Button
@@ -235,16 +290,16 @@ export default function GuruUjianPage(): JSX.Element {
             </DataView>
             {tokenResult ? (
               <div
-                className="rounded-lg border border-primary-600 bg-primary-100 p-4 text-center"
+                className="rounded-lg border border-status-info-border bg-status-info-bg p-4 text-center"
                 role="status"
               >
-                <p className="text-sm font-medium text-primary-800">
+                <p className="text-sm font-medium text-status-info-fg">
                   Token untuk ditampilkan ke siswa:
                 </p>
-                <p className="mt-1 font-mono text-4xl font-bold tracking-[0.3em] text-primary-800">
+                <p className="mt-1 font-mono text-4xl font-bold tracking-[0.3em] text-status-info-fg">
                   {tokenResult}
                 </p>
-                <p className="mt-1 flex items-center justify-center gap-1 text-sm text-primary-800">
+                <p className="mt-1 flex items-center justify-center gap-1 text-sm text-status-info-fg">
                   <IconClock className="h-4 w-4" /> Berlaku untuk sesi yang sedang dibuka
                 </p>
               </div>

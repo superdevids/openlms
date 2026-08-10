@@ -5,23 +5,14 @@ import { useRef, useState, type FormEvent, type JSX } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Button,
-  Alert,
-  toast
-} from "@opensis/ui";
+import { DataView, Card, CardContent, Button, Alert, toast } from "@opensis/ui";
 
 import { formatDateTime } from "@/lib/format";
 
 import { DEMO_EXAMS } from "@/lib/demo";
 import { cn } from "@opensis/ui";
 import { STORAGE_KEYS, safeSet } from "@/lib/storage";
+import { PageHeader } from "@/components/ui";
 
 /** Draft attempt di sessionStorage (R-23) — dibaca ulang di halaman kerjakan utk resume.
  *  HANYA attemptId (bukan token) yang disimpan — token sesi hanya di memori (R-48). */
@@ -184,7 +175,11 @@ export default function SiswaUjianTokenPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Masuk Sesi Ujian</h1>
+      <PageHeader
+        title="Masuk Sesi Ujian"
+        description="Masukkan token 6 karakter dari pengawas untuk memulai ujian."
+        backHref="/siswa/ujian"
+      />
       <DataView
         status={exam.status}
         error={exam.error}
@@ -192,16 +187,15 @@ export default function SiswaUjianTokenPage(): JSX.Element {
         fallbackLabel="Detail ujian"
       >
         {exam.data ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>{exam.data.title}</CardTitle>
-              <CardDescription>
-                {exam.data.subject} · {exam.data.className} · {formatDateTime(exam.data.startsAt)} –{" "}
-                {formatDateTime(exam.data.endsAt)}
-              </CardDescription>
-            </CardHeader>
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardContent className="space-y-4">
-              <p className="text-base text-foreground">Masukkan token dari pengawas</p>
+              <div className="mb-2">
+                <p className="text-base font-semibold text-foreground">{exam.data.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {exam.data.subject} · {exam.data.className} · {formatDateTime(exam.data.startsAt)}{" "}
+                  – {formatDateTime(exam.data.endsAt)}
+                </p>
+              </div>
               <form
                 onSubmit={(e) => void start(e)}
                 className="space-y-4"
@@ -230,14 +224,14 @@ export default function SiswaUjianTokenPage(): JSX.Element {
                       aria-label={`Karakter token ke-${i + 1}`}
                       maxLength={6}
                       className={cn(
-                        "h-14 w-11 rounded-md border-2 border-input text-center font-mono text-xl font-semibold uppercase text-foreground outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100",
+                        "h-14 w-11 rounded-md border-2 border-input bg-background text-center font-mono text-xl font-semibold uppercase text-foreground outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100",
                         locked && "opacity-50"
                       )}
                       disabled={locked}
                     />
                   ))}
                 </div>
-                <p className="text-center text-sm text-muted-foreground">
+                <p className="text-center text-xs text-muted-foreground">
                   6 karakter alfanumerik huruf besar, tanpa 0/O/1/I. Token sekali pakai per attempt.
                 </p>
 

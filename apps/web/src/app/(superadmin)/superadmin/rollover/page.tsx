@@ -11,21 +11,15 @@ import {
   CardDescription,
   Button,
   Alert,
-  Badge,
   Steps,
   ConfirmDialog,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
   toast,
   IconCheck,
   IconAlert
 } from "@opensis/ui";
 
 import { formatNumber } from "@/lib/format";
+import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
 
 /**
  * Rollover wizard — prd04 §5.R (state machine):
@@ -295,13 +289,10 @@ export default function SuperadminRolloverPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Tutup Tahun Ajaran</h1>
-        <p className="text-sm text-muted-foreground">
-          Tahun berjalan: 2026/2027 → Tahun baru: 2027/2028. Satu run per tahun ajaran; data tahun
-          lama menjadi arsip read-only. Draft dibuat dari tahun ajaran aktif di Pengaturan Aplikasi.
-        </p>
-      </div>
+      <PageHeader
+        title="Tutup Tahun Ajaran"
+        description="Tahun berjalan: 2026/2027 → Tahun baru: 2027/2028. Satu run per tahun ajaran; data tahun lama menjadi arsip read-only. Draft dibuat dari tahun ajaran aktif di Pengaturan Aplikasi."
+      />
 
       <Steps steps={WIZARD_STEPS} current={stepIndex[phase]} />
 
@@ -312,7 +303,7 @@ export default function SuperadminRolloverPage(): JSX.Element {
       ) : null}
 
       {phase === "precheck" ? (
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Pre-check Prasyarat</CardTitle>
             <CardDescription>
@@ -329,7 +320,7 @@ export default function SuperadminRolloverPage(): JSX.Element {
       ) : null}
 
       {phase === "preview" ? (
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Hasil Pre-check</CardTitle>
             <CardDescription>
@@ -348,9 +339,13 @@ export default function SuperadminRolloverPage(): JSX.Element {
                   className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2"
                 >
                   <span className="text-sm text-foreground">{b.message}</span>
-                  <Badge variant="danger">
-                    <IconAlert className="h-3 w-3" /> Bloker
-                  </Badge>
+                  <StatusBadge
+                    status="BLOCKER"
+                    label="Bloker"
+                    mapping={{ BLOCKER: "danger" }}
+                    icon={<IconAlert className="h-3 w-3" />}
+                    className="shrink-0"
+                  />
                 </li>
               ))}
               {(precheck?.warnings ?? []).map((w, i) => (
@@ -359,9 +354,13 @@ export default function SuperadminRolloverPage(): JSX.Element {
                   className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2"
                 >
                   <span className="text-sm text-foreground">{w}</span>
-                  <Badge variant="warning">
-                    <IconAlert className="h-3 w-3" /> Peringatan
-                  </Badge>
+                  <StatusBadge
+                    status="WARNING"
+                    label="Peringatan"
+                    mapping={{ WARNING: "warning" }}
+                    icon={<IconAlert className="h-3 w-3" />}
+                    className="shrink-0"
+                  />
                 </li>
               ))}
               {!precheck || (precheck.blockers.length === 0 && precheck.warnings.length === 0) ? (
@@ -389,7 +388,7 @@ export default function SuperadminRolloverPage(): JSX.Element {
       ) : null}
 
       {phase === "confirm" ? (
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Dry-run Preview</CardTitle>
             <CardDescription>
@@ -398,38 +397,45 @@ export default function SuperadminRolloverPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Siswa</TableHead>
-                  <TableHead>Aksi</TableHead>
-                  <TableHead>Rata-rata</TableHead>
-                  <TableHead>Alasan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(plan?.decisions ?? []).map((d) => (
-                  <TableRow key={`${d.studentId}-${d.action}`}>
-                    <TableCell className="font-medium">{d.studentId}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          d.action === "GRADUATED"
-                            ? "success"
-                            : d.action === "REPEATED"
-                              ? "warning"
-                              : "primary"
-                        }
-                      >
-                        {ACTION_LABEL[d.action] ?? d.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{d.averageScore !== null ? d.averageScore : "-"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{d.reason}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={[
+                {
+                  key: "studentId",
+                  label: "Siswa",
+                  render: (d) => <span className="font-medium">{d.studentId}</span>
+                },
+                {
+                  key: "action",
+                  label: "Aksi",
+                  render: (d) => (
+                    <StatusBadge
+                      status={
+                        d.action === "GRADUATED"
+                          ? "LULUS"
+                          : d.action === "REPEATED"
+                            ? "PENDING"
+                            : "BUKA"
+                      }
+                      label={ACTION_LABEL[d.action] ?? d.action}
+                    />
+                  )
+                },
+                {
+                  key: "averageScore",
+                  label: "Rata-rata",
+                  className: "tabular-nums",
+                  render: (d) => (d.averageScore !== null ? d.averageScore : "-")
+                },
+                {
+                  key: "reason",
+                  label: "Alasan",
+                  render: (d) => <span className="text-sm text-muted-foreground">{d.reason}</span>
+                }
+              ]}
+              rows={plan?.decisions ?? []}
+              keyField={(d) => `${d.studentId}-${d.action}`}
+              maxHeight="none"
+            />
             <Alert variant="info" className="text-sm">
               Ringkasan: {summaryLine}. Kelas baru:{" "}
               {(plan?.classes ?? []).map((c) => c.name).join(", ") || "-"}. Dampak keuangan diproses
@@ -446,7 +452,7 @@ export default function SuperadminRolloverPage(): JSX.Element {
       ) : null}
 
       {phase === "running" ? (
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Eksekusi Berjalan</CardTitle>
             <CardDescription>
@@ -462,7 +468,7 @@ export default function SuperadminRolloverPage(): JSX.Element {
       ) : null}
 
       {phase === "done" || phase === "rolledback" ? (
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>{phase === "done" ? "Rollover Selesai" : "Rollback Selesai"}</CardTitle>
             <CardDescription>

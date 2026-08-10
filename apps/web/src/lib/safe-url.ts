@@ -18,3 +18,11 @@ export function safeUrl(raw: string | null | undefined): string {
   }
   return "";
 }
+
+/**
+ * Sanitasi href internal dari API/CMS untuk dipakai di <Link> — hanya
+ * mengizinkan path relatif ("/...") dan http/https; selain itu dikosongkan.
+ */
+export function safeInternalHref(raw: string | null | undefined): string {
+  return safeUrl(raw);
+}

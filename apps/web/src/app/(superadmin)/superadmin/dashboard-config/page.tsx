@@ -15,9 +15,7 @@ import {
   Input,
   Label,
   Select,
-  Badge,
   DataView,
-  EmptyState,
   toast,
   IconChevronRight
 } from "@opensis/ui";
@@ -25,6 +23,7 @@ import type { Role } from "@opensis/types";
 import { roleLabel } from "@/lib/roles";
 import type { DashboardCard } from "@/lib/dashboard";
 import { DEFAULT_DASHBOARD_CARDS, dashboardGroupForRole } from "@/lib/dashboard";
+import { PageHeader, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface DashboardConfigRow extends DashboardCard {
   id: string;
@@ -171,13 +170,10 @@ export default function SuperadminDashboardConfigPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Konfigurasi Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Atur kartu menu yang tampil di dashboard tiap peran. Perubahan berlaku untuk semua
-          pengguna dengan peran tersebut.
-        </p>
-      </div>
+      <PageHeader
+        title="Konfigurasi Dashboard"
+        description="Atur kartu menu yang tampil di dashboard tiap peran. Perubahan berlaku untuk semua pengguna dengan peran tersebut."
+      />
 
       <DataView
         status={list.status}
@@ -201,7 +197,7 @@ export default function SuperadminDashboardConfigPage(): JSX.Element {
           ))}
         </div>
 
-        <Card className="mt-4">
+        <Card className="mt-4 rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
               <div>
@@ -245,7 +241,11 @@ export default function SuperadminDashboardConfigPage(): JSX.Element {
               </Button>
             </div>
             {roleRows.length === 0 ? (
-              <EmptyState title="Belum ada kartu" description="Tambahkan kartu untuk peran ini." />
+              <EmptyStateV3
+                icon={<IconChevronRight className="h-5 w-5" />}
+                title="Belum ada kartu"
+                desc="Tambahkan kartu untuk peran ini."
+              />
             ) : (
               roleRows.map((row, index) => (
                 <div
@@ -277,9 +277,10 @@ export default function SuperadminDashboardConfigPage(): JSX.Element {
                         onCheckedChange={(v) => patchRow(row.featureKey, { isEnabled: v })}
                         label={row.isEnabled ? "ON" : "OFF"}
                       />
-                      <Badge variant={row.isEnabled ? "success" : "neutral"}>
-                        {row.isEnabled ? "Aktif" : "Nonaktif"}
-                      </Badge>
+                      <StatusBadge
+                        status={row.isEnabled ? "AKTIF" : "OFF"}
+                        mapping={{ AKTIF: "success", OFF: "neutral" }}
+                      />
                     </div>
                     <Input
                       value={row.label}

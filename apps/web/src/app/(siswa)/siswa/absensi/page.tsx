@@ -4,30 +4,13 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Input,
-  Label,
-  Badge,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState,
-  toast
-} from "@opensis/ui";
+import { DataView, Card, CardContent, Button, Input, Label, IconQr, toast } from "@opensis/ui";
 
 import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
 import { cn } from "@opensis/ui";
+import { PageHeader, StatCard, StatGrid, EmptyStateV3 } from "@/components/ui";
 
 interface AttendanceRekapSummary {
   total: number;
@@ -102,14 +85,16 @@ export default function SiswaAbsensiPage(): JSX.Element {
     }
   };
 
+  const summary = list.data?.summary;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Absensi Saya</h1>
+      <PageHeader
+        title="Absensi Saya"
+        description="Scan kode QR/guru untuk mencatat kehadiran dan pantau rekap bulan ini."
+      />
 
-      <Card className="border-primary-600">
-        <CardHeader>
-          <CardTitle>Scan QR Absensi</CardTitle>
-        </CardHeader>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardContent className="space-y-4">
           <form onSubmit={(e) => void scan(e)} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -147,14 +132,16 @@ export default function SiswaAbsensiPage(): JSX.Element {
                 className={cn(
                   "rounded-lg border p-4",
                   result.status === "TERLAMBAT"
-                    ? "border-warning-700 bg-warning-100"
-                    : "border-success-600 bg-success-600/10"
+                    ? "border-status-warning-border bg-status-warning-bg/60"
+                    : "border-status-success-border bg-status-success-bg/60"
                 )}
               >
                 <p
                   className={cn(
                     "text-lg font-bold",
-                    result.status === "TERLAMBAT" ? "text-warning-700" : "text-success-700"
+                    result.status === "TERLAMBAT"
+                      ? "text-status-warning-fg"
+                      : "text-status-success-fg"
                   )}
                 >
                   {result.status === "TERLAMBAT" ? "Terlambat" : "Hadir"} —{" "}
@@ -168,8 +155,11 @@ export default function SiswaAbsensiPage(): JSX.Element {
                 </p>
               </div>
             ) : (
-              <div role="alert" className="rounded-lg border border-danger-600 bg-danger-100 p-4">
-                <p className="text-lg font-bold text-danger-700">Gagal</p>
+              <div
+                role="alert"
+                className="rounded-lg border border-status-danger-border bg-status-danger-bg/60 p-4"
+              >
+                <p className="text-lg font-bold text-status-danger-fg">Gagal</p>
                 <p className="text-sm text-foreground">{result.message}</p>
                 <p className="mt-1 text-sm text-foreground">
                   Minta QR baru ke guru jika token sudah kedaluwarsa.
@@ -180,54 +170,56 @@ export default function SiswaAbsensiPage(): JSX.Element {
         </CardContent>
       </Card>
 
-      <section aria-label="Rekap absensi">
-        <h2 className="mb-2 text-lg font-semibold text-foreground">Rekap Kehadiran</h2>
+      <section aria-labelledby="siswa-rekap-absensi">
+        <h2
+          id="siswa-rekap-absensi"
+          className="mb-3 text-base font-semibold tracking-tight text-foreground"
+        >
+          Rekap Kehadiran
+        </h2>
         <DataView
           status={list.status}
           error={list.error}
           onRetry={list.refetch}
           fallbackLabel="Rekap absensi"
         >
-          {!list.data || list.data.summary.total === 0 ? (
-            <EmptyState
+          {!summary || summary.total === 0 ? (
+            <EmptyStateV3
+              icon={<IconQr className="h-5 w-5" />}
               title="Belum ada riwayat absensi"
-              description="Absensi akan muncul setelah Anda scan QR."
+              desc="Absensi akan muncul setelah Anda scan QR."
             />
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Hadir</TableHead>
-                      <TableHead>Izin</TableHead>
-                      <TableHead>Sakit</TableHead>
-                      <TableHead>Alpa</TableHead>
-                      <TableHead>Terlambat</TableHead>
-                      <TableHead>% Kehadiran</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">{list.data.summary.total}</TableCell>
-                      <TableCell>{list.data.summary.hadir}</TableCell>
-                      <TableCell>{list.data.summary.izin}</TableCell>
-                      <TableCell>{list.data.summary.sakit}</TableCell>
-                      <TableCell>
-                        <Badge variant={list.data.summary.alpa > 0 ? "danger" : "success"}>
-                          {list.data.summary.alpa}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{list.data.summary.terlambat}</TableCell>
-                      <TableCell className="font-semibold">
-                        {Math.round(list.data.summary.kehadiranPercent)}%
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <StatGrid>
+              <StatCard
+                label="Kehadiran"
+                value={`${Math.round(summary.kehadiranPercent)}%`}
+                icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
+                tone={summary.kehadiranPercent < 80 ? "danger" : "success"}
+                hint={`dari ${summary.total} absensi`}
+              />
+              <StatCard
+                label="Hadir"
+                value={String(summary.hadir)}
+                icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
+                tone="success"
+                hint={summary.terlambat > 0 ? `${summary.terlambat} terlambat` : "tepat waktu"}
+              />
+              <StatCard
+                label="Izin & Sakit"
+                value={String(summary.izin + summary.sakit)}
+                icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
+                tone="warning"
+                hint="dengan keterangan"
+              />
+              <StatCard
+                label="Alpa"
+                value={String(summary.alpa)}
+                icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
+                tone={summary.alpa > 0 ? "danger" : "neutral"}
+                hint="tanpa keterangan"
+              />
+            </StatGrid>
           )}
         </DataView>
       </section>

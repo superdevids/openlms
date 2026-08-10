@@ -4,17 +4,16 @@ import { type JSX } from "react";
 
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  EmptyState,
-  Badge
-} from "@opensis/ui";
+import { DataView, IconChart } from "@opensis/ui";
 import { useAuth } from "@/components/auth/auth-provider";
+
+import {
+  PageHeader,
+  DataTable,
+  type DataTableColumn,
+  StatusBadge,
+  EmptyStateV3
+} from "@/components/ui";
 
 interface ParentGuardian {
   id: string;
@@ -69,9 +68,37 @@ export default function OrtuNilaiPage(): JSX.Element {
     { enabled: !!(user && user.roles.includes("WALI_MURID")) }
   );
 
+  const columns: DataTableColumn<ChildGrades>[] = [
+    {
+      key: "studentName",
+      label: "Anak",
+      render: (g) => <span className="font-medium text-foreground">{g.studentName}</span>
+    },
+    {
+      key: "gradesCount",
+      label: "Nilai Tercatat",
+      render: (g) => <span className="tabular-nums">{g.gradesCount}</span>
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (g) => (
+        <StatusBadge
+          status={g.gradesCount > 0 ? "ADA_DATA" : "KOSONG"}
+          mapping={{ ADA_DATA: "success", KOSONG: "neutral" }}
+          label={g.gradesCount > 0 ? "ADA DATA" : "KOSONG"}
+        />
+      )
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Nilai Anak (read-only)</h1>
+      <PageHeader
+        title="Nilai Anak"
+        description="Ringkasan nilai tercatat anak Anda (read-only)."
+        meta={<StatusBadge status="INFO" label="READ-ONLY" />}
+      />
       <DataView
         status={list.status}
         error={list.error}
@@ -79,27 +106,19 @@ export default function OrtuNilaiPage(): JSX.Element {
         fallbackLabel="Nilai anak"
       >
         {list.data?.length === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconChart className="h-5 w-5" />}
             title="Belum ada data nilai"
-            description="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan nilai."
+            desc="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan nilai."
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(list.data ?? []).map((g) => (
-              <Card key={g.studentId}>
-                <CardHeader>
-                  <CardTitle>{g.studentName}</CardTitle>
-                  <CardDescription>Ringkasan nilai tercatat</CardDescription>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">{g.gradesCount} nilai tercatat</span>
-                  <Badge variant={g.gradesCount > 0 ? "primary" : "neutral"}>
-                    {g.gradesCount > 0 ? "ADA DATA" : "KOSONG"}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <DataTable<ChildGrades>
+            columns={columns}
+            rows={list.data ?? []}
+            keyField="studentId"
+            emptyTitle="Belum ada data nilai"
+            emptyDesc="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan nilai."
+          />
         )}
       </DataView>
     </div>

@@ -40,6 +40,7 @@ import {
 } from "@/lib/font";
 
 import { useApi } from "@/lib/use-api";
+import { PageHeader } from "@/components/ui";
 
 const DEFAULT_BRANDING: BrandingView = {
   appName: DEFAULT_APP_NAME,
@@ -191,16 +192,18 @@ export default function SuperadminBrandingPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Branding Aplikasi</h1>
-        <p className="text-sm text-muted-foreground">
-          Identitas visual aplikasi — diterapkan via CSS variable <code>--brand-*</code> dan
-          Socket.IO <code>branding:changed</code>.
-        </p>
-      </div>
+      <PageHeader
+        title="Branding Aplikasi"
+        description={
+          <>
+            Identitas visual aplikasi — diterapkan via CSS variable <code>--brand-*</code> dan
+            Socket.IO <code>branding:changed</code>.
+          </>
+        }
+      />
 
       {status === "error" ? (
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardContent className="p-4 text-sm text-danger-700">
             Tidak dapat memuat branding dari API ({errorMessage(error)}). Periksa koneksi backend.
           </CardContent>
@@ -208,7 +211,7 @@ export default function SuperadminBrandingPage(): JSX.Element {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Identitas</CardTitle>
             <CardDescription>Nama aplikasi, tagline, dan warna tema.</CardDescription>
@@ -257,7 +260,7 @@ export default function SuperadminBrandingPage(): JSX.Element {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Tipografi</CardTitle>
             <CardDescription>
@@ -302,7 +305,7 @@ export default function SuperadminBrandingPage(): JSX.Element {
         </Card>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardHeader>
               <CardTitle>Pratinjau</CardTitle>
               <CardDescription>
@@ -346,7 +349,7 @@ export default function SuperadminBrandingPage(): JSX.Element {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardHeader>
               <CardTitle>Logo & Favicon</CardTitle>
               <CardDescription>

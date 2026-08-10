@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
+import { PageContainer } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: `PPDB — ${APP_NAME}`
@@ -20,9 +21,9 @@ export default function PPDBLandingPage(): JSX.Element {
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-4 py-10">
-        <section className="text-center">
-          <h1 className="text-3xl font-bold text-foreground">
+      <PageContainer className="max-w-4xl">
+        <section className="py-10 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
             PPDB {new Date().getFullYear()}/{new Date().getFullYear() + 1}
           </h1>
           <p className="mx-auto mt-2 max-w-xl text-base text-muted-foreground">
@@ -41,8 +42,8 @@ export default function PPDBLandingPage(): JSX.Element {
           </div>
         </section>
 
-        <section className="mt-10 grid gap-4 sm:grid-cols-3">
-          <Card>
+        <section className="grid gap-4 pb-10 sm:grid-cols-3" aria-label="Informasi PPDB">
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardHeader>
               <CardTitle>Persyaratan</CardTitle>
               <CardDescription>KK, akta lahir, rapor semester 1 (opsional)</CardDescription>
@@ -53,7 +54,7 @@ export default function PPDBLandingPage(): JSX.Element {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardHeader>
               <CardTitle>Jadwal</CardTitle>
               <CardDescription>Pendaftaran 1–20 Agustus 2026</CardDescription>
@@ -64,7 +65,7 @@ export default function PPDBLandingPage(): JSX.Element {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardHeader>
               <CardTitle>Kontak</CardTitle>
               <CardDescription>Operator TU sekolah</CardDescription>
@@ -76,7 +77,7 @@ export default function PPDBLandingPage(): JSX.Element {
             </CardContent>
           </Card>
         </section>
-      </div>
+      </PageContainer>
     </main>
   );
 }

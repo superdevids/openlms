@@ -9,21 +9,30 @@ import { useApi } from "@/lib/use-api";
 import {
   DataView,
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Badge,
   Button,
-  EmptyState
+  IconAlert,
+  IconBook,
+  IconCalendar,
+  IconCheck,
+  IconClipboard,
+  IconExam,
+  IconGrade,
+  IconQr
 } from "@opensis/ui";
 
-import { formatDateTime, formatRelative } from "@/lib/format";
-import { DEMO_EXAMS, DEMO_TASKS, DEMO_CLASSES } from "@/lib/demo";
-import { TASK_STATUS_BADGE } from "@/lib/constants";
+import { formatRelative } from "@/lib/format";
+import { DEMO_EXAMS, DEMO_TASKS, DEMO_CLASSES, DEMO_GRADES } from "@/lib/demo";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
 import { dayName, mapScheduleEntry, todayDayOfWeek, type ScheduleEntryView } from "@/lib/schedule";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  StatusBadge,
+  EmptyStateV3,
+  type StatusTone
+} from "@/components/ui";
 
 interface Exam {
   id: string;
@@ -50,6 +59,17 @@ interface ClassItem {
   teacher: string;
 }
 
+interface GradeRow {
+  subject: string;
+  rata: number | null;
+}
+
+interface AttendanceSummary {
+  total: number;
+  alpa: number;
+  kehadiranPercent: number;
+}
+
 interface RawScheduleEntry {
   id: string;
   day_of_week: number;
@@ -60,6 +80,13 @@ interface RawScheduleEntry {
   subject?: { id: string; code: string; name: string } | null;
   teacher?: { id: string; full_name: string } | null;
 }
+
+// Tone status tugas (presentasi v3): BUKA = perlu dikerjakan, TERSUBMIT = sukses, TERLAMBAT = bahaya.
+const TASK_TONE: Record<string, StatusTone> = {
+  BUKA: "warning",
+  TERSUBMIT: "success",
+  TERLAMBAT: "danger"
+};
 
 export default function SiswaDashboardPage(): JSX.Element {
   const { user } = useAuth();
@@ -72,6 +99,16 @@ export default function SiswaDashboardPage(): JSX.Element {
   const classes = useApi<ClassItem[]>(() => api.get("/classes"), [], {
     fallbackData: DEMO_CLASSES
   });
+  const grades = useApi<GradeRow[]>(() => api.get("/grades"), [], {
+    fallbackData: DEMO_GRADES as GradeRow[]
+  });
+  const attendance = useApi<{ summary: AttendanceSummary }>(
+    () => api.get("/attendance/rekap"),
+    [],
+    {
+      fallbackData: { summary: { total: 0, alpa: 0, kehadiranPercent: 100 } }
+    }
+  );
   // "Jadwal hari ini" — read-only dari GET /schedules (filter day_of_week hari ini).
   const todaySchedule = useApi<ScheduleEntryView[]>(async () => {
     const rows = await api.get<RawScheduleEntry[]>("/schedules");
@@ -89,6 +126,24 @@ export default function SiswaDashboardPage(): JSX.Element {
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
     .slice(0, 3);
 
+  // Hero tenggat: tugas pertama yang jatuh tempo ≤ 24 jam (AP3 — solutif).
+  const urgent = upcomingTasks.find(
+    (t) => new Date(t.dueAt).getTime() - Date.now() <= 24 * 60 * 60 * 1000
+  );
+
+  // KPI dari data yang sudah dimuat (tanpa kontrak API baru).
+  const openTaskCount = (tasks.data ?? []).filter((t) => t.status === "BUKA").length;
+  const gradeRows = grades.data ?? [];
+  const gradeAvg =
+    gradeRows.length > 0
+      ? gradeRows.reduce((sum, g) => sum + (g.rata ?? 0), 0) / gradeRows.length
+      : null;
+  const att = attendance.data?.summary;
+  const attPct = att && att.total > 0 ? Math.round(att.kehadiranPercent) : null;
+  const scheduledExams = (exams.data ?? []).filter(
+    (e) => e.status === "ONGOING" || e.status === "SCHEDULED"
+  ).length;
+
   const hour = new Date().getHours();
   const greeting =
     hour < 11
@@ -99,24 +154,117 @@ export default function SiswaDashboardPage(): JSX.Element {
           ? "Selamat sore"
           : "Selamat malam";
 
+  const description = [
+    openTaskCount > 0 ? `${openTaskCount} tugas menunggu dikerjakan` : "tidak ada tugas tertunda",
+    ongoing ? "1 ujian sedang berlangsung" : "tidak ada ujian berlangsung"
+  ].join(" · ");
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">
-        {greeting}, {firstName}
-      </h1>
-
-      <DashboardCards
-        role="siswa"
-        cards={DEFAULT_DASHBOARD_CARDS.siswa}
-        fallbackLabel="Menu siswa"
+      <PageHeader
+        title={`${greeting}, ${firstName}`}
+        description={description}
+        actions={
+          <Link href="/siswa/kalender">
+            <Button variant="outline">
+              <IconCalendar className="h-4 w-4" aria-hidden="true" />
+              Buka Kalender
+            </Button>
+          </Link>
+        }
       />
 
-      <section aria-label="Jadwal hari ini">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">
+      {/* Hero tenggat — solutif #1 */}
+      <DataView
+        status={tasks.status}
+        error={tasks.error}
+        onRetry={tasks.refetch}
+        fallbackLabel="Daftar tugas"
+      >
+        {tasks.data ? (
+          urgent ? (
+            <Card className="rounded-lg border-status-danger-border bg-status-danger-bg/60 p-5 shadow-app-card">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-status-danger-bg text-status-danger-fg">
+                    <IconAlert className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Tenggat hari ini</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {urgent.title} · {urgent.subject} · {formatRelative(urgent.dueAt)}
+                    </p>
+                  </div>
+                </div>
+                <Link href="/siswa/tugas">
+                  <Button size="sm">Kerjakan →</Button>
+                </Link>
+              </div>
+            </Card>
+          ) : (
+            <Card className="rounded-lg border-status-success-border bg-status-success-bg/60 p-5 shadow-app-card">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-status-success-bg text-status-success-fg">
+                  <IconCheck className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Semua tugas aman</p>
+                  <p className="text-xs text-muted-foreground">
+                    Tidak ada tugas yang mendekati tenggat dalam 24 jam.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )
+        ) : null}
+      </DataView>
+
+      {/* KPI */}
+      <StatGrid>
+        <StatCard
+          label="Tugas belum dikerjakan"
+          value={String(openTaskCount)}
+          icon={<IconClipboard className="h-5 w-5" aria-hidden="true" />}
+          tone="warning"
+          hint="perlu dikerjakan"
+          href="/siswa/tugas"
+        />
+        <StatCard
+          label="Rata-rata nilai"
+          value={gradeAvg === null ? "-" : gradeAvg.toFixed(1)}
+          icon={<IconGrade className="h-5 w-5" aria-hidden="true" />}
+          tone="brand"
+          hint={`${gradeRows.length} mapel dinilai`}
+          href="/siswa/nilai"
+        />
+        <StatCard
+          label="Kehadiran bulan ini"
+          value={attPct === null ? "-" : `${attPct}%`}
+          icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
+          tone={attPct !== null && attPct < 80 ? "danger" : "success"}
+          hint={att ? `alpa ${att.alpa} dari ${att.total} absensi` : "belum ada absensi"}
+          href="/siswa/absensi"
+        />
+        <StatCard
+          label="Ujian aktif / terjadwal"
+          value={String(scheduledExams)}
+          icon={<IconExam className="h-5 w-5" aria-hidden="true" />}
+          tone="info"
+          hint="jadwal ujian"
+          href="/siswa/ujian"
+        />
+      </StatGrid>
+
+      {/* Jadwal Hari Ini */}
+      <section aria-labelledby="siswa-jadwal-hari-ini">
+        <div className="mb-3 flex items-center justify-between">
+          <h2
+            id="siswa-jadwal-hari-ini"
+            className="text-base font-semibold tracking-tight text-foreground"
+          >
             Jadwal Hari Ini ({dayName(today)})
           </h2>
-          <Link href="/siswa/kalender" className="text-sm font-medium text-primary">
+          <Link href="/siswa/kalender" className="text-sm font-medium text-primary hover:underline">
             Lihat kalender
           </Link>
         </div>
@@ -127,26 +275,31 @@ export default function SiswaDashboardPage(): JSX.Element {
           fallbackLabel="Jadwal hari ini"
         >
           {todayEntries.length === 0 ? (
-            <EmptyState
+            <EmptyStateV3
+              compact
               title="Tidak ada jadwal hari ini"
-              description="Jadwal pelajaran Anda akan tampil di sini."
+              desc="Jadwal pelajaran Anda akan tampil di sini."
             />
           ) : (
             <ul className="space-y-2">
               {todayEntries.map((e) => (
                 <li key={e.id}>
-                  <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+                  <div className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-app-surface px-4 py-3 shadow-app-card transition-colors hover:border-brand-primary/40">
                     <span className="min-w-0">
-                      <span className="block truncate text-base font-medium text-foreground">
+                      <span className="block truncate text-sm font-medium text-foreground">
                         {e.subject}
                       </span>
-                      <span className="block text-sm text-muted-foreground">
+                      <span className="block text-xs text-muted-foreground">
                         Jam ke-{e.periods}
                         {e.className ? ` · ${e.className}` : ""}
                         {e.room ? ` · ${e.room}` : ""}
                       </span>
                     </span>
-                    <Badge variant="primary">Jam {e.periods.split("–")[0]}</Badge>
+                    <StatusBadge
+                      status="JAM"
+                      label={`Jam ke-${e.periods.split("–")[0]}`}
+                      className="shrink-0"
+                    />
                   </div>
                 </li>
               ))}
@@ -155,7 +308,16 @@ export default function SiswaDashboardPage(): JSX.Element {
         </DataView>
       </section>
 
-      <section aria-label="Ujian aktif">
+      {/* Ujian Aktif */}
+      <section aria-labelledby="siswa-ujian-aktif">
+        <div className="mb-3">
+          <h2
+            id="siswa-ujian-aktif"
+            className="text-base font-semibold tracking-tight text-foreground"
+          >
+            Ujian Aktif
+          </h2>
+        </div>
         <DataView
           status={exams.status}
           error={exams.error}
@@ -163,35 +325,40 @@ export default function SiswaDashboardPage(): JSX.Element {
           fallbackLabel="Daftar ujian"
         >
           {ongoing ? (
-            <Card className="border-primary-600 bg-primary-100 dark:bg-primary-100/20 dark:text-primary-foreground">
-              <CardHeader>
-                <Badge variant="primary" className="w-fit">
-                  Ujian aktif
-                </Badge>
-                <CardTitle>{ongoing.title}</CardTitle>
-                <CardDescription>
-                  {ongoing.subject} · {ongoing.className} · {formatDateTime(ongoing.startsAt)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
+            <Card className="rounded-lg border-status-info-border bg-status-info-bg/60 p-5 shadow-app-card">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <StatusBadge status="ONGOING" label="Ujian berlangsung" className="mb-2" />
+                  <p className="text-base font-semibold text-foreground">{ongoing.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {ongoing.subject} · {ongoing.className} · {formatRelative(ongoing.startsAt)}
+                  </p>
+                </div>
                 <Link href={`/siswa/ujian/${ongoing.id}`}>
-                  <Button>Masuk Sesi</Button>
+                  <Button size="sm">Masuk Sesi</Button>
                 </Link>
-              </CardContent>
+              </div>
             </Card>
           ) : (
-            <EmptyState
+            <EmptyStateV3
+              compact
               title="Tidak ada ujian aktif"
-              description="Ujian terjadwal akan tampil di sini saat sesi dibuka."
+              desc="Ujian terjadwal akan tampil di sini saat sesi dibuka."
             />
           )}
         </DataView>
       </section>
 
-      <section aria-label="Tugas tenggat terdekat">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Tugas tenggat terdekat</h2>
-          <Link href="/siswa/tugas" className="text-sm font-medium text-primary">
+      {/* Tugas Tenggat */}
+      <section aria-labelledby="siswa-tugas-tenggat">
+        <div className="mb-3 flex items-center justify-between">
+          <h2
+            id="siswa-tugas-tenggat"
+            className="text-base font-semibold tracking-tight text-foreground"
+          >
+            Tugas Tenggat Terdekat
+          </h2>
+          <Link href="/siswa/tugas" className="text-sm font-medium text-primary hover:underline">
             Lihat semua
           </Link>
         </div>
@@ -202,9 +369,10 @@ export default function SiswaDashboardPage(): JSX.Element {
           fallbackLabel="Daftar tugas"
         >
           {upcomingTasks.length === 0 ? (
-            <EmptyState
+            <EmptyStateV3
+              compact
               title="Tidak ada tugas mendatang"
-              description="Anda bebas dari tugas untuk saat ini."
+              desc="Anda bebas dari tugas untuk saat ini."
             />
           ) : (
             <ul className="space-y-2">
@@ -212,17 +380,17 @@ export default function SiswaDashboardPage(): JSX.Element {
                 <li key={t.id}>
                   <Link
                     href="/siswa/tugas"
-                    className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:bg-muted/70"
+                    className="flex min-h-14 items-center justify-between gap-3 rounded-lg border border-border bg-app-surface px-4 py-3 shadow-app-card transition-colors hover:border-brand-primary/40"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-base font-medium text-foreground">
+                      <span className="block truncate text-sm font-medium text-foreground">
                         {t.title}
                       </span>
-                      <span className="block text-sm text-muted-foreground">
+                      <span className="block text-xs text-muted-foreground">
                         {t.subject} · {formatRelative(t.dueAt)}
                       </span>
                     </span>
-                    <Badge variant={TASK_STATUS_BADGE[t.status] ?? "primary"}>{t.status}</Badge>
+                    <StatusBadge status={t.status} mapping={TASK_TONE} className="shrink-0" />
                   </Link>
                 </li>
               ))}
@@ -231,10 +399,13 @@ export default function SiswaDashboardPage(): JSX.Element {
         </DataView>
       </section>
 
-      <section aria-label="Kelas saya">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Kelas Saya</h2>
-          <Link href="/siswa/kelas" className="text-sm font-medium text-primary">
+      {/* Kelas Saya */}
+      <section aria-labelledby="siswa-kelas">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 id="siswa-kelas" className="text-base font-semibold tracking-tight text-foreground">
+            Kelas Saya
+          </h2>
+          <Link href="/siswa/kelas" className="text-sm font-medium text-primary hover:underline">
             Lihat semua
           </Link>
         </div>
@@ -245,23 +416,34 @@ export default function SiswaDashboardPage(): JSX.Element {
           fallbackLabel="Daftar kelas"
         >
           {classes.data?.length === 0 ? (
-            <EmptyState
+            <EmptyStateV3
+              compact
               title="Belum ada kelas"
-              description="Kelas akan muncul setelah admin menambahkan Anda."
+              desc="Kelas akan muncul setelah admin menambahkan Anda."
             />
           ) : (
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(classes.data ?? []).slice(0, 6).map((c) => (
                 <li key={c.id}>
-                  <Link href={`/siswa/kelas/${c.id}`} className="block">
-                    <Card className="h-full transition-colors hover:border-primary-600">
-                      <CardHeader>
-                        <CardTitle>{c.name}</CardTitle>
-                        <CardDescription>{c.subject}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">{c.teacher}</p>
-                      </CardContent>
+                  <Link href={`/siswa/kelas/${c.id}`} className="block h-full">
+                    <Card className="flex h-full flex-col rounded-lg border-border bg-app-surface p-5 shadow-app-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-primary/60 hover:shadow-app-floating">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-foreground">
+                            {c.name}
+                          </span>
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {c.subject}
+                          </span>
+                        </span>
+                        <span
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary"
+                          aria-hidden="true"
+                        >
+                          <IconBook className="h-5 w-5" />
+                        </span>
+                      </div>
+                      <p className="mt-4 text-xs text-muted-foreground">Guru: {c.teacher}</p>
                     </Card>
                   </Link>
                 </li>
@@ -270,6 +452,12 @@ export default function SiswaDashboardPage(): JSX.Element {
           )}
         </DataView>
       </section>
+
+      <DashboardCards
+        role="siswa"
+        cards={DEFAULT_DASHBOARD_CARDS.siswa}
+        fallbackLabel="Menu siswa"
+      />
     </div>
   );
 }

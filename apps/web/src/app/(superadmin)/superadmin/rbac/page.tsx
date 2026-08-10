@@ -17,7 +17,6 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  Badge,
   Button,
   Table,
   TableHeader,
@@ -29,6 +28,7 @@ import {
 } from "@opensis/ui";
 
 import { useApi } from "@/lib/use-api";
+import { PageHeader, StatusBadge } from "@/components/ui";
 
 function buildRoleMap(rolePerms: RbacRolePermission[]): Map<string, "ALLOW" | "DENY"> {
   const map = new Map<string, "ALLOW" | "DENY">();
@@ -45,9 +45,7 @@ export default function SuperadminRbacPage(): JSX.Element {
     refetch: refetchPerms
   } = useApi<RbacPermission[]>(() => fetchRbacPermissions(), []);
 
-  const [rolePerms, setRolePerms] = useState<Record<string, Map<string, "ALLOW" | "DENY">>>(
-    {}
-  );
+  const [rolePerms, setRolePerms] = useState<Record<string, Map<string, "ALLOW" | "DENY">>>({});
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [roleError, setRoleError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -115,17 +113,19 @@ export default function SuperadminRbacPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Matriks Role × Permission</h1>
-        <p className="text-sm text-muted-foreground">
-          Kontrol izin per role (<code>/rbac/*</code>). Perubahan efektif instan (otoritas role dari
-          tabel <code>UserRole</code>).
-        </p>
-      </div>
+      <PageHeader
+        title="Matriks Role × Permission"
+        description={
+          <>
+            Kontrol izin per role (<code>/rbac/*</code>). Perubahan efektif instan (otoritas role
+            dari tabel <code>UserRole</code>).
+          </>
+        }
+      />
 
       {hasError ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm text-danger-700">
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
+          <CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm text-status-danger-fg">
             <span>
               Gagal memuat data RBAC —{" "}
               {roleError ?? "endpoint /rbac/permissions tidak dapat dijangkau."}
@@ -144,7 +144,7 @@ export default function SuperadminRbacPage(): JSX.Element {
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="overflow-hidden rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <CardTitle>Permission Matrix</CardTitle>
           <CardDescription>
@@ -155,67 +155,79 @@ export default function SuperadminRbacPage(): JSX.Element {
           {loadingRoles ? (
             <p className="p-4 text-sm text-muted-foreground">Memuat matriks...</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Permission</TableHead>
-                  {RBAC_ADMIN_ROLES.map((role) => (
-                    <TableHead key={role} className="px-3 text-center">
-                      {role}
+            <div className="overflow-auto">
+              <Table className="min-w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Permission
                     </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {permissionList.map((perm) => (
-                  <TableRow key={perm.id}>
-                    <TableCell>
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{perm.code}</code>
-                      <span className="ml-2 text-xs text-muted-foreground">{perm.description}</span>
-                    </TableCell>
-                    {RBAC_ADMIN_ROLES.map((role) => {
-                      const effect = rolePerms[role]?.get(perm.id);
-                      const saving = savingId === `${role}:${perm.id}`;
-                      return (
-                        <TableCell key={`${role}-${perm.id}`} className="px-3 text-center">
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={effect === "ALLOW"}
-                            aria-label={`${role} ${perm.code}`}
-                            disabled={saving}
-                            onClick={() =>
-                              void toggle(role, perm.id, effect === "ALLOW" ? "DENY" : "ALLOW")
-                            }
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-50 ${
-                              effect === "ALLOW" ? "bg-success-600" : "bg-input"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                                effect === "ALLOW" ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
-                        </TableCell>
-                      );
-                    })}
+                    {RBAC_ADMIN_ROLES.map((role) => (
+                      <TableHead
+                        key={role}
+                        className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        {role}
+                      </TableHead>
+                    ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {permissionList.map((perm) => (
+                    <TableRow key={perm.id} className="hover:bg-muted/60">
+                      <TableCell className="px-3 py-2.5">
+                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{perm.code}</code>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {perm.description}
+                        </span>
+                      </TableCell>
+                      {RBAC_ADMIN_ROLES.map((role) => {
+                        const effect = rolePerms[role]?.get(perm.id);
+                        const saving = savingId === `${role}:${perm.id}`;
+                        return (
+                          <TableCell key={`${role}-${perm.id}`} className="px-3 py-2.5 text-center">
+                            <span className="inline-flex min-h-11 items-center">
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={effect === "ALLOW"}
+                                aria-label={`${role} ${perm.code}`}
+                                disabled={saving}
+                                onClick={() =>
+                                  void toggle(role, perm.id, effect === "ALLOW" ? "DENY" : "ALLOW")
+                                }
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 disabled:opacity-50 ${
+                                  effect === "ALLOW" ? "bg-status-success-fg" : "bg-input"
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                                    effect === "ALLOW" ? "translate-x-6" : "translate-x-1"
+                                  }`}
+                                />
+                              </button>
+                            </span>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <CardTitle>Catatan</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            <Badge variant="neutral">ALLOW</Badge> izin aktif; <Badge variant="warning">DENY</Badge>{" "}
-            menimpa default. Scope default (SENDIRI/KELAS/SEKOLAH) di-resolve per resource.
+            <StatusBadge status="ALLOW" label="ALLOW" /> izin aktif;{" "}
+            <StatusBadge status="DENY" label="DENY" mapping={{ DENY: "warning" }} /> menimpa
+            default. Scope default (SENDIRI/KELAS/SEKOLAH) di-resolve per resource.
           </p>
           <p>
             Endpoint: <code>GET /rbac/permissions</code>,{" "}

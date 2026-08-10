@@ -304,3 +304,149 @@
     box-shadow: var(--shadow-lift);
   }
 }
+
+/* ===== APP v3 tokens (docs/app-design-system-v3.md §H) =====
+ * Additif — tidak mengubah token existing maupun landing v2.
+ * APP: permukaan workspace, sidebar (konvensi shadcn/ui), status tint,
+ * focus ring, shadow aplikasi. */
+:root {
+  /* Permukaan aplikasi */
+  --app-bg: #f4f5f7;
+  --app-surface: #ffffff;
+  --app-surface-2: #eef0f3;
+  --app-border-subtle: #e4e7eb;
+  --topbar: rgba(255, 255, 255, 0.85);
+
+  /* Sidebar (konvensi shadcn/ui) */
+  --sidebar: #fbfbfc;
+  --sidebar-foreground: #18181b;
+  --sidebar-border: #e5e7eb;
+  --sidebar-primary: var(--brand-primary, #2563eb);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef2ff;
+  --sidebar-accent-foreground: #1d4ed8;
+  --sidebar-ring: var(--brand-primary, #2563eb);
+
+  /* Status tint (AA — fg/bg ≥ 4.5:1) */
+  --status-success-fg: #047857;
+  --status-success-bg: #ecfdf5;
+  --status-success-border: #a7f3d0;
+  --status-warning-fg: #b45309;
+  --status-warning-bg: #fffbeb;
+  --status-warning-border: #fde68a;
+  --status-danger-fg: #b91c1c;
+  --status-danger-bg: #fef2f2;
+  --status-danger-border: #fecaca;
+  --status-info-fg: #0369a1;
+  --status-info-bg: #f0f9ff;
+  --status-info-border: #bae6fd;
+
+  /* Focus & shadow */
+  --focus-ring: var(--brand-primary, #2563eb);
+  --shadow-app-card: 0 1px 2px rgb(9 11 15 / 0.04), 0 1px 3px rgb(9 11 15 / 0.06);
+  --shadow-app-floating: 0 8px 24px -4px rgb(9 11 15 / 0.12), 0 2px 8px rgb(9 11 15 / 0.08);
+  --shadow-app-sticky: 0 -4px 16px rgb(9 11 15 / 0.06);
+}
+
+.dark {
+  --app-bg: #0b0d10;
+  --app-surface: #15181d;
+  --app-surface-2: #1d2127;
+  --app-border-subtle: #232830;
+  --topbar: rgba(11, 13, 16, 0.85);
+
+  --sidebar: #0e1115;
+  --sidebar-foreground: #fafafa;
+  --sidebar-border: #20252c;
+  --sidebar-primary: var(--brand-primary, #3b82f6);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1b2230;
+  --sidebar-accent-foreground: #93c5fd;
+  --sidebar-ring: var(--brand-primary, #3b82f6);
+
+  --status-success-fg: #6ee7b7;
+  --status-success-bg: #0d3328;
+  --status-success-border: #1f6b4f;
+  --status-warning-fg: #fcd34d;
+  --status-warning-bg: #3a2a10;
+  --status-warning-border: #8a5a12;
+  --status-danger-fg: #fca5a5;
+  --status-danger-bg: #3c1414;
+  --status-danger-border: #8c2f2f;
+  --status-info-fg: #7dd3fc;
+  --status-info-bg: #0c2f45;
+  --status-info-border: #1c5b80;
+
+  --focus-ring: var(--brand-primary, #3b82f6);
+  --shadow-app-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-app-floating: 0 8px 24px -4px rgb(0 0 0 / 0.6);
+  --shadow-app-sticky: 0 -4px 16px rgb(0 0 0 / 0.5);
+}
+
+/* Ekspos ke utilitas Tailwind (bg-app-bg, text-sidebar-*, bg-status-*, dst.) */
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-2: var(--app-surface-2);
+  --color-app-border-subtle: var(--app-border-subtle);
+  --color-topbar: var(--topbar);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-status-success-fg: var(--status-success-fg);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-border: var(--status-success-border);
+  --color-status-warning-fg: var(--status-warning-fg);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-border: var(--status-warning-border);
+  --color-status-danger-fg: var(--status-danger-fg);
+  --color-status-danger-bg: var(--status-danger-bg);
+  --color-status-danger-border: var(--status-danger-border);
+  --color-status-info-fg: var(--status-info-fg);
+  --color-status-info-bg: var(--status-info-bg);
+  --color-status-info-border: var(--status-info-border);
+
+  --color-focus-ring: var(--focus-ring);
+  --shadow-app-card: var(--shadow-app-card);
+  --shadow-app-floating: var(--shadow-app-floating);
+  --shadow-app-sticky: var(--shadow-app-sticky);
+}
+
+/* Shimmer halus untuk skeleton (opsional; reduced-motion di globals.css) */
+@layer components {
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--app-surface-2) 25%,
+      rgba(255, 255, 255, 0.6) 50%,
+      var(--app-surface-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s linear infinite;
+  }
+  .dark .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--app-surface-2) 25%,
+      rgba(255, 255, 255, 0.08) 50%,
+      var(--app-surface-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s linear infinite;
+  }
+  @keyframes skeleton-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}

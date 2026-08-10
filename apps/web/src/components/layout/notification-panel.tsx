@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type JSX } from "react";
 import { API_BASE } from "@/lib/api-client";
 import { formatRelative } from "@/lib/format";
 import { setLastReadNotif } from "@/lib/storage";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import {
   ANNOUNCEMENT_NEW_EVENT,
   INVOICE_PAID_EVENT,
@@ -41,6 +42,9 @@ export function NotificationPanel({
   const [error, setError] = useState<string | null>(null);
   const openRef = useRef(open);
   openRef.current = open;
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(panelRef, open, onClose);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,13 +100,14 @@ export function NotificationPanel({
 
   return (
     <div
+      ref={panelRef}
       className="fixed inset-0 z-50 md:hidden"
       role="dialog"
       aria-modal="true"
       aria-label="Panel notifikasi"
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <section className="absolute inset-y-0 right-0 w-80 max-w-[85vw] overflow-y-auto bg-background p-4 shadow-lg">
+      <section className="absolute inset-y-0 right-0 w-96 max-w-[85vw] overflow-y-auto rounded-l-xl bg-app-surface p-4 shadow-lg">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-foreground">Notifikasi</h2>
           <div className="flex items-center gap-2">
@@ -139,10 +144,10 @@ export function NotificationPanel({
                 <button
                   type="button"
                   onClick={() => void markRead(item.id)}
-                  className={`w-full rounded-lg border p-3 text-left hover:bg-muted ${
+                  className={`min-h-11 w-full rounded-lg border p-3 text-left hover:bg-muted ${
                     item.readAt
                       ? "border-border"
-                      : "border-primary-200 bg-primary-50 dark:bg-primary-100/20 dark:text-primary-foreground"
+                      : "border-l-2 border-l-brand-primary border-brand-primary bg-sidebar-accent/60"
                   }`}
                 >
                   <p className="text-sm font-semibold text-foreground">{item.title}</p>

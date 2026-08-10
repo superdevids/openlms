@@ -23,6 +23,8 @@ import {
   IconUpload
 } from "@opensis/ui";
 
+import { PageHeader } from "@/components/ui";
+
 /**
  * Onboarding aplikasi sekolah — wizard setup 5 langkah (07-ux §4.1, prd04 §9.1).
  * Tanpa alur daftar-sekolah publik (G19 N/A). Langkah bisa dilewati ("Selesai nanti").
@@ -98,10 +100,17 @@ export default function SuperadminOnboardingPage(): JSX.Element {
 
   if (done) {
     return (
-      <Card className="mx-auto max-w-lg">
+      <Card className="mx-auto max-w-lg rounded-lg border-border bg-app-surface shadow-app-card">
         <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-          <IconCheck className="h-12 w-12 text-success-600" />
-          <h1 className="text-2xl font-bold text-foreground">Setup Selesai — Aplikasi Aktif</h1>
+          <span
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-status-success-bg text-status-success-fg"
+            aria-hidden="true"
+          >
+            <IconCheck className="h-7 w-7" />
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Setup Selesai — Aplikasi Aktif
+          </h1>
           <p className="text-sm text-muted-foreground">
             Dashboard aplikasi terbuka. Anda dapat mengubah pengaturan kapan saja di Admin Sistem.
           </p>
@@ -115,11 +124,14 @@ export default function SuperadminOnboardingPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Setup Sekolah</h1>
+      <PageHeader
+        title="Setup Sekolah"
+        description="Wizard konfigurasi awal aplikasi — data tersimpan otomatis antar langkah."
+      />
       <Steps steps={STEPS} current={step} />
       <Progress value={(step / STEPS.length) * 100} className="my-2" />
 
-      <Card>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <CardTitle>
             Langkah {step + 1} dari {STEPS.length}: {STEPS[step].title}

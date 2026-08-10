@@ -13,12 +13,14 @@ import {
   Button,
   Input,
   Label,
-  Badge,
   Alert,
-  EmptyState,
   Skeleton,
-  toast
+  toast,
+  IconCalendar,
+  IconCheck,
+  IconClock
 } from "@opensis/ui";
+import { PageHeader, StatCard, StatGrid, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface RubricItem {
   id: string;
@@ -51,13 +53,6 @@ function fmtDate(value: string | null | undefined): string {
   } catch {
     return value;
   }
-}
-
-function statusVariant(status: string): "success" | "danger" | "neutral" | "warning" {
-  if (status === "PASSED") return "success";
-  if (status === "FAILED") return "danger";
-  if (status === "SCHEDULED") return "warning";
-  return "neutral";
 }
 
 export default function PengujiDashboardPage(): JSX.Element {
@@ -106,7 +101,33 @@ export default function PengujiDashboardPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard Penguji Eksternal</h1>
+      <PageHeader
+        title="Beranda Penguji"
+        description="Sesi uji kompetensi (UKK) yang ditugaskan kepada Anda."
+      />
+
+      <StatGrid className="grid-cols-1 sm:grid-cols-3">
+        <StatCard
+          label="Sesi Hari Ini"
+          value={String(active.length)}
+          icon={<IconClock className="h-5 w-5" />}
+          hint="menunggu penilaian"
+        />
+        <StatCard
+          label="Total Sesi"
+          value={String(tests.length)}
+          tone="info"
+          icon={<IconCalendar className="h-5 w-5" />}
+          hint="seluruh penugasan"
+        />
+        <StatCard
+          label="Sesi Selesai"
+          value={String(graded.length)}
+          tone="success"
+          icon={<IconCheck className="h-5 w-5" />}
+          hint="sudah dinilai"
+        />
+      </StatGrid>
 
       {list.status === "loading" ? (
         <Skeleton className="h-48 w-full" />
@@ -115,14 +136,17 @@ export default function PengujiDashboardPage(): JSX.Element {
           {list.error?.message ?? "Gagal memuat jadwal UKK."}
         </Alert>
       ) : tests.length === 0 ? (
-        <EmptyState
+        <EmptyStateV3
+          icon={<IconCalendar className="h-5 w-5" />}
           title="Belum ada UKK ditugaskan"
-          description="Jadwal UKK yang ditugaskan ke Anda akan tampil di sini."
+          desc="Jadwal UKK yang ditugaskan ke Anda akan tampil di sini."
         />
       ) : (
         <>
           <section aria-label="Jadwal UKK aktif">
-            <h2 className="mb-3 text-lg font-semibold text-foreground">Menunggu Penilaian</h2>
+            <h2 className="mb-3 text-base font-semibold tracking-tight text-foreground">
+              Menunggu Penilaian
+            </h2>
             <div className="space-y-4">
               {active.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -130,7 +154,10 @@ export default function PengujiDashboardPage(): JSX.Element {
                 </p>
               ) : (
                 active.map((test) => (
-                  <Card key={test.id} className="border-primary-600">
+                  <Card
+                    key={test.id}
+                    className="rounded-lg border-l-2 border-brand-primary bg-app-surface shadow-app-card"
+                  >
                     <CardHeader>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
@@ -139,7 +166,7 @@ export default function PengujiDashboardPage(): JSX.Element {
                             {test.student?.full_name ?? "Siswa"} · {fmtDate(test.scheduled_at)}
                           </CardDescription>
                         </div>
-                        <Badge variant={statusVariant(test.status)}>{test.status}</Badge>
+                        <StatusBadge status="DIPROSES" label={test.status} />
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -193,7 +220,9 @@ export default function PengujiDashboardPage(): JSX.Element {
 
           {graded.length > 0 ? (
             <section aria-label="UKK sudah dinilai">
-              <h2 className="mb-3 text-lg font-semibold text-foreground">Riwayat Penilaian</h2>
+              <h2 className="mb-3 text-base font-semibold tracking-tight text-foreground">
+                Riwayat Penilaian
+              </h2>
               <div className="space-y-2">
                 {graded.map((test) => (
                   <div
@@ -206,9 +235,17 @@ export default function PengujiDashboardPage(): JSX.Element {
                         {test.student?.full_name ?? "Siswa"}
                       </p>
                     </div>
-                    <Badge variant={statusVariant(test.status)}>
-                      {test.final_score !== null ? `Skor ${test.final_score}` : test.status}
-                    </Badge>
+                    <StatusBadge
+                      status={test.status === "PASSED" ? "LULUS" : "DONE"}
+                      label={
+                        test.final_score !== null
+                          ? `Skor ${test.final_score}`
+                          : test.status === "PASSED"
+                            ? "LULUS"
+                            : "SELESAI"
+                      }
+                      mapping={{ LULUS: "success", DONE: "success", SELESAI: "success" }}
+                    />
                   </div>
                 ))}
               </div>

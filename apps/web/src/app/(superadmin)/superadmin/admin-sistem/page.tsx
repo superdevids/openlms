@@ -18,19 +18,13 @@ import {
   Input,
   Select,
   Switch,
-  Badge,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState,
   DataView,
   toast,
   IconLock,
   IconDownload
 } from "@opensis/ui";
+
+import { PageHeader, DataTable, StatusBadge, type DataTableColumn } from "@/components/ui";
 
 interface AdminUser {
   id: string;
@@ -43,21 +37,13 @@ interface AdminUser {
   createdAt: string;
 }
 
-// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
-const FLAG_KOLOM: { key: string; label: string }[] = [
-  { key: "key", label: "Key" },
-  { key: "kategori", label: "Kategori" },
-  { key: "status", label: "Status" },
-  { key: "aksi", label: "Aksi" }
-];
-
-const USER_KOLOM: { key: string; label: string }[] = [
-  { key: "username", label: "Username" },
-  { key: "nama", label: "Nama" },
-  { key: "role", label: "Role" },
-  { key: "status", label: "Status" },
-  { key: "aksi", label: "Aksi" }
-];
+interface FlagRow {
+  key: string;
+  category: string;
+  enabled: boolean;
+  locked: boolean;
+  isSystem: boolean;
+}
 
 export default function SuperadminAdminSistemPage(): JSX.Element {
   const { flags, setFlag, refresh } = useFeatureFlags(true);
@@ -71,7 +57,7 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
   );
 
   const categories = ["all", ...Array.from(new Set(flags.map((f) => f.category)))];
-  const filtered = flags.filter(
+  const filtered: FlagRow[] = flags.filter(
     (f) =>
       (categoryFilter === "all" || f.category === categoryFilter) &&
       (search.trim() === "" || f.key.toLowerCase().includes(search.toLowerCase()))
@@ -94,9 +80,87 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
     }
   };
 
+  const flagColumns: DataTableColumn<FlagRow>[] = [
+    {
+      key: "key",
+      label: "Key",
+      render: (f) => (
+        <>
+          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{f.key}</code>
+          {f.locked ? (
+            <StatusBadge status="locked" label="locked" icon={<IconLock className="h-3 w-3" />} />
+          ) : null}
+        </>
+      )
+    },
+    { key: "category", label: "Kategori" },
+    {
+      key: "status",
+      label: "Status",
+      render: (f) => <StatusBadge status={f.enabled ? "ON" : "OFF"} />
+    },
+    {
+      key: "aksi",
+      label: "Aksi",
+      render: (f) =>
+        f.locked || f.isSystem ? (
+          <span className="text-xs text-muted-foreground">Terkunci (system/ditunda)</span>
+        ) : (
+          <Switch
+            checked={f.enabled}
+            onCheckedChange={(v) => {
+              setFlag(f.key, v);
+              toast({
+                variant: "info",
+                title: `${f.key} ${v ? "diaktifkan" : "dinonaktifkan"}`,
+                description: "Perubahan dicatat di AuditLog"
+              });
+            }}
+            label={f.enabled ? "ON" : "OFF"}
+          />
+        )
+    }
+  ];
+
+  const userColumns: DataTableColumn<AdminUser>[] = [
+    {
+      key: "username",
+      label: "Username",
+      render: (u) => (
+        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{u.username ?? "-"}</code>
+      )
+    },
+    {
+      key: "fullName",
+      label: "Nama",
+      render: (u) => <span className="font-medium">{u.fullName}</span>
+    },
+    { key: "roles", label: "Role", render: (u) => u.roles.join(", ") },
+    {
+      key: "status",
+      label: "Status",
+      render: (u) => <StatusBadge status={u.isActive ? "ACTIVE" : "INACTIVE"} />
+    },
+    {
+      key: "aksi",
+      label: "Aksi",
+      render: (u) =>
+        u.username ? (
+          <Button size="sm" variant="outline" onClick={() => void resetPassword(u)}>
+            Reset Password
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">tanpa username</span>
+        )
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Admin Sistem</h1>
+      <PageHeader
+        title="Admin Sistem"
+        description="Feature flags, manajemen user, audit log, dan status backup."
+      />
 
       <Tabs
         tabs={[
@@ -110,7 +174,7 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
       />
 
       <TabPanel value="flags" activeValue={tab}>
-        <Card>
+        <Card className="overflow-hidden rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -145,61 +209,20 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
                 className="max-w-xs"
               />
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {FLAG_KOLOM.map((k) => (
-                    <TableHead key={k.key}>{k.label}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((f) => (
-                  <TableRow key={f.key}>
-                    <TableCell>
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{f.key}</code>
-                      {f.locked ? (
-                        <Badge variant="neutral" className="ml-2">
-                          <IconLock className="h-3 w-3" /> locked
-                        </Badge>
-                      ) : null}
-                    </TableCell>
-                    <TableCell>{f.category}</TableCell>
-                    <TableCell>
-                      <Badge variant={f.enabled ? "success" : "neutral"}>
-                        {f.enabled ? "ON" : "OFF"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {f.locked || f.isSystem ? (
-                        <span className="text-xs text-muted-foreground">
-                          Terkunci (system/ditunda)
-                        </span>
-                      ) : (
-                        <Switch
-                          checked={f.enabled}
-                          onCheckedChange={(v) => {
-                            setFlag(f.key, v);
-                            toast({
-                              variant: "info",
-                              title: `${f.key} ${v ? "diaktifkan" : "dinonaktifkan"}`,
-                              description: "Perubahan dicatat di AuditLog"
-                            });
-                          }}
-                          label={f.enabled ? "ON" : "OFF"}
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={flagColumns}
+              rows={filtered}
+              keyField="key"
+              emptyTitle="Tidak ada flag ditemukan"
+              emptyDesc="Ubah filter kategori atau kata kunci pencarian."
+              maxHeight="none"
+            />
           </CardContent>
         </Card>
       </TabPanel>
 
       <TabPanel value="user" activeValue={tab}>
-        <Card>
+        <Card className="overflow-hidden rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Manajemen User</CardTitle>
             <CardDescription>
@@ -207,59 +230,21 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
               tanpa email/SMS).
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent>
             <DataView
               status={users.status}
               error={users.error}
               onRetry={users.refetch}
               fallbackLabel="Daftar user"
             >
-              {users.data?.items.length === 0 ? (
-                <div className="p-6">
-                  <EmptyState title="Belum ada user" description="Data user akan tampil di sini." />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {USER_KOLOM.map((k) => (
-                        <TableHead key={k.key}>{k.label}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(users.data?.items ?? []).map((u) => (
-                      <TableRow key={u.id}>
-                        <TableCell>
-                          <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                            {u.username ?? "-"}
-                          </code>
-                        </TableCell>
-                        <TableCell className="font-medium">{u.fullName}</TableCell>
-                        <TableCell>{u.roles.join(", ")}</TableCell>
-                        <TableCell>
-                          <Badge variant={u.isActive ? "success" : "warning"}>
-                            {u.isActive ? "ACTIVE" : "INACTIVE"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {u.username ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void resetPassword(u)}
-                            >
-                              Reset Password
-                            </Button>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">tanpa username</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <DataTable
+                columns={userColumns}
+                rows={users.data?.items ?? []}
+                keyField="id"
+                emptyTitle="Belum ada user"
+                emptyDesc="Data user akan tampil di sini."
+                maxHeight="none"
+              />
             </DataView>
           </CardContent>
         </Card>
@@ -270,7 +255,7 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
       </TabPanel>
 
       <TabPanel value="backup" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Status Backup</CardTitle>
             <CardDescription>
@@ -280,7 +265,7 @@ export default function SuperadminAdminSistemPage(): JSX.Element {
           <CardContent className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2">
               <span className="font-medium text-foreground">Status backup belum dikonfigurasi</span>
-              <Badge variant="warning">Perlu konfigurasi</Badge>
+              <StatusBadge status="DIPROSES" label="Perlu konfigurasi" />
             </div>
             <p className="text-sm text-muted-foreground">
               Fitur backup database belum terpasang pada instalasi ini. Konfigurasikan backup

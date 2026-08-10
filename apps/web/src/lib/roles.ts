@@ -15,6 +15,8 @@ export interface NavItem {
   icon: string;
   featureFlagKey?: string;
   roles: Role[];
+  /** Grup sidebar AppShell v2 (spec app-design-system-v3 §D.1.a). */
+  group?: string;
 }
 
 export function roleGroupFor(role: Role | undefined): RoleGroup | null {
@@ -83,205 +85,327 @@ const ROLES: Record<RoleGroup, Role[]> = {
 
 export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
   siswa: [
-    { label: "Beranda", href: "/siswa/dashboard", icon: "home", roles: ROLES.siswa },
-    { label: "Kelas", href: "/siswa/kelas", icon: "book", roles: ROLES.siswa },
+    {
+      label: "Beranda",
+      href: "/siswa/dashboard",
+      icon: "home",
+      roles: ROLES.siswa,
+      group: "Ringkasan"
+    },
+    {
+      label: "Kelas",
+      href: "/siswa/kelas",
+      icon: "book",
+      roles: ROLES.siswa,
+      group: "Pembelajaran"
+    },
     {
       label: "Tugas",
       href: "/siswa/tugas",
       icon: "clipboard",
       roles: ROLES.siswa,
-      featureFlagKey: "LMS_ASSIGNMENT"
+      featureFlagKey: "LMS_ASSIGNMENT",
+      group: "Pembelajaran"
     },
     {
       label: "Kuis",
       href: "/siswa/kuis",
       icon: "quiz",
       roles: ROLES.siswa,
-      featureFlagKey: "LMS_QUIZ"
+      featureFlagKey: "LMS_QUIZ",
+      group: "Pembelajaran"
     },
     {
       label: "Ujian",
       href: "/siswa/ujian",
       icon: "exam",
       roles: ROLES.siswa,
-      featureFlagKey: "LMS_EXAM"
+      featureFlagKey: "LMS_EXAM",
+      group: "Pembelajaran"
     },
-    { label: "Nilai", href: "/siswa/nilai", icon: "chart", roles: ROLES.siswa },
+    {
+      label: "Nilai",
+      href: "/siswa/nilai",
+      icon: "chart",
+      roles: ROLES.siswa,
+      group: "Pembelajaran"
+    },
     {
       label: "Absensi",
       href: "/siswa/absensi",
       icon: "qrcode",
       roles: ROLES.siswa,
-      featureFlagKey: "LMS_ABSENSI_QR"
+      featureFlagKey: "LMS_ABSENSI_QR",
+      group: "Kehadiran"
     },
     {
       label: "Kalender",
       href: "/siswa/kalender",
       icon: "calendar",
       roles: ROLES.siswa,
-      featureFlagKey: "LMS_KALENDER"
+      featureFlagKey: "LMS_KALENDER",
+      group: "Kehadiran"
     }
   ],
   guru: [
-    { label: "Beranda", href: "/guru/dashboard", icon: "home", roles: ROLES.guru },
-    { label: "Kelas", href: "/guru/kelas", icon: "book", roles: ROLES.guru },
+    {
+      label: "Beranda",
+      href: "/guru/dashboard",
+      icon: "home",
+      roles: ROLES.guru,
+      group: "Ringkasan"
+    },
+    { label: "Kelas", href: "/guru/kelas", icon: "book", roles: ROLES.guru, group: "Mengajar" },
     {
       label: "Materi",
       href: "/guru/materi",
       icon: "file",
       roles: ROLES.guru,
-      featureFlagKey: "LMS_MATERIAL"
+      featureFlagKey: "LMS_MATERIAL",
+      group: "Mengajar"
     },
     {
       label: "Tugas",
       href: "/guru/tugas",
       icon: "clipboard",
       roles: ROLES.guru,
-      featureFlagKey: "LMS_ASSIGNMENT"
+      featureFlagKey: "LMS_ASSIGNMENT",
+      group: "Mengajar"
     },
     {
       label: "Bank Soal",
       href: "/guru/bank-soal",
       icon: "bank",
       roles: ROLES.guru,
-      featureFlagKey: "LMS_BANK_SOAL"
+      featureFlagKey: "LMS_BANK_SOAL",
+      group: "Mengajar"
     },
-    { label: "Penilaian", href: "/guru/penilaian", icon: "grade", roles: ROLES.guru },
+    {
+      label: "Penilaian",
+      href: "/guru/penilaian",
+      icon: "grade",
+      roles: ROLES.guru,
+      group: "Mengajar"
+    },
     {
       label: "Absensi QR",
       href: "/guru/absensi",
       icon: "qrcode",
       roles: ROLES.guru,
-      featureFlagKey: "LMS_ABSENSI_QR"
+      featureFlagKey: "LMS_ABSENSI_QR",
+      group: "Kehadiran & Ujian"
     },
     {
       label: "Ujian",
       href: "/guru/ujian",
       icon: "exam",
       roles: ROLES.guru,
-      featureFlagKey: "LMS_EXAM"
+      featureFlagKey: "LMS_EXAM",
+      group: "Kehadiran & Ujian"
     }
   ],
   admin: [
-    { label: "Beranda", href: "/admin/dashboard", icon: "home", roles: ROLES.admin },
-    { label: "Operator / Data", href: "/admin/operator", icon: "database", roles: ROLES.admin },
+    {
+      label: "Beranda",
+      href: "/admin/dashboard",
+      icon: "home",
+      roles: ROLES.admin,
+      group: "Ringkasan"
+    },
+    {
+      label: "Operator / Data",
+      href: "/admin/operator",
+      icon: "database",
+      roles: ROLES.admin,
+      group: "Data"
+    },
     {
       label: "Landing Page",
       href: "/superadmin/landing",
       icon: "settings",
-      roles: ROLES.admin
+      roles: ["SUPERADMIN"],
+      group: "Data"
     },
     {
       label: "Keuangan",
       href: "/admin/keuangan",
       icon: "wallet",
       roles: ROLES.admin,
-      featureFlagKey: "FINANCE_INVOICE"
+      featureFlagKey: "FINANCE_INVOICE",
+      group: "Operasional"
     },
-    { label: "Wakepsek", href: "/admin/wakepsek", icon: "academic", roles: ROLES.admin },
-    { label: "Kepsek", href: "/admin/kepsek", icon: "briefcase", roles: ROLES.admin },
+    {
+      label: "Wakepsek",
+      href: "/admin/wakepsek",
+      icon: "academic",
+      roles: ROLES.admin,
+      group: "Operasional"
+    },
+    {
+      label: "Kepsek",
+      href: "/admin/kepsek",
+      icon: "briefcase",
+      roles: ROLES.admin,
+      group: "Operasional"
+    },
     {
       label: "Change Log",
       href: "/admin/kepsek/change-logs",
       icon: "file",
-      roles: ["KEPSEK"]
+      roles: ["KEPSEK"],
+      group: "Operasional"
     }
   ],
   superadmin: [
-    { label: "Beranda", href: "/superadmin/dashboard", icon: "home", roles: ROLES.superadmin },
+    {
+      label: "Beranda",
+      href: "/superadmin/dashboard",
+      icon: "home",
+      roles: ROLES.superadmin,
+      group: "Ringkasan"
+    },
     {
       label: "Admin Sistem",
       href: "/superadmin/admin-sistem",
       icon: "settings",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Konfigurasi"
     },
     {
       label: "Change Log",
       href: "/superadmin/change-logs",
       icon: "file",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Pemeliharaan"
     },
     {
       label: "Branding",
       href: "/superadmin/branding",
       icon: "settings",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Konfigurasi"
     },
     {
       label: "Landing Page",
       href: "/superadmin/landing",
       icon: "settings",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Konfigurasi"
     },
     {
       label: "RBAC",
       href: "/superadmin/rbac",
       icon: "database",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Konfigurasi"
     },
     {
       label: "Onboarding",
       href: "/superadmin/onboarding",
       icon: "rocket",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Pemeliharaan"
     },
     {
       label: "Rollover",
       href: "/superadmin/rollover",
       icon: "refresh",
       roles: ROLES.superadmin,
-      featureFlagKey: "ACADEMIC_ROLLOVER"
+      featureFlagKey: "ACADEMIC_ROLLOVER",
+      group: "Pemeliharaan"
     },
     {
       label: "Maintenance",
       href: "/superadmin/maintenance",
       icon: "settings",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Pemeliharaan"
     },
     {
       label: "Dashboard Config",
       href: "/superadmin/dashboard-config",
       icon: "chart",
-      roles: ROLES.superadmin
+      roles: ROLES.superadmin,
+      group: "Konfigurasi"
     }
   ],
   ortu: [
-    { label: "Beranda", href: "/ortu/dashboard", icon: "home", roles: ROLES.ortu },
-    { label: "Nilai Anak", href: "/ortu/nilai", icon: "chart", roles: ROLES.ortu },
-    { label: "Absensi Anak", href: "/ortu/absensi", icon: "calendar", roles: ROLES.ortu },
+    {
+      label: "Beranda",
+      href: "/ortu/dashboard",
+      icon: "home",
+      roles: ROLES.ortu,
+      group: "Ringkasan"
+    },
+    {
+      label: "Nilai Anak",
+      href: "/ortu/nilai",
+      icon: "chart",
+      roles: ROLES.ortu,
+      group: "Pantauan Anak"
+    },
+    {
+      label: "Absensi Anak",
+      href: "/ortu/absensi",
+      icon: "calendar",
+      roles: ROLES.ortu,
+      group: "Pantauan Anak"
+    },
     {
       label: "Tagihan Anak",
       href: "/ortu/tagihan",
       icon: "wallet",
       roles: ROLES.ortu,
-      featureFlagKey: "FINANCE_INVOICE"
+      featureFlagKey: "FINANCE_INVOICE",
+      group: "Pantauan Anak"
     }
   ],
   calonsiswa: [
-    { label: "Beranda", href: "/calonsiswa/dashboard", icon: "home", roles: ROLES.calonsiswa },
+    {
+      label: "Beranda",
+      href: "/calonsiswa/dashboard",
+      icon: "home",
+      roles: ROLES.calonsiswa,
+      group: "Ringkasan"
+    },
     {
       label: "Pengumuman",
       href: "/calonsiswa/pengumuman",
       icon: "file",
-      roles: ROLES.calonsiswa
+      roles: ROLES.calonsiswa,
+      group: "Ringkasan"
     }
   ],
   pembimbing: [
-    { label: "Beranda", href: "/pembimbing/dashboard", icon: "home", roles: ROLES.pembimbing },
+    {
+      label: "Beranda",
+      href: "/pembimbing/dashboard",
+      icon: "home",
+      roles: ROLES.pembimbing,
+      group: "Ringkasan"
+    },
     {
       label: "Siswa PKL",
       href: "/pembimbing/siswa",
       icon: "briefcase",
-      roles: ROLES.pembimbing
+      roles: ROLES.pembimbing,
+      group: "Ringkasan"
     }
   ],
   penguji: [
-    { label: "Beranda", href: "/penguji/dashboard", icon: "home", roles: ROLES.penguji },
+    {
+      label: "Beranda",
+      href: "/penguji/dashboard",
+      icon: "home",
+      roles: ROLES.penguji,
+      group: "Ringkasan"
+    },
     {
       label: "Jadwal UKK",
       href: "/penguji/jadwal",
       icon: "calendar",
-      roles: ROLES.penguji
+      roles: ROLES.penguji,
+      group: "Ringkasan"
     }
   ]
 };

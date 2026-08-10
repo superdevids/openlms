@@ -12,13 +12,15 @@ import {
   CardHeader,
   CardTitle,
   Button,
-  Badge,
   Alert,
-  EmptyState,
   Skeleton,
   IconCheck,
+  IconAcademic,
+  IconBriefcase,
+  IconGrade,
   toast
 } from "@opensis/ui";
+import { PageHeader, StatCard, StatGrid, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface Internship {
   id: string;
@@ -47,12 +49,6 @@ function fmtDate(value: string | null | undefined): string {
   } catch {
     return value;
   }
-}
-
-function statusVariant(status: string): "success" | "warning" | "neutral" {
-  if (status === "COMPLETED") return "success";
-  if (status === "TERMINATED") return "warning";
-  return "neutral";
 }
 
 export default function PembimbingDashboardPage(): JSX.Element {
@@ -106,12 +102,42 @@ export default function PembimbingDashboardPage(): JSX.Element {
   };
 
   const internships = DEMO_MODE && list.status !== "success" ? [] : (list.data ?? []);
+  const pendingJournalCount = internships.reduce(
+    (sum, it) => sum + (journalsBy[it.id] ?? []).filter((j) => !j.verified_by_mentor).length,
+    0
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard Pembimbing Industri</h1>
+      <PageHeader
+        title="Beranda Pembimbing"
+        description="Verifikasi jurnal harian siswa dan pantau progres PKL."
+      />
 
-      <Card>
+      <StatGrid className="grid-cols-1 sm:grid-cols-3">
+        <StatCard
+          label="Siswa PKL Dibimbing"
+          value={String(internships.length)}
+          icon={<IconBriefcase className="h-5 w-5" />}
+          hint="siswa aktif diampu"
+        />
+        <StatCard
+          label="Log Aktivitas Minggu Ini"
+          value="-"
+          tone="info"
+          icon={<IconGrade className="h-5 w-5" />}
+          hint="data via jurnal siswa"
+        />
+        <StatCard
+          label="Jurnal Perlu Review"
+          value={String(pendingJournalCount)}
+          tone="warning"
+          icon={<IconAcademic className="h-5 w-5" />}
+          hint="belum diverifikasi"
+        />
+      </StatGrid>
+
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <CardTitle>Siswa PKL Bimbingan</CardTitle>
           <CardDescription>Verifikasi jurnal harian siswa dan pantau progres PKL.</CardDescription>
@@ -124,9 +150,10 @@ export default function PembimbingDashboardPage(): JSX.Element {
               {list.error?.message ?? "Gagal memuat daftar siswa PKL."}
             </Alert>
           ) : internships.length === 0 ? (
-            <EmptyState
+            <EmptyStateV3
+              icon={<IconBriefcase className="h-5 w-5" />}
               title="Belum ada siswa bimbingan"
-              description="Siswa PKL yang ditugaskan ke Anda akan tampil di sini."
+              desc="Siswa PKL yang ditugaskan ke Anda akan tampil di sini."
             />
           ) : (
             <ul className="space-y-3">
@@ -149,10 +176,18 @@ export default function PembimbingDashboardPage(): JSX.Element {
                         </p>
                       </button>
                       <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant(it.status)}>{it.status}</Badge>
-                        <Badge variant={pending > 0 ? "warning" : "success"}>
-                          {pending > 0 ? `${pending} jurnal belum diverifikasi` : "Semua jurnal OK"}
-                        </Badge>
+                        <StatusBadge
+                          status={it.status === "COMPLETED" ? "SELESAI" : "AKTIF"}
+                          label={it.status === "COMPLETED" ? "SELESAI" : "AKTIF"}
+                          mapping={{ SELESAI: "success", AKTIF: "success" }}
+                        />
+                        <StatusBadge
+                          status={pending > 0 ? "PENDING" : "SUCCESS"}
+                          label={
+                            pending > 0 ? `${pending} jurnal belum diverifikasi` : "Semua jurnal OK"
+                          }
+                          mapping={{ PENDING: "warning", SUCCESS: "success" }}
+                        />
                       </div>
                     </div>
 
@@ -167,7 +202,7 @@ export default function PembimbingDashboardPage(): JSX.Element {
                             {journals.map((j) => (
                               <li
                                 key={j.id}
-                                className="flex items-start justify-between gap-3 rounded-md bg-muted p-3"
+                                className="flex items-start justify-between gap-3 rounded-md bg-app-surface-2 p-3"
                               >
                                 <div>
                                   <p className="text-sm font-medium text-foreground">
@@ -179,9 +214,11 @@ export default function PembimbingDashboardPage(): JSX.Element {
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
                                   {j.verified_by_mentor ? (
-                                    <Badge variant="success">
-                                      <IconCheck className="mr-1 h-3 w-3" /> Terverifikasi
-                                    </Badge>
+                                    <StatusBadge
+                                      status="TERVERIFIKASI"
+                                      label="Terverifikasi"
+                                      icon={<IconCheck className="h-3 w-3" />}
+                                    />
                                   ) : (
                                     <Button
                                       size="sm"

@@ -9,12 +9,12 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  Badge,
   Alert,
-  EmptyState,
   Skeleton,
-  IconFile
+  IconFile,
+  IconBriefcase
 } from "@opensis/ui";
+import { PageHeader, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface Internship {
   id: string;
@@ -77,7 +77,10 @@ export default function PembimbingSiswaPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Siswa PKL &amp; Portofolio</h1>
+      <PageHeader
+        title="Siswa PKL & Portofolio"
+        description="Portofolio jurnal harian siswa yang Anda bimbing di industri."
+      />
 
       {list.status === "loading" ? (
         <Skeleton className="h-48 w-full" />
@@ -86,9 +89,10 @@ export default function PembimbingSiswaPage(): JSX.Element {
           {list.error?.message ?? "Gagal memuat data siswa."}
         </Alert>
       ) : internships.length === 0 ? (
-        <EmptyState
+        <EmptyStateV3
+          icon={<IconBriefcase className="h-5 w-5" />}
           title="Belum ada siswa bimbingan"
-          description="Siswa PKL yang ditugaskan ke Anda akan tampil di sini."
+          desc="Siswa PKL yang ditugaskan ke Anda akan tampil di sini."
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -97,16 +101,19 @@ export default function PembimbingSiswaPage(): JSX.Element {
             const verified = journals.filter((j) => j.verified_by_mentor).length;
             const total = journals.length;
             return (
-              <Card key={it.id}>
+              <Card key={it.id} className="rounded-lg border-border bg-app-surface shadow-app-card">
                 <CardHeader>
                   <CardTitle>{it.student?.full_name ?? "Siswa"}</CardTitle>
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="neutral">
-                      {fmtDate(it.start_date)} — {fmtDate(it.end_date)}
-                    </Badge>
-                    <Badge variant={it.status === "COMPLETED" ? "success" : "neutral"}>
-                      {it.status}
-                    </Badge>
+                    <StatusBadge
+                      status="AKTIF"
+                      label={`${fmtDate(it.start_date)} — ${fmtDate(it.end_date)}`}
+                      mapping={{ AKTIF: "neutral" }}
+                    />
+                    <StatusBadge
+                      status={it.status === "COMPLETED" ? "SELESAI" : "AKTIF"}
+                      mapping={{ SELESAI: "success", AKTIF: "success" }}
+                    />
                   </div>
                 </CardHeader>
                 <CardContent>

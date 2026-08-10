@@ -13,8 +13,14 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Button,
-  EmptyState
+  IconAcademic,
+  IconAlert,
+  IconBell,
+  IconChart,
+  IconChevronRight,
+  IconClock,
+  IconUser,
+  IconWallet
 } from "@opensis/ui";
 
 import { roleLabel } from "@/lib/roles";
@@ -22,6 +28,7 @@ import { DEMO_INVOICES } from "@/lib/demo";
 import { formatRupiah } from "@/lib/format";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
+import { PageHeader, StatCard, StatGrid, EmptyStateV3 } from "@/components/ui";
 
 export default function AdminDashboardPage(): JSX.Element {
   const { user } = useAuth();
@@ -43,13 +50,15 @@ export default function AdminDashboardPage(): JSX.Element {
   );
   const overdue = (invoices.data ?? []).filter((i) => i.status === "OVERDUE").length;
   const pendingVerify = (invoices.data ?? []).filter((i) => i.status === "PARTIAL").length;
+  const collected = (invoices.data ?? []).reduce((s, i) => s + i.paid, 0);
+  const outstanding = (invoices.data ?? []).reduce((s, i) => s + (i.amount - i.paid), 0);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Beranda Admin</h1>
-        <p className="text-sm text-muted-foreground">Peran aktif: {role ? roleLabel(role) : "-"}</p>
-      </div>
+      <PageHeader
+        title="Beranda Admin"
+        description={role ? `Peran aktif: ${roleLabel(role)}` : undefined}
+      />
 
       <DashboardCards
         role="admin"
@@ -57,24 +66,42 @@ export default function AdminDashboardPage(): JSX.Element {
         fallbackLabel="Menu admin"
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi
-          label="Pendaftar PPDB"
-          value={role === "KEUANGAN" ? "-" : "-"}
-          hint="data via Data Induk & PPDB"
-        />
-        <Kpi label="Undangan pending" value="-" hint="data via Data Induk & PPDB" />
-        <Kpi
-          label="Tagihan jatuh tempo"
-          value={overdue > 0 ? String(overdue) : "0"}
-          hint={pendingVerify > 0 ? `${pendingVerify} menunggu verifikasi` : "aman"}
-        />
-        <Kpi label="Kehadiran hari ini" value="-" hint="data via Rekap Absensi" />
-      </div>
+      <section aria-label="Ringkasan operasional">
+        <StatGrid>
+          <StatCard
+            label="Pendaftar PPDB"
+            value="-"
+            icon={<IconUser className="h-5 w-5" />}
+            hint="data via Data Induk & PPDB"
+          />
+          <StatCard
+            label="Undangan pending"
+            value="-"
+            tone="warning"
+            icon={<IconBell className="h-5 w-5" />}
+            hint="data via Data Induk & PPDB"
+          />
+          <StatCard
+            label="Tagihan jatuh tempo"
+            value={overdue > 0 ? String(overdue) : "0"}
+            tone="danger"
+            icon={<IconClock className="h-5 w-5" />}
+            hint={pendingVerify > 0 ? `${pendingVerify} menunggu verifikasi` : "aman"}
+            href="/admin/keuangan"
+          />
+          <StatCard
+            label="Kehadiran hari ini"
+            value="-"
+            tone="info"
+            icon={<IconChart className="h-5 w-5" />}
+            hint="data via Rekap Absensi"
+          />
+        </StatGrid>
+      </section>
 
       <section aria-label="Ringkasan keuangan">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Keuangan</h2>
+          <h2 className="text-base font-semibold tracking-tight text-foreground">Keuangan</h2>
           <Link href="/admin/keuangan" className="text-sm font-medium text-primary">
             Lihat semua
           </Link>
@@ -85,98 +112,129 @@ export default function AdminDashboardPage(): JSX.Element {
           onRetry={invoices.refetch}
           fallbackLabel="Ringkasan keuangan"
         >
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Kpi
+          <StatGrid className="grid-cols-1 sm:grid-cols-3">
+            <StatCard
               label="Terkumpul"
-              value={formatRupiah((invoices.data ?? []).reduce((s, i) => s + i.paid, 0))}
+              value={formatRupiah(collected)}
+              tone="success"
+              icon={<IconWallet className="h-5 w-5" />}
             />
-            <Kpi
+            <StatCard
               label="Belum dibayar"
-              value={formatRupiah(
-                (invoices.data ?? []).reduce((s, i) => s + (i.amount - i.paid), 0)
-              )}
+              value={formatRupiah(outstanding)}
+              tone="warning"
+              icon={<IconWallet className="h-5 w-5" />}
             />
-            <Kpi label="Tunggakan" value={String(overdue)} />
-          </div>
+            <StatCard
+              label="Tunggakan"
+              value={String(overdue)}
+              tone="danger"
+              icon={<IconAlert className="h-5 w-5" />}
+            />
+          </StatGrid>
         </DataView>
       </section>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <Link href="/admin/operator" className="block">
-          <Card className="h-full transition-colors hover:border-primary-600">
-            <CardHeader>
-              <CardTitle>Data Induk & PPDB</CardTitle>
-              <CardDescription>Data siswa/guru, impor, undangan, verifikasi PPDB</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm">
-                Buka
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/admin/wakepsek" className="block">
-          <Card className="h-full transition-colors hover:border-primary-600">
-            <CardHeader>
-              <CardTitle>Akademik & Kedisiplinan</CardTitle>
-              <CardDescription>
-                Rekap nilai, jadwal ujian, kedisiplinan lintas kelas
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm">
-                Buka
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/admin/kepsek" className="block">
-          <Card className="h-full transition-colors hover:border-primary-600">
-            <CardHeader>
-              <CardTitle>Dashboard Eksekutif</CardTitle>
-              <CardDescription>KPI, tren kehadiran, rekap payroll, audit</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm">
-                Buka
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
+      <section aria-label="Menu admin cepat">
+        <h2 className="mb-2 text-base font-semibold tracking-tight text-foreground">Menu Admin</h2>
+        <div className="grid gap-3 lg:grid-cols-3">
+          <Link href="/admin/operator" className="group block h-full">
+            <Card className="flex h-full flex-col rounded-lg border-border bg-app-surface p-5 shadow-app-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-app-floating">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="truncate text-sm font-semibold">
+                    Data Induk & PPDB
+                  </CardTitle>
+                  <CardDescription className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    Data siswa/guru, impor, undangan, verifikasi PPDB
+                  </CardDescription>
+                </div>
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary"
+                  aria-hidden="true"
+                >
+                  <IconUser className="h-5 w-5" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
+                <span>Buka</span>
+                <IconChevronRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </div>
+            </Card>
+          </Link>
+          <Link href="/admin/wakepsek" className="group block h-full">
+            <Card className="flex h-full flex-col rounded-lg border-border bg-app-surface p-5 shadow-app-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-app-floating">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="truncate text-sm font-semibold">
+                    Akademik & Kedisiplinan
+                  </CardTitle>
+                  <CardDescription className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    Rekap nilai, jadwal ujian, kedisiplinan lintas kelas
+                  </CardDescription>
+                </div>
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary"
+                  aria-hidden="true"
+                >
+                  <IconAcademic className="h-5 w-5" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
+                <span>Buka</span>
+                <IconChevronRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </div>
+            </Card>
+          </Link>
+          <Link href="/admin/kepsek" className="group block h-full">
+            <Card className="flex h-full flex-col rounded-lg border-border bg-app-surface p-5 shadow-app-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-app-floating">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="truncate text-sm font-semibold">
+                    Dashboard Eksekutif
+                  </CardTitle>
+                  <CardDescription className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    KPI, tren kehadiran, rekap payroll, audit
+                  </CardDescription>
+                </div>
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary"
+                  aria-hidden="true"
+                >
+                  <IconChart className="h-5 w-5" />
+                </span>
+              </div>
+              <div className="mt-4 flex items-center gap-1 text-sm font-medium text-primary">
+                <span>Buka</span>
+                <IconChevronRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden="true"
+                />
+              </div>
+            </Card>
+          </Link>
+        </div>
+      </section>
 
-      <Card>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <CardTitle>Kehadiran terbaru</CardTitle>
           <CardDescription>Rekap kehadiran tersedia di menu Absensi (data nyata).</CardDescription>
         </CardHeader>
         <CardContent>
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconChart className="h-5 w-5" />}
             title="Belum ada rekap ditampilkan di sini"
-            description="Rekap kehadiran lengkap dapat diakses melalui halaman Rekap Absensi."
+            desc="Rekap kehadiran lengkap dapat diakses melalui halaman Rekap Absensi."
           />
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  hint
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}): JSX.Element {
-  return (
-    <Card>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
-      </CardContent>
-    </Card>
   );
 }

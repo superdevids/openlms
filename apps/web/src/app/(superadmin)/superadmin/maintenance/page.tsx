@@ -6,7 +6,6 @@ import { api, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import { APP_NAME } from "@/lib/constants";
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -19,6 +18,7 @@ import {
   Textarea,
   toast
 } from "@opensis/ui";
+import { PageHeader, StatusBadge } from "@/components/ui";
 
 /**
  * Halaman Maintenance (SUPERADMIN) — /superadmin/maintenance.
@@ -103,32 +103,30 @@ export default function SuperadminMaintenancePage(): JSX.Element {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Mode Maintenance</h1>
-        <p className="text-sm text-muted-foreground">
-          Aktifkan mode pemeliharaan global untuk seluruh aplikasi. Endpoint publik terpilih
-          (health, status sistem, konten landing) tetap berfungsi. Perubahan tercatat di Audit Log.
-        </p>
-      </div>
+      <PageHeader
+        title="Mode Maintenance"
+        description="Aktifkan mode pemeliharaan global untuk seluruh aplikasi. Endpoint publik terpilih (health, status sistem, konten landing) tetap berfungsi. Perubahan tercatat di Audit Log."
+      />
 
       {statusApi.status === "error" ? (
-        <Card>
-          <CardContent className="p-4 text-sm text-danger-700">
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
+          <CardContent className="p-4 text-sm text-status-danger-fg">
             Tidak dapat memuat status maintenance. Periksa koneksi backend dan pastikan akun
             memiliki permission <code>system:status:read</code>.
           </CardContent>
         </Card>
       ) : null}
 
-      <Card>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardDescription>Status saat ini</CardDescription>
               <div className="mt-1">
-                <Badge variant={currentEnabled ? "warning" : "success"}>
-                  {currentEnabled ? "MAINTENANCE AKTIF" : "NORMAL"}
-                </Badge>
+                <StatusBadge
+                  status={currentEnabled ? "PENDING" : "SUCCESS"}
+                  label={currentEnabled ? "MAINTENANCE AKTIF" : "NORMAL"}
+                />
               </div>
             </div>
             <Switch
@@ -167,7 +165,7 @@ export default function SuperadminMaintenancePage(): JSX.Element {
               {saving ? "Menyimpan..." : "Simpan"}
             </Button>
             {enabled ? (
-              <p className="text-sm text-warning-700">
+              <p className="text-sm text-status-warning-fg">
                 Peringatan: seluruh pengguna non-allowlist akan melihat halaman pemeliharaan.
               </p>
             ) : null}
@@ -180,7 +178,10 @@ export default function SuperadminMaintenancePage(): JSX.Element {
       </Card>
 
       <section aria-labelledby="maintenance-preview-title">
-        <h2 id="maintenance-preview-title" className="text-lg font-semibold text-foreground">
+        <h2
+          id="maintenance-preview-title"
+          className="text-base font-semibold tracking-tight text-foreground"
+        >
           Pratinjau Halaman Maintenance
         </h2>
         <p className="text-sm text-muted-foreground">

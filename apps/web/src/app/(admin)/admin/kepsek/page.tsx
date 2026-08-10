@@ -13,18 +13,22 @@ import {
   CardDescription,
   Tabs,
   TabPanel,
-  Badge,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  Alert
+  Alert,
+  IconAcademic,
+  IconChart,
+  IconWallet
 } from "@opensis/ui";
 
 import { formatPercent, formatRupiah } from "@/lib/format";
 import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  DataTable,
+  StatusBadge,
+  type DataTableColumn
+} from "@/components/ui";
 
 const DEMO_PAYROLL = [
   { id: "p1", staff: "Budi Santoso", role: "Guru", takeHome: 4200000, status: "TERKIRIM" },
@@ -32,12 +36,20 @@ const DEMO_PAYROLL = [
   { id: "p3", staff: "Dewi Lestari", role: "TU", takeHome: 3300000, status: "TERKIRIM" }
 ];
 
-// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
-const PAYROLL_KOLOM: { key: string; label: string }[] = [
-  { key: "staf", label: "Staf" },
+const PAYROLL_COLUMNS: DataTableColumn<(typeof DEMO_PAYROLL)[number]>[] = [
+  { key: "staff", label: "Staf", render: (p) => <span className="font-medium">{p.staff}</span> },
   { key: "role", label: "Role" },
-  { key: "takeHome", label: "Take Home" },
-  { key: "status", label: "Status" }
+  {
+    key: "takeHome",
+    label: "Take Home",
+    className: "tabular-nums",
+    render: (p) => formatRupiah(p.takeHome)
+  },
+  {
+    key: "status",
+    label: "Status",
+    render: (p) => <StatusBadge status={p.status} mapping={{ TERKIRIM: "success" }} />
+  }
 ];
 
 interface MonthlySummary {
@@ -73,22 +85,46 @@ export default function AdminKepsekPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard Eksekutif</h1>
+      <PageHeader
+        title="Dashboard Eksekutif"
+        description="KPI sekolah, rekap payroll, dan audit untuk kepala sekolah."
+      />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label="Siswa Aktif" value="1,204" hint="48 rombel" />
-        <Kpi label="Kehadiran Hari Ini" value={formatPercent(95.8)} hint="tren 6 bulan" />
-        <Kpi label="Rata-rata Nilai" value="78.4" hint="per angkatan" />
-        <Kpi
+      <StatGrid>
+        <StatCard
+          label="Siswa Aktif"
+          value="1,204"
+          tone="brand"
+          icon={<IconAcademic className="h-5 w-5" />}
+          hint="48 rombel"
+        />
+        <StatCard
+          label="Kehadiran Hari Ini"
+          value={formatPercent(95.8)}
+          tone="success"
+          icon={<IconChart className="h-5 w-5" />}
+          hint="tren 6 bulan"
+        />
+        <StatCard
+          label="Rata-rata Nilai"
+          value="78.4"
+          tone="info"
+          icon={<IconAcademic className="h-5 w-5" />}
+          hint="per angkatan"
+        />
+        <StatCard
           label="Tunggakan SPP"
           value={tunggakan ? `${tunggakan.overdue} tagihan` : finance.error ? "-" : "…"}
+          tone="danger"
+          icon={<IconWallet className="h-5 w-5" />}
           hint={
             tunggakan
               ? `outstanding ${formatRupiah(Number(tunggakan.outstanding))} · ${tunggakan.total} total`
               : "read-only"
           }
+          href="/admin/keuangan"
         />
-      </div>
+      </StatGrid>
 
       <Tabs
         tabs={[
@@ -101,7 +137,7 @@ export default function AdminKepsekPage(): JSX.Element {
       />
 
       <TabPanel value="kpi" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Perlu Perhatian</CardTitle>
             <CardDescription>
@@ -110,17 +146,17 @@ export default function AdminKepsekPage(): JSX.Element {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              <li className="flex items-center justify-between rounded-md border border-warning-700 bg-warning-100 px-3 py-2">
-                <span className="font-medium text-warning-700">
+              <li className="flex items-center justify-between rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2">
+                <span className="font-medium text-status-warning-fg">
                   Kelas XII IPS 2 — nilai turun 6%
                 </span>
-                <Badge variant="warning">perhatian</Badge>
+                <StatusBadge status="PENDING" label="perhatian" />
               </li>
-              <li className="flex items-center justify-between rounded-md border border-danger-600 bg-danger-100 px-3 py-2">
-                <span className="font-medium text-danger-700">
+              <li className="flex items-center justify-between rounded-md border border-status-danger-border bg-status-danger-bg px-3 py-2">
+                <span className="font-medium text-status-danger-fg">
                   Alpa naik di XI IPA 3 (Budi, Sari)
                 </span>
-                <Badge variant="danger">alpa</Badge>
+                <StatusBadge status="ALPA" label="alpa" />
               </li>
             </ul>
           </CardContent>
@@ -132,37 +168,20 @@ export default function AdminKepsekPage(): JSX.Element {
       </TabPanel>
 
       <TabPanel value="payroll" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Rekap Payroll</CardTitle>
             <CardDescription>
               Modul payroll (GELOMBANG 2, default OFF) — rekap read-only untuk kepsek.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {PAYROLL_KOLOM.map((k) => (
-                    <TableHead key={k.key}>{k.label}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEMO_PAYROLL.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.staff}</TableCell>
-                    <TableCell>{p.role}</TableCell>
-                    <TableCell>{formatRupiah(p.takeHome)}</TableCell>
-                    <TableCell>
-                      <Badge variant={p.status === "TERKIRIM" ? "success" : "warning"}>
-                        {p.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent>
+            <DataTable
+              columns={PAYROLL_COLUMNS}
+              rows={DEMO_PAYROLL}
+              keyField="id"
+              maxHeight="none"
+            />
           </CardContent>
         </Card>
       </TabPanel>
@@ -171,17 +190,5 @@ export default function AdminKepsekPage(): JSX.Element {
         <ChangeLogTable />
       </TabPanel>
     </div>
-  );
-}
-
-function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }): JSX.Element {
-  return (
-    <Card>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-bold text-foreground">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
-      </CardContent>
-    </Card>
   );
 }

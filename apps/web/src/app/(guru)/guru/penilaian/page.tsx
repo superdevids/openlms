@@ -12,14 +12,15 @@ import {
   Input,
   Label,
   Textarea,
-  EmptyState,
-  toast
+  toast,
+  IconGrade
 } from "@opensis/ui";
 
 import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
 import { DEMO_SUBMISSIONS } from "@/lib/demo";
+import { PageHeader, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface PenilaianItem {
   id: string;
@@ -157,7 +158,19 @@ export default function GuruPenilaianPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Penilaian Esai</h1>
+      <PageHeader
+        title="Penilaian Esai"
+        description="Periksa jawaban esai siswa satu per satu. Soal & kunci di kiri, jawaban siswa di kanan."
+        meta={
+          total > 0 ? (
+            <StatusBadge
+              status="MENUNGGU"
+              mapping={{ MENUNGGU: "warning" }}
+              label={`${total} menunggu`}
+            />
+          ) : undefined
+        }
+      />
       <DataView
         status={list.status}
         error={list.error}
@@ -165,9 +178,10 @@ export default function GuruPenilaianPage(): JSX.Element {
         fallbackLabel="Antrean penilaian"
       >
         {total === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconGrade className="h-5 w-5" />}
             title="Tidak ada submission yang menunggu"
-            description="Semua submission sudah dinilai."
+            desc="Semua submission sudah dinilai."
           />
         ) : (
           <>
@@ -175,11 +189,11 @@ export default function GuruPenilaianPage(): JSX.Element {
               Submission {index + 1} dari {total} (sisa {total - index - 1})
             </p>
             {current ? (
-              <Card className="mt-2">
-                <CardContent className="space-y-4">
+              <Card className="mt-2 rounded-lg border-border bg-app-surface shadow-app-card">
+                <CardContent className="space-y-4 p-5">
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-lg border border-border bg-background p-4">
-                      <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                    <div className="rounded-lg border border-border bg-app-surface-2/60 p-4">
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         SOAL KUNCI — {current.assignmentTitle}
                         {current.subjectName ? ` · ${current.subjectName}` : ""}
                       </p>
@@ -190,8 +204,8 @@ export default function GuruPenilaianPage(): JSX.Element {
                         <span className="font-semibold">Skor maks:</span> {current.maxScore ?? "-"}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-border bg-card p-4">
-                      <p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                    <div className="rounded-lg border border-border bg-app-surface-2/60 p-4">
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         JAWABAN SISWA — {current.studentName}
                         {current.submittedAt ? ` (${formatTime(current.submittedAt)})` : ""}
                       </p>

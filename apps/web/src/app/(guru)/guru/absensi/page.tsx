@@ -15,15 +15,15 @@ import {
   Input,
   Alert,
   ConfirmDialog,
-  Badge,
-  toast,
-  IconQr
+  IconQr,
+  toast
 } from "@opensis/ui";
 
 import { formatDuration } from "@/lib/format";
 
 import { DEMO_ATTENDANCE_SUMMARY } from "@/lib/demo";
 import { getSocket, ATTENDANCE_CHECKED_IN_EVENT } from "@/lib/use-socket";
+import { PageHeader, StatusBadge } from "@/components/ui";
 
 /**
  * Absensi QR guru — generate sesi → token QR sekali pakai (expire ±7 mnt),
@@ -139,12 +139,17 @@ export default function GuruAbsensiPage(): JSX.Element {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Absensi QR</h1>
+      <PageHeader
+        title="Absensi QR"
+        description="Buat sesi absensi, tampilkan QR ke siswa, pantau scan secara real-time."
+      />
 
-      <Card>
+      <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
         <CardHeader>
-          <CardTitle>Buat Sesi Absensi</CardTitle>
-          <CardDescription>Token QR sekali pakai, kedaluwarsa ±7 menit.</CardDescription>
+          <CardTitle className="text-sm font-semibold">Buat Sesi Absensi</CardTitle>
+          <CardDescription className="text-xs text-muted-foreground">
+            Token QR sekali pakai, kedaluwarsa ±7 menit.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
@@ -178,15 +183,21 @@ export default function GuruAbsensiPage(): JSX.Element {
       </Card>
 
       {sessionId ? (
-        <Card className={closed ? "opacity-70" : "border-primary-600"}>
+        <Card
+          className={
+            closed
+              ? "rounded-lg border-border bg-app-surface opacity-70 shadow-app-card"
+              : "rounded-lg border-brand-primary/50 bg-app-surface shadow-app-card"
+          }
+        >
           <CardHeader>
-            <CardTitle>Sesi: {className}</CardTitle>
+            <CardTitle className="text-sm font-semibold">Sesi: {className}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {!closed && qrToken ? (
               <>
                 <div
-                  className="flex flex-col items-center gap-2 rounded-lg border border-border bg-background p-6"
+                  className="flex flex-col items-center gap-2 rounded-lg border border-border bg-app-surface-2/60 p-6"
                   aria-label="QR Code absensi"
                 >
                   <IconQr className="h-40 w-40 text-foreground" />
@@ -219,26 +230,32 @@ export default function GuruAbsensiPage(): JSX.Element {
             <div aria-label="Ringkasan scan">
               <p className="mb-2 text-sm font-semibold text-foreground">Sudah scan</p>
               {!DEMO_MODE && sessionId ? (
-                <div className="mb-2 rounded-md border border-primary-200 bg-primary-50 p-3 text-center">
-                  <p className="text-2xl font-bold text-primary-800" aria-live="polite">
+                <div className="mb-2 rounded-md border border-status-info-border bg-status-info-bg p-3 text-center">
+                  <p
+                    className="text-2xl font-bold tabular-nums text-status-info-fg"
+                    aria-live="polite"
+                  >
                     {liveCount}
                   </p>
-                  <p className="text-xs text-muted-foreground dark:text-primary-800">
-                    scan live sesi ini
-                  </p>
+                  <p className="text-xs text-status-info-fg">scan live sesi ini</p>
                 </div>
               ) : null}
               <div className="grid grid-cols-3 gap-2">
                 {DEMO_ATTENDANCE_SUMMARY.map((d) => (
-                  <div key={d.date} className="rounded-md border border-border p-3 text-center">
-                    <p className="text-lg font-bold text-foreground">
+                  <div
+                    key={d.date}
+                    className="rounded-md border border-border bg-app-surface-2/40 p-3 text-center"
+                  >
+                    <p className="text-lg font-bold tabular-nums text-foreground">
                       {d.present}/{d.total}
                     </p>
                     <p className="text-xs text-muted-foreground">Hadir</p>
                     {d.late > 0 ? (
-                      <Badge variant="warning" className="mt-1">
-                        {d.late} terlambat
-                      </Badge>
+                      <StatusBadge
+                        status="TERLAMBAT"
+                        label={`${d.late} terlambat`}
+                        className="mt-1"
+                      />
                     ) : null}
                   </div>
                 ))}

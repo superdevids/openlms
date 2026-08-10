@@ -1,6 +1,18 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent, type JSX, type ReactNode, type RefObject } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type JSX,
+  type ReactElement,
+  type ReactNode,
+  type RefObject
+} from "react";
 
 import Link from "next/link";
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
@@ -22,6 +34,7 @@ import {
 } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
 import { STORAGE_KEYS, safeGet, safeRemove, safeSet } from "@/lib/storage";
+import { PageContainer, FormSection, ValidationAlert } from "@/components/ui";
 
 /**
  * PPDB — wizard 4 langkah publik (tanpa login) 07-ux §4.8:
@@ -230,12 +243,19 @@ export default function PPDBDaftarPage(): JSX.Element {
 
   if (result) {
     return (
-      <main className="min-h-screen bg-background">
-        <div className="mx-auto max-w-lg px-4 py-12">
-          <Card>
+      <main id="main" className="min-h-screen bg-background">
+        <PageContainer className="max-w-lg">
+          <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
             <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-              <IconCheck className="h-12 w-12 text-success-600" />
-              <h1 className="text-2xl font-bold text-foreground">Pendaftaran Terkirim</h1>
+              <span
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-status-success-bg text-status-success-fg"
+                aria-hidden="true"
+              >
+                <IconCheck className="h-7 w-7" />
+              </span>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Pendaftaran Terkirim
+              </h1>
               <p className="text-sm text-muted-foreground">Simpan nomor pendaftaran Anda:</p>
               <p className="rounded-lg bg-muted px-6 py-3 font-mono text-2xl font-bold text-foreground">
                 {result.registrationNo}
@@ -248,13 +268,13 @@ export default function PPDBDaftarPage(): JSX.Element {
               </Link>
             </CardContent>
           </Card>
-        </div>
+        </PageContainer>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main id="main" className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-4">
           <Link href="/ppdb" className="text-sm font-medium text-primary">
@@ -264,112 +284,112 @@ export default function PPDBDaftarPage(): JSX.Element {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-2xl font-bold text-foreground">Formulir Pendaftaran</h1>
+      <PageContainer className="max-w-2xl">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Formulir Pendaftaran</h1>
         <Steps steps={STEPS} current={step} className="mt-4" />
         <Progress value={(step / STEPS.length) * 100} className="my-4" />
 
-        <Card>
-          <CardHeader>
+        <Card className="rounded-lg border-border bg-app-surface p-6 shadow-app-card">
+          <CardHeader className="px-0 pt-0">
             <CardTitle>
               Langkah {step + 1} dari 4: {STEPS[step].title}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-0 pb-0">
             <form
               onSubmit={step === STEPS.length - 1 ? (e) => void submit(e) : next}
               className="space-y-4"
             >
               {step === 0 ? (
-                <>
-                  <Field label="Nama Lengkap" required>
-                    <Input
-                      value={form.fullName}
-                      onChange={(e) => set("fullName", e.target.value)}
-                      placeholder="Budi Santoso"
-                    />
-                  </Field>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="NISN (opsional)">
+                <FormSection title="Data Calon" id="step-0">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Field label="Nama Lengkap" required>
                       <Input
-                        value={form.nisn}
-                        onChange={(e) =>
-                          set("nisn", e.target.value.replace(/\D/g, "").slice(0, 10))
-                        }
-                        placeholder="0081234567"
-                      />
-                    </Field>
-                    <Field label="Jenis Kelamin">
-                      <Select
-                        value={form.gender}
-                        onChange={(e) => set("gender", e.target.value)}
-                        options={[
-                          { value: "L", label: "Laki-laki" },
-                          { value: "P", label: "Perempuan" }
-                        ]}
+                        value={form.fullName}
+                        onChange={(e) => set("fullName", e.target.value)}
+                        placeholder="Budi Santoso"
                       />
                     </Field>
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Tempat Lahir">
+                  <Field label="NISN (opsional)">
+                    <Input
+                      value={form.nisn}
+                      onChange={(e) => set("nisn", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="0081234567"
+                    />
+                  </Field>
+                  <Field label="Jenis Kelamin">
+                    <Select
+                      value={form.gender}
+                      onChange={(e) => set("gender", e.target.value)}
+                      options={[
+                        { value: "L", label: "Laki-laki" },
+                        { value: "P", label: "Perempuan" }
+                      ]}
+                    />
+                  </Field>
+                  <Field label="Tempat Lahir">
+                    <Input
+                      value={form.birthPlace}
+                      onChange={(e) => set("birthPlace", e.target.value)}
+                      placeholder="Jakarta"
+                    />
+                  </Field>
+                  <Field label="Tanggal Lahir">
+                    <Input
+                      type="date"
+                      value={form.birthDate}
+                      onChange={(e) => set("birthDate", e.target.value)}
+                    />
+                  </Field>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Field label="Asal Sekolah">
                       <Input
-                        value={form.birthPlace}
-                        onChange={(e) => set("birthPlace", e.target.value)}
-                        placeholder="Jakarta"
-                      />
-                    </Field>
-                    <Field label="Tanggal Lahir">
-                      <Input
-                        type="date"
-                        value={form.birthDate}
-                        onChange={(e) => set("birthDate", e.target.value)}
+                        value={form.originSchool}
+                        onChange={(e) => set("originSchool", e.target.value)}
+                        placeholder="SMPN 1 Jakarta"
                       />
                     </Field>
                   </div>
-                  <Field label="Asal Sekolah">
-                    <Input
-                      value={form.originSchool}
-                      onChange={(e) => set("originSchool", e.target.value)}
-                      placeholder="SMPN 1 Jakarta"
-                    />
-                  </Field>
-                </>
+                </FormSection>
               ) : step === 1 ? (
-                <>
-                  <Field label="Nama Orang Tua / Wali" required>
-                    <Input
-                      value={form.parentName}
-                      onChange={(e) => set("parentName", e.target.value)}
-                      placeholder="Siti Aminah"
-                    />
-                  </Field>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="No. HP Orang Tua">
+                <FormSection title="Data Orang Tua" id="step-1">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Field label="Nama Orang Tua / Wali" required>
                       <Input
-                        value={form.parentPhone}
-                        onChange={(e) => set("parentPhone", e.target.value)}
-                        placeholder="0812..."
-                      />
-                    </Field>
-                    <Field label="Pekerjaan">
-                      <Input
-                        value={form.parentJob}
-                        onChange={(e) => set("parentJob", e.target.value)}
-                        placeholder="Ibu Rumah Tangga"
+                        value={form.parentName}
+                        onChange={(e) => set("parentName", e.target.value)}
+                        placeholder="Siti Aminah"
                       />
                     </Field>
                   </div>
-                  <Field label="Email (opsional)">
+                  <Field label="No. HP Orang Tua">
                     <Input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => set("email", e.target.value)}
-                      placeholder="ortu@example.com"
+                      value={form.parentPhone}
+                      onChange={(e) => set("parentPhone", e.target.value)}
+                      placeholder="0812..."
                     />
                   </Field>
-                </>
+                  <Field label="Pekerjaan">
+                    <Input
+                      value={form.parentJob}
+                      onChange={(e) => set("parentJob", e.target.value)}
+                      placeholder="Ibu Rumah Tangga"
+                    />
+                  </Field>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Field label="Email (opsional)">
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => set("email", e.target.value)}
+                        placeholder="ortu@example.com"
+                      />
+                    </Field>
+                  </div>
+                </FormSection>
               ) : step === 2 ? (
-                <>
+                <div className="space-y-4">
                   <Alert variant="info" className="text-sm">
                     Format JPG/PNG/PDF maks 5MB per file. Draft tersimpan otomatis di perangkat
                     Anda.
@@ -410,9 +430,9 @@ export default function PPDBDaftarPage(): JSX.Element {
                       {rapor ? `Terpilih: ${rapor.name}` : "Pilih file rapor (jika ada)."}
                     </p>
                   </Field>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="space-y-4">
                   <div className="space-y-2 rounded-md border border-border bg-background p-4 text-sm">
                     <p>
                       <strong>Calon:</strong> {form.fullName} (
@@ -454,16 +474,10 @@ export default function PPDBDaftarPage(): JSX.Element {
                       ini direkam dengan waktu.
                     </span>
                   </label>
-                </>
+                </div>
               )}
 
-              {error ? (
-                <div role="alert" aria-live="assertive">
-                  <Alert variant="danger" className="text-sm">
-                    {error}
-                  </Alert>
-                </div>
-              ) : null}
+              <ValidationAlert errors={error ? [error] : undefined} />
 
               <div className="flex justify-between gap-2">
                 <Button
@@ -493,7 +507,7 @@ export default function PPDBDaftarPage(): JSX.Element {
             Hapus draft
           </Button>
         </div>
-      </div>
+      </PageContainer>
     </main>
   );
 }
@@ -508,12 +522,17 @@ function Field({
   children: ReactNode;
 }): JSX.Element {
   const id = useId();
+  // Label htmlFor harus menunjuk ke elemen form (Input/Select), bukan wrapper div.
+  const control =
+    isValidElement<{ id?: string }>(children) && children.type !== "div"
+      ? cloneElement(children as ReactElement<{ id?: string }>, { id })
+      : children;
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id}>
-        {label} {required ? <span className="text-danger-600">*</span> : null}
+        {label} {required ? <span className="text-status-danger-fg">*</span> : null}
       </Label>
-      <div id={id}>{children}</div>
+      {control}
     </div>
   );
 }

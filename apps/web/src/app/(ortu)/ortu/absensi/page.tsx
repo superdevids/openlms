@@ -4,19 +4,17 @@ import { type JSX } from "react";
 
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  EmptyState,
-  Badge
-} from "@opensis/ui";
+import { DataView, IconQr } from "@opensis/ui";
 import { useAuth } from "@/components/auth/auth-provider";
 
 import { formatPercent } from "@/lib/format";
+import {
+  PageHeader,
+  DataTable,
+  type DataTableColumn,
+  StatusBadge,
+  EmptyStateV3
+} from "@/components/ui";
 
 interface ParentGuardian {
   id: string;
@@ -74,9 +72,49 @@ export default function OrtuAbsensiPage(): JSX.Element {
     { enabled: !!(user && user.roles.includes("WALI_MURID")) }
   );
 
+  const columns: DataTableColumn<ChildAttendance>[] = [
+    {
+      key: "studentName",
+      label: "Anak",
+      render: (r) => <span className="font-medium text-foreground">{r.studentName}</span>
+    },
+    {
+      key: "total",
+      label: "Total Absensi",
+      render: (r) => <span className="tabular-nums">{r.total}</span>
+    },
+    {
+      key: "alpa",
+      label: "Alpa",
+      render: (r) => <StatusBadge status={r.alpa > 0 ? "ALPA" : "HADIR"} label={String(r.alpa)} />
+    },
+    {
+      key: "pct",
+      label: "% Kehadiran",
+      render: (r) => {
+        const pct = r.total > 0 ? ((r.total - r.alpa) / r.total) * 100 : null;
+        if (pct === null) {
+          return <StatusBadge status="KOSONG" label="-" />;
+        }
+        const tone = pct >= 90 ? "success" : pct >= 75 ? "warning" : "danger";
+        return (
+          <StatusBadge
+            status={tone.toUpperCase()}
+            mapping={{ SUCCESS: "success", WARNING: "warning", DANGER: "danger" }}
+            label={formatPercent(pct)}
+          />
+        );
+      }
+    }
+  ];
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Absensi Anak (read-only)</h1>
+      <PageHeader
+        title="Absensi Anak"
+        description="Ringkasan kehadiran anak Anda (read-only)."
+        meta={<StatusBadge status="INFO" label="READ-ONLY" />}
+      />
       <DataView
         status={list.status}
         error={list.error}
@@ -84,32 +122,19 @@ export default function OrtuAbsensiPage(): JSX.Element {
         fallbackLabel="Absensi anak"
       >
         {list.data?.length === 0 ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconQr className="h-5 w-5" />}
             title="Belum ada data absensi"
-            description="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan kehadiran."
+            desc="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan kehadiran."
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {(list.data ?? []).map((r) => {
-              const pct = r.total > 0 ? ((r.total - r.alpa) / r.total) * 100 : null;
-              return (
-                <Card key={r.studentId}>
-                  <CardHeader>
-                    <CardTitle>{r.studentName}</CardTitle>
-                    <CardDescription>Ringkasan kehadiran</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {r.total} absensi · {r.alpa} alpa
-                    </span>
-                    <Badge variant={pct === null || pct >= 90 ? "success" : "warning"}>
-                      {pct === null ? "-" : formatPercent(pct)}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          <DataTable<ChildAttendance>
+            columns={columns}
+            rows={list.data ?? []}
+            keyField="studentId"
+            emptyTitle="Belum ada data absensi"
+            emptyDesc="Hubungkan anak melalui menu portal orang tua untuk melihat ringkasan kehadiran."
+          />
         )}
       </DataView>
     </div>

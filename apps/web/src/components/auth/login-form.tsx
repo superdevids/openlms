@@ -5,12 +5,13 @@ import { useState, type FormEvent, type JSX } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError, DEMO_MODE } from "@/lib/api-client";
 import { roleHome } from "@/lib/roles";
-import { Button, Input, Label, Alert, Spinner, toast } from "@opensis/ui";
+import { Button, Input, Label, Alert, toast } from "@opensis/ui";
 
 /**
  * Login — SATU metode: "Email atau Username" + Password (prd04 §5.P).
  * Tanpa Google/SSO. Error inline role="alert"; loading spinner di tombol.
  * Throttle 5 gagal → lockout 15 mnt di backend; UI menampilkan pesan 429.
+ * Logika dipertahankan: demo mode → role demo; selain itu POST /auth/login.
  */
 
 export function LoginForm(): JSX.Element {
@@ -53,6 +54,12 @@ export function LoginForm(): JSX.Element {
 
   return (
     <form onSubmit={(e) => void submit(e)} noValidate className="mt-6 space-y-5">
+      {DEMO_MODE ? (
+        <div className="rounded-md border border-status-info-border bg-status-info-bg px-3 py-2 text-xs text-status-info-fg">
+          Mode demo aktif — tombol Masuk membuka dashboard role demo tanpa backend.
+        </div>
+      ) : null}
+
       <div className="space-y-1.5">
         <Label htmlFor="login-identifier">Email atau Username</Label>
         <Input
@@ -91,7 +98,6 @@ export function LoginForm(): JSX.Element {
       ) : null}
 
       <Button type="submit" className="w-full" size="lg" loading={loading} disabled={loading}>
-        {loading ? <Spinner className="h-4 w-4" /> : null}
         Masuk
       </Button>
 

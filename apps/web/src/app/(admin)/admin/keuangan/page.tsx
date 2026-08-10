@@ -17,21 +17,26 @@ import {
   Input,
   Label,
   Select,
-  Badge,
   Alert,
   Dialog,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState,
-  toast
+  toast,
+  IconAlert,
+  IconBank,
+  IconCheck,
+  IconWallet
 } from "@opensis/ui";
 
 import { formatRupiah, formatDate, formatNumber } from "@/lib/format";
 import { DEMO_INVOICES } from "@/lib/demo";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  DataTable,
+  StatusBadge,
+  EmptyStateV3,
+  type DataTableColumn
+} from "@/components/ui";
 
 interface Invoice {
   id: string;
@@ -52,6 +57,38 @@ const DEMO_CASHFLOW = [
 const DEMO_RECON = [
   { id: "rc_1", bank: "BCA", period: "2026-08", matched: 182, unmatched: 3 },
   { id: "rc_2", bank: "BRI", period: "2026-08", matched: 96, unmatched: 1 }
+];
+
+const INVOICE_STATUS_LABEL: Record<Invoice["status"], string> = {
+  PAID: "LUNAS",
+  OVERDUE: "MENUNGGAK",
+  PARTIAL: "CICILAN",
+  REFUNDED: "REFUND",
+  PENDING: "PENDING"
+};
+
+const INVOICE_COLUMNS: DataTableColumn<Invoice>[] = [
+  { key: "type", label: "Jenis", render: (i) => <span className="font-medium">{i.type}</span> },
+  { key: "period", label: "Periode" },
+  {
+    key: "amount",
+    label: "Jumlah",
+    className: "tabular-nums",
+    render: (i) => formatRupiah(i.amount)
+  },
+  {
+    key: "paid",
+    label: "Dibayar",
+    className: "tabular-nums hidden md:table-cell",
+    hideBelow: "md",
+    render: (i) => formatRupiah(i.paid)
+  },
+  { key: "dueDate", label: "Jatuh Tempo", hideBelow: "md", render: (i) => formatDate(i.dueDate) },
+  {
+    key: "status",
+    label: "Status",
+    render: (i) => <StatusBadge status={i.status} label={INVOICE_STATUS_LABEL[i.status]} />
+  }
 ];
 
 export default function AdminKeuanganPage(): JSX.Element {
@@ -83,6 +120,12 @@ export default function AdminKeuanganPage(): JSX.Element {
     [],
     { fallbackData: DEMO_INVOICES }
   );
+
+  const rows = invoices.data ?? [];
+  const totalCollected = rows.reduce((s, i) => s + i.paid, 0);
+  const totalOutstanding = rows.reduce((s, i) => s + (i.amount - i.paid), 0);
+  const overdue = rows.filter((i) => i.status === "OVERDUE").length;
+  const pendingVerify = rows.filter((i) => i.status === "PARTIAL").length;
 
   const [billOpen, setBillOpen] = useState(false);
   const [billType, setBillType] = useState("SPP");
@@ -143,15 +186,48 @@ export default function AdminKeuanganPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Keuangan</h1>
-          <p className="text-sm text-muted-foreground">
-            Tagihan, pembayaran, denda, refund, rekonsiliasi, arus kas
-          </p>
-        </div>
-        <Button onClick={() => setBillOpen(true)}>Buat Tagihan</Button>
-      </div>
+      <PageHeader
+        title="Keuangan"
+        description="Tagihan, pembayaran, denda, refund, rekonsiliasi, arus kas"
+        actions={<Button onClick={() => setBillOpen(true)}>Buat Tagihan</Button>}
+      />
+
+      <StatGrid>
+        <StatCard
+          label="Terkumpul"
+          value={formatRupiah(totalCollected)}
+          tone="success"
+          icon={<IconCheck className="h-5 w-5" />}
+          hint="total pembayaran tercatat"
+          sparkline={
+            rows.length > 1
+              ? rows.map((i, idx) => totalCollected / Math.max(1, idx + 1))
+              : undefined
+          }
+        />
+        <StatCard
+          label="Belum dibayar"
+          value={formatRupiah(totalOutstanding)}
+          tone="warning"
+          icon={<IconWallet className="h-5 w-5" />}
+          hint="sisa tagihan berjalan"
+        />
+        <StatCard
+          label="Tunggakan"
+          value={String(overdue)}
+          tone="danger"
+          icon={<IconAlert className="h-5 w-5" />}
+          hint="tagihan melewati jatuh tempo"
+          href="/admin/keuangan"
+        />
+        <StatCard
+          label="Menunggu verifikasi"
+          value={String(pendingVerify)}
+          tone="info"
+          icon={<IconBank className="h-5 w-5" />}
+          hint="pembayaran parsial/cicilan"
+        />
+      </StatGrid>
 
       <Tabs
         tabs={[
@@ -173,68 +249,23 @@ export default function AdminKeuanganPage(): JSX.Element {
           onRetry={invoices.refetch}
           fallbackLabel="Daftar tagihan"
         >
-          {invoices.data?.length === 0 ? (
-            <EmptyState
-              title="Belum ada tagihan"
-              description="Buat tagihan per siswa atau massal per kelas/angkatan."
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Jenis</TableHead>
-                      <TableHead>Periode</TableHead>
-                      <TableHead>Jumlah</TableHead>
-                      <TableHead>Dibayar</TableHead>
-                      <TableHead>Jatuh Tempo</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(invoices.data ?? []).map((i) => (
-                      <TableRow key={i.id}>
-                        <TableCell className="font-medium">{i.type}</TableCell>
-                        <TableCell>{i.period}</TableCell>
-                        <TableCell>{formatRupiah(i.amount)}</TableCell>
-                        <TableCell>{formatRupiah(i.paid)}</TableCell>
-                        <TableCell>{formatDate(i.dueDate)}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              i.status === "PAID"
-                                ? "success"
-                                : i.status === "OVERDUE"
-                                  ? "danger"
-                                  : i.status === "PARTIAL"
-                                    ? "warning"
-                                    : "info"
-                            }
-                          >
-                            {i.status === "PAID"
-                              ? "LUNAS"
-                              : i.status === "OVERDUE"
-                                ? "MENUNGGAK"
-                                : i.status === "PARTIAL"
-                                  ? "CICILAN"
-                                  : i.status === "REFUNDED"
-                                    ? "REFUND"
-                                    : "PENDING"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
+          <DataTable
+            columns={INVOICE_COLUMNS}
+            rows={rows}
+            keyField="id"
+            emptyTitle="Belum ada tagihan"
+            emptyDesc="Buat tagihan per siswa atau massal per kelas/angkatan."
+            emptyAction={
+              <Button size="sm" onClick={() => setBillOpen(true)}>
+                Buat Tagihan
+              </Button>
+            }
+          />
         </DataView>
       </TabPanel>
 
       <TabPanel value="pembayaran" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Pembayaran</CardTitle>
             <CardDescription>
@@ -270,7 +301,7 @@ export default function AdminKeuanganPage(): JSX.Element {
       </TabPanel>
 
       <TabPanel value="denda" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Denda Keterlambatan</CardTitle>
             <CardDescription>
@@ -299,14 +330,15 @@ export default function AdminKeuanganPage(): JSX.Element {
       </TabPanel>
 
       <TabPanel value="refund" activeValue={tab}>
-        <EmptyState
+        <EmptyStateV3
+          icon={<IconBank className="h-5 w-5" />}
           title="Belum ada refund"
-          description="Refund dicatat dengan audit dan idempotency key."
+          desc="Refund dicatat dengan audit dan idempotency key."
         />
       </TabPanel>
 
       <TabPanel value="rekon" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Rekonsiliasi</CardTitle>
             <CardDescription>
@@ -314,28 +346,36 @@ export default function AdminKeuanganPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Bank</TableHead>
-                  <TableHead>Periode</TableHead>
-                  <TableHead>Cocok</TableHead>
-                  <TableHead>Belum Cocok</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {DEMO_RECON.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.bank}</TableCell>
-                    <TableCell>{r.period}</TableCell>
-                    <TableCell>{formatNumber(r.matched)}</TableCell>
-                    <TableCell>
-                      <Badge variant={r.unmatched > 0 ? "warning" : "success"}>{r.unmatched}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable
+              columns={[
+                {
+                  key: "bank",
+                  label: "Bank",
+                  render: (r) => <span className="font-medium">{r.bank}</span>
+                },
+                { key: "period", label: "Periode" },
+                {
+                  key: "matched",
+                  label: "Cocok",
+                  className: "tabular-nums",
+                  render: (r) => formatNumber(r.matched)
+                },
+                {
+                  key: "unmatched",
+                  label: "Belum Cocok",
+                  render: (r) => (
+                    <StatusBadge
+                      status={r.unmatched > 0 ? "MENUNGGU" : "COCOK"}
+                      label={r.unmatched > 0 ? `${r.unmatched} belum cocok` : "Semua cocok"}
+                      mapping={{ MENUNGGU: "warning", COCOK: "success" }}
+                    />
+                  )
+                }
+              ]}
+              rows={DEMO_RECON}
+              keyField="id"
+              maxHeight="none"
+            />
             <Button
               className="mt-4"
               variant="outline"
@@ -348,9 +388,10 @@ export default function AdminKeuanganPage(): JSX.Element {
       </TabPanel>
 
       <TabPanel value="kas" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Arus Kas</CardTitle>
+            <CardDescription>Penerimaan & pengeluaran periode berjalan.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -363,8 +404,8 @@ export default function AdminKeuanganPage(): JSX.Element {
                   <span
                     className={
                       c.amount >= 0
-                        ? "font-semibold text-success-700"
-                        : "font-semibold text-danger-700"
+                        ? "font-semibold tabular-nums text-status-success-fg"
+                        : "font-semibold tabular-nums text-status-danger-fg"
                     }
                   >
                     {c.amount >= 0 ? "+" : ""}

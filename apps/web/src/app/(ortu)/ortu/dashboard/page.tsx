@@ -6,21 +6,12 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import {
-  DataView,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Badge,
-  Button,
-  EmptyState
-} from "@opensis/ui";
+import { DataView, Button, IconGrade, IconQr, IconWallet, IconInfo } from "@opensis/ui";
 
 import { formatPercent } from "@/lib/format";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
 import { DEFAULT_DASHBOARD_CARDS } from "@/lib/dashboard";
+import { PageHeader, StatCard, StatusBadge, EmptyStateV3 } from "@/components/ui";
 
 interface ParentGuardian {
   id: string;
@@ -82,18 +73,15 @@ export default function OrtuDashboardPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Selamat datang, {user?.fullName ?? "Bapak/Ibu"}
-        </h1>
-        {childName ? (
-          <p className="text-sm text-muted-foreground">Anak: {childName}</p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            Hubungkan anak melalui menu Nilai / Absensi untuk melihat data.
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title={`Selamat datang, ${user?.fullName ?? "Bapak/Ibu"}`}
+        description={
+          childName
+            ? `Anak: ${childName}`
+            : "Hubungkan anak melalui menu Nilai / Absensi untuk melihat data."
+        }
+        meta={<StatusBadge status="INFO" label="READ-ONLY" />}
+      />
 
       <DataView
         status={state.status}
@@ -102,24 +90,57 @@ export default function OrtuDashboardPage(): JSX.Element {
         fallbackLabel="Ringkasan anak"
       >
         {!state.data?.parent ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconInfo className="h-5 w-5" />}
             title="Profil orang tua belum terhubung"
-            description="Atur data orang tua dan tautkan anak Anda agar dashboard menampilkan ringkasan."
+            desc="Atur data orang tua dan tautkan anak Anda agar dashboard menampilkan ringkasan."
+            action={
+              <Link href="/support">
+                <Button size="sm" variant="outline">
+                  Hubungi operator sekolah
+                </Button>
+              </Link>
+            }
           />
         ) : !overview ? (
-          <EmptyState
+          <EmptyStateV3
+            icon={<IconInfo className="h-5 w-5" />}
             title="Belum ada anak terhubung"
-            description="Setelah menautkan anak, ringkasan nilai, absensi, dan tagihan akan tampil di sini."
+            desc="Setelah menautkan anak, ringkasan nilai, absensi, dan tagihan akan tampil di sini."
+            action={
+              <Link href="/support">
+                <Button size="sm" variant="outline">
+                  Hubungi operator sekolah
+                </Button>
+              </Link>
+            }
           />
         ) : (
-          <div className="grid grid-cols-3 gap-3">
-            <Kpi label="Nilai Tercatat" value={String(overview.gradesCount)} />
-            <Kpi
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="Nilai Tercatat"
+              value={String(overview.gradesCount)}
+              icon={<IconGrade className="h-5 w-5" aria-hidden="true" />}
+              tone="brand"
+              hint="total nilai di rapor"
+              href="/ortu/nilai"
+            />
+            <StatCard
               label="Kehadiran"
               value={attendancePct === null ? "-" : formatPercent(attendancePct * 100)}
+              icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
+              tone={attendancePct !== null && attendancePct < 0.9 ? "warning" : "success"}
               hint={`${overview.attendance.alpa} alpa dari ${overview.attendance.total} absensi`}
+              href="/ortu/absensi"
             />
-            <Kpi label="Tagihan Menunggak" value={String(overview.unpaidInvoices)} />
+            <StatCard
+              label="Tagihan Menunggak"
+              value={String(overview.unpaidInvoices)}
+              icon={<IconWallet className="h-5 w-5" aria-hidden="true" />}
+              tone={overview.unpaidInvoices > 0 ? "danger" : "success"}
+              hint={overview.unpaidInvoices > 0 ? "segera lunasi" : "tidak ada tunggakan"}
+              href="/ortu/tagihan"
+            />
           </div>
         )}
       </DataView>
@@ -130,66 +151,19 @@ export default function OrtuDashboardPage(): JSX.Element {
         fallbackLabel="Menu orang tua"
       />
 
-      <Card className="border-info-600 bg-info-100">
-        <CardContent className="flex items-center justify-between gap-3 py-4">
+      <div className="rounded-lg border border-status-info-border bg-status-info-bg/60 p-4 shadow-app-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-semibold text-info-700">Portal orang tua bersifat read-only</p>
-            <p className="text-sm text-info-700">
+            <p className="text-sm font-semibold text-foreground">
+              Portal orang tua bersifat read-only
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Anda dapat melihat nilai, absensi, dan tagihan anak — tanpa aksi tulis.
             </p>
           </div>
-          <Badge variant="info">READ-ONLY</Badge>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Link href="/ortu/absensi" className="block">
-          <Card className="h-full transition-colors hover:border-primary-600">
-            <CardHeader>
-              <CardTitle>Absensi Anak</CardTitle>
-              <CardDescription>Riwayat kehadiran per bulan + % kehadiran</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm">
-                Buka
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/ortu/tagihan" className="block">
-          <Card className="h-full transition-colors hover:border-primary-600">
-            <CardHeader>
-              <CardTitle>Tagihan Anak</CardTitle>
-              <CardDescription>Status tagihan SPP — read-only</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm">
-                Buka
-              </Button>
-            </CardContent>
-          </Card>
-        </Link>
+          <StatusBadge status="INFO" label="READ-ONLY" />
+        </div>
       </div>
     </div>
-  );
-}
-
-function Kpi({
-  label,
-  value,
-  hint
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}): JSX.Element {
-  return (
-    <Card>
-      <CardContent>
-        <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
-        <p className="mt-1 text-xl font-bold text-foreground sm:text-2xl">{value}</p>
-        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
-      </CardContent>
-    </Card>
   );
 }

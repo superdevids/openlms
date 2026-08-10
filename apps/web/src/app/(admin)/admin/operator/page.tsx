@@ -17,21 +17,15 @@ import {
   Input,
   Label,
   Select,
-  Badge,
   Alert,
   Dialog,
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState,
   toast,
   IconUpload,
   IconDownload,
   IconUser
 } from "@opensis/ui";
+
+import { PageHeader, DataTable, StatusBadge, type DataTableColumn } from "@/components/ui";
 
 interface Applicant {
   id: string;
@@ -87,25 +81,31 @@ const IMPORT_PREVIEW_EMPTY: ImportPreviewResult = {
   errors: []
 };
 
-// Definisi kolom tabel — header dirender lewat KOLOM.map() agar konsisten.
-const STUDENT_KOLOM: { key: string; label: string }[] = [
-  { key: "nama", label: "Nama" },
-  { key: "username", label: "Username" },
-  { key: "role", label: "Role" },
-  { key: "status", label: "Status" }
-];
+const APPLICANT_STATUS_LABEL: Record<Applicant["status"], string> = {
+  SUBMITTED: "Terdaftar",
+  VERIFIED: "Dokumen OK",
+  SELECTED: "Diterima",
+  WAITLIST: "Waitlist",
+  ENROLLED: "Jadi Siswa",
+  REJECTED: "Ditolak"
+};
 
-const ERROR_KOLOM: { key: string; label: string }[] = [
-  { key: "baris", label: "Baris" },
-  { key: "kolom", label: "Kolom" },
-  { key: "masalah", label: "Masalah" }
-];
-
-const APPLICANT_KOLOM: { key: string; label: string }[] = [
-  { key: "noPendaftaran", label: "No. Pendaftaran" },
-  { key: "nama", label: "Nama" },
-  { key: "status", label: "Status" },
-  { key: "aksi", label: "Aksi" }
+const APPLICANT_COLUMNS: DataTableColumn<Applicant>[] = [
+  {
+    key: "registrationNo",
+    label: "No. Pendaftaran",
+    render: (a) => <span className="font-mono text-sm">{a.registrationNo}</span>
+  },
+  {
+    key: "fullName",
+    label: "Nama",
+    render: (a) => <span className="font-medium">{a.fullName}</span>
+  },
+  {
+    key: "status",
+    label: "Status",
+    render: (a) => <StatusBadge status={a.status} label={APPLICANT_STATUS_LABEL[a.status]} />
+  }
 ];
 
 export default function AdminOperatorPage(): JSX.Element {
@@ -261,17 +261,15 @@ export default function AdminOperatorPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Operator / Tata Usaha</h1>
-          <p className="text-sm text-muted-foreground">
-            Data induk, impor, undangan, verifikasi PPDB, pengaturan
-          </p>
-        </div>
-        <Button onClick={() => setInviteOpen(true)}>
-          <IconUser className="h-4 w-4" /> Undang
-        </Button>
-      </div>
+      <PageHeader
+        title="Operator / Tata Usaha"
+        description="Data induk, impor, undangan, verifikasi PPDB, pengaturan"
+        actions={
+          <Button onClick={() => setInviteOpen(true)}>
+            <IconUser className="h-4 w-4" /> Undang
+          </Button>
+        }
+      />
 
       <Tabs
         tabs={[
@@ -291,45 +289,40 @@ export default function AdminOperatorPage(): JSX.Element {
           onRetry={students.refetch}
           fallbackLabel="Data siswa"
         >
-          {students.data?.length === 0 ? (
-            <EmptyState
-              title="Belum ada data"
-              description="Impor atau tambahkan siswa untuk memulai."
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {STUDENT_KOLOM.map((k) => (
-                        <TableHead key={k.key}>{k.label}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(students.data ?? []).map((s) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-medium">{s.fullName}</TableCell>
-                        <TableCell className="font-mono text-sm">{s.username ?? "-"}</TableCell>
-                        <TableCell>{s.roles.join(", ")}</TableCell>
-                        <TableCell>
-                          <Badge variant={s.isActive ? "success" : "warning"}>
-                            {s.isActive ? "AKTIF" : "NONAKTIF"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
+          <DataTable
+            columns={[
+              {
+                key: "fullName",
+                label: "Nama",
+                render: (s) => <span className="font-medium">{s.fullName}</span>
+              },
+              {
+                key: "username",
+                label: "Username",
+                render: (s) => <span className="font-mono text-sm">{s.username ?? "-"}</span>
+              },
+              { key: "roles", label: "Role", render: (s) => s.roles.join(", ") },
+              {
+                key: "status",
+                label: "Status",
+                render: (s) => (
+                  <StatusBadge
+                    status={s.isActive ? "AKTIF" : "NONAKTIF"}
+                    mapping={{ NONAKTIF: "warning" }}
+                  />
+                )
+              }
+            ]}
+            rows={students.data ?? []}
+            keyField="id"
+            emptyTitle="Belum ada data"
+            emptyDesc="Impor atau tambahkan siswa untuk memulai."
+          />
         </DataView>
       </TabPanel>
 
       <TabPanel value="impor" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Wizard Impor Data (G9)</CardTitle>
             <CardDescription>
@@ -357,24 +350,16 @@ export default function AdminOperatorPage(): JSX.Element {
                   {previewData.errorCount} error
                 </Alert>
                 {previewData.errors.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {ERROR_KOLOM.map((k) => (
-                          <TableHead key={k.key}>{k.label}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {previewData.errors.map((err, i) => (
-                        <TableRow key={`${err.rowNumber}-${i}`}>
-                          <TableCell>{err.rowNumber}</TableCell>
-                          <TableCell>{err.field ?? "-"}</TableCell>
-                          <TableCell>{err.message}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <DataTable
+                    columns={[
+                      { key: "rowNumber", label: "Baris", render: (err) => err.rowNumber },
+                      { key: "field", label: "Kolom", render: (err) => err.field ?? "-" },
+                      { key: "message", label: "Masalah" }
+                    ]}
+                    rows={previewData.errors}
+                    keyField={(err) => `${err.rowNumber}-${err.field}`}
+                    maxHeight="none"
+                  />
                 ) : null}
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline">Perbaiki file</Button>
@@ -402,77 +387,30 @@ export default function AdminOperatorPage(): JSX.Element {
           onRetry={applicants.refetch}
           fallbackLabel="Daftar pendaftar PPDB"
         >
-          {applicants.data?.length === 0 ? (
-            <EmptyState
-              title="Belum ada pendaftar"
-              description="Pendaftar yang sudah diverifikasi/diseleksi akan tampil di sini (GET /ppdb/selection)."
-            />
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {APPLICANT_KOLOM.map((k) => (
-                        <TableHead key={k.key}>{k.label}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(applicants.data ?? []).map((a) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="font-mono text-sm">{a.registrationNo}</TableCell>
-                        <TableCell className="font-medium">{a.fullName}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              a.status === "SUBMITTED"
-                                ? "warning"
-                                : a.status === "VERIFIED"
-                                  ? "info"
-                                  : a.status === "SELECTED"
-                                    ? "primary"
-                                    : a.status === "WAITLIST"
-                                      ? "warning"
-                                      : "success"
-                            }
-                          >
-                            {a.status === "SUBMITTED"
-                              ? "Terdaftar"
-                              : a.status === "VERIFIED"
-                                ? "Dokumen OK"
-                                : a.status === "SELECTED"
-                                  ? "Diterima"
-                                  : a.status === "WAITLIST"
-                                    ? "Waitlist"
-                                    : a.status === "ENROLLED"
-                                      ? "Jadi Siswa"
-                                      : "Ditolak"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {a.status === "SUBMITTED" ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => void verifyApplicant(a.id)}
-                            >
-                              Verifikasi
-                            </Button>
-                          ) : null}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
+          <DataTable
+            columns={[
+              ...APPLICANT_COLUMNS,
+              {
+                key: "aksi",
+                label: "Aksi",
+                render: (a) =>
+                  a.status === "SUBMITTED" ? (
+                    <Button size="sm" variant="outline" onClick={() => void verifyApplicant(a.id)}>
+                      Verifikasi
+                    </Button>
+                  ) : null
+              }
+            ]}
+            rows={applicants.data ?? []}
+            keyField="id"
+            emptyTitle="Belum ada pendaftar"
+            emptyDesc="Pendaftar yang sudah diverifikasi/diseleksi akan tampil di sini (GET /ppdb/selection)."
+          />
         </DataView>
       </TabPanel>
 
       <TabPanel value="pengaturan" activeValue={tab}>
-        <Card>
+        <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Pengaturan Sekolah</CardTitle>
             <CardDescription>

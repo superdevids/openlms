@@ -13,12 +13,11 @@ import {
   Input,
   Label,
   Alert,
-  Badge,
-  type BadgeVariant,
   IconCheck,
   IconAlert
 } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
+import { PageContainer, PageHeader, StatusBadge } from "@/components/ui";
 
 type Status =
   | {
@@ -43,15 +42,6 @@ const STATUS_LABEL: Record<string, string> = {
   WAITLIST: "Cadangan",
   REJECTED: "Ditolak",
   ENROLLED: "Jadi Siswa"
-};
-
-const STATUS_BADGE: Record<string, BadgeVariant> = {
-  SUBMITTED: "warning",
-  WAITLIST: "warning",
-  VERIFIED: "info",
-  SELECTED: "primary",
-  REJECTED: "danger",
-  ENROLLED: "success"
 };
 
 // Status yang dianggap sukses → ikon centang (bukan peringatan).
@@ -102,10 +92,14 @@ export default function PPDBStatusPage(): JSX.Element {
         </div>
       </header>
 
-      <div className="mx-auto max-w-lg px-4 py-10">
-        <Card>
+      <PageContainer className="max-w-lg">
+        <PageHeader
+          title="Cek Status Pendaftaran"
+          description="Masukkan nomor pendaftaran untuk melihat progres PPDB Anda."
+        />
+        <Card className="mt-6 rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
-            <CardTitle>Cek Status Pendaftaran</CardTitle>
+            <CardTitle>Cek Status</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={(e) => void check(e)} className="space-y-4">
@@ -137,18 +131,19 @@ export default function PPDBStatusPage(): JSX.Element {
                 <div role="status" className="rounded-lg border border-border bg-background p-4">
                   <div className="flex items-center gap-2">
                     {STATUS_SUCCESS.has(status.status) ? (
-                      <IconCheck className="h-5 w-5 text-success-600" />
+                      <IconCheck className="h-5 w-5 text-status-success-fg" />
                     ) : (
-                      <IconAlert className="h-5 w-5 text-warning-700" />
+                      <IconAlert className="h-5 w-5 text-status-warning-fg" />
                     )}
                     <p className="font-semibold text-foreground">Status: {status.status}</p>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{status.next}</p>
                   <div className="mt-3 flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Pipeline:</span>
-                    <Badge variant={STATUS_BADGE[status.status] ?? "neutral"}>
-                      {STATUS_LABEL[status.status] ?? status.status}
-                    </Badge>
+                    <StatusBadge
+                      status={status.status}
+                      label={STATUS_LABEL[status.status] ?? status.status}
+                    />
                   </div>
                 </div>
               ) : (
@@ -159,7 +154,7 @@ export default function PPDBStatusPage(): JSX.Element {
             ) : null}
           </CardContent>
         </Card>
-      </div>
+      </PageContainer>
     </main>
   );
 }
