@@ -83,10 +83,16 @@ export default function AdminDashboardPage(): JSX.Element {
           />
           <StatCard
             label="Tagihan jatuh tempo"
-            value={overdue > 0 ? String(overdue) : "0"}
-            tone="danger"
+            value={invoices.data ? String(overdue) : "-"}
+            tone={invoices.data ? (overdue > 0 ? "danger" : "success") : "neutral"}
             icon={<IconClock className="h-5 w-5" />}
-            hint={pendingVerify > 0 ? `${pendingVerify} menunggu verifikasi` : "aman"}
+            hint={
+              invoices.data
+                ? pendingVerify > 0
+                  ? `${pendingVerify} menunggu verifikasi`
+                  : "aman"
+                : "memuat data"
+            }
             href="/admin/keuangan"
           />
           <StatCard
@@ -115,19 +121,19 @@ export default function AdminDashboardPage(): JSX.Element {
           <StatGrid className="grid-cols-1 sm:grid-cols-3">
             <StatCard
               label="Terkumpul"
-              value={formatRupiah(collected)}
+              value={invoices.data ? formatRupiah(collected) : "-"}
               tone="success"
               icon={<IconWallet className="h-5 w-5" />}
             />
             <StatCard
               label="Belum dibayar"
-              value={formatRupiah(outstanding)}
+              value={invoices.data ? formatRupiah(outstanding) : "-"}
               tone="warning"
               icon={<IconWallet className="h-5 w-5" />}
             />
             <StatCard
               label="Tunggakan"
-              value={String(overdue)}
+              value={invoices.data ? String(overdue) : "-"}
               tone="danger"
               icon={<IconAlert className="h-5 w-5" />}
             />

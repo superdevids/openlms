@@ -11,6 +11,8 @@ import {
   SUBMISSION_GRADED_EVENT,
   useRealtimeRefetch
 } from "@/lib/use-socket";
+import { ErrorState, IconBell, Skeleton } from "@opensis/ui";
+import { EmptyStateV3 } from "@/components/ui";
 
 /**
  * NotificationPanel (R-26/R-46) — panel notifikasi di app-shell.
@@ -87,13 +89,18 @@ export function NotificationPanel({
   };
 
   const markAllRead = async (): Promise<void> => {
-    await fetch(`${API_BASE}/notifications/read-all`, {
-      method: "POST",
-      credentials: "include"
-    }).catch(() => undefined);
-    setLastReadNotif();
-    onUnreadChanged();
-    void load();
+    try {
+      const res = await fetch(`${API_BASE}/notifications/read-all`, {
+        method: "POST",
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setLastReadNotif();
+      onUnreadChanged();
+      void load();
+    } catch {
+      // Gagal → jangan tandai dibaca / update state optimis (silent fail dicegah).
+    }
   };
 
   if (!open) return null;
@@ -101,23 +108,25 @@ export function NotificationPanel({
   return (
     <div
       ref={panelRef}
-      className="fixed inset-0 z-50 md:hidden"
+      className="fixed inset-0 z-50"
       role="dialog"
       aria-modal="true"
       aria-label="Panel notifikasi"
     >
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <section className="absolute inset-y-0 right-0 w-96 max-w-[85vw] overflow-y-auto rounded-l-xl bg-app-surface p-4 shadow-lg">
+      <section className="absolute inset-y-0 right-0 w-96 max-w-[85vw] overflow-y-auto rounded-l-xl border-l border-border bg-app-surface p-4 shadow-app-floating">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-foreground">Notifikasi</h2>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
-              onClick={() => void markAllRead()}
-            >
-              Tandai semua dibaca
-            </button>
+            {items.some((i) => !i.readAt) ? (
+              <button
+                type="button"
+                className="rounded text-xs font-medium text-brand-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => void markAllRead()}
+              >
+                Tandai semua dibaca
+              </button>
+            ) : null}
             <button
               type="button"
               className="touch-target rounded-md text-muted-foreground hover:bg-muted"
@@ -130,13 +139,24 @@ export function NotificationPanel({
         </div>
 
         {loading ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Memuat...</p>
+          <div className="space-y-2" role="status" aria-label="Memuat notifikasi">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="min-h-14 rounded-lg border border-border bg-app-surface p-3">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="mt-2 h-3 w-full" />
+                <Skeleton className="mt-2 h-3 w-1/3" />
+              </div>
+            ))}
+          </div>
         ) : error ? (
-          <p className="py-6 text-center text-sm text-danger-700">{error}</p>
+          <ErrorState error={error} title="Gagal memuat notifikasi" onRetry={() => void load()} />
         ) : items.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Tidak ada notifikasi baru.
-          </p>
+          <EmptyStateV3
+            compact
+            icon={<IconBell className="h-5 w-5" />}
+            title="Tidak ada notifikasi baru"
+            desc="Pembaruan tugas, ujian, dan keuangan akan muncul di sini."
+          />
         ) : (
           <ul className="space-y-2">
             {items.map((item) => (
@@ -144,13 +164,22 @@ export function NotificationPanel({
                 <button
                   type="button"
                   onClick={() => void markRead(item.id)}
-                  className={`min-h-11 w-full rounded-lg border p-3 text-left hover:bg-muted ${
+                  className={`min-h-11 w-full rounded-lg border p-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     item.readAt
                       ? "border-border"
-                      : "border-l-2 border-l-brand-primary border-brand-primary bg-sidebar-accent/60"
+                      : "border-l-2 border-l-brand-primary border-border bg-sidebar-accent/60"
                   }`}
                 >
-                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  {!item.readAt ? <span className="sr-only">Belum dibaca</span> : null}
+                  <p className="flex items-start gap-1.5 text-sm font-semibold text-foreground">
+                    <span className="min-w-0 flex-1">{item.title}</span>
+                    {!item.readAt ? (
+                      <span
+                        className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-primary"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </p>
                   {item.body ? (
                     <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{item.body}</p>
                   ) : null}

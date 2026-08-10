@@ -28,6 +28,7 @@ import {
   StatGrid,
   DataTable,
   StatusBadge,
+  EmptyStateV3,
   type DataTableColumn
 } from "@/components/ui";
 
@@ -66,6 +67,16 @@ const FLAG_COLUMNS: DataTableColumn<FlagSummary>[] = [
     label: "Status",
     render: (f) => <StatusBadge status={f.enabled ? "ON" : "OFF"} />
   }
+];
+
+/** Warna segmen bar proporsi peran (siklus otomatis bila peran > 6). */
+const SEGMENT_COLORS: readonly string[] = [
+  "bg-brand-primary",
+  "bg-status-info-fg",
+  "bg-status-warning-fg",
+  "bg-status-success-fg",
+  "bg-status-danger-fg",
+  "bg-muted-foreground"
 ];
 
 export default function SuperadminDashboardPage(): JSX.Element {
@@ -113,24 +124,64 @@ export default function SuperadminDashboardPage(): JSX.Element {
         />
       </StatGrid>
 
-      {s?.usersByRole && s.usersByRole.length > 0 ? (
+      {s?.usersByRole ? (
         <Card className="rounded-lg border-border bg-app-surface shadow-app-card">
           <CardHeader>
             <CardTitle>Pengguna per Peran</CardTitle>
             <CardDescription>Distribusi user aktif berdasarkan role.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {s.usersByRole.map((u) => (
-                <span
-                  key={u.role}
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-app-surface-2 px-3 py-2 text-sm"
-                >
-                  <span className="font-medium text-foreground">{u.role}</span>
-                  <span className="font-semibold tabular-nums text-brand-primary">{u.count}</span>
-                </span>
-              ))}
-            </div>
+            {(() => {
+              const total = s.usersByRole.reduce((sum, u) => sum + u.count, 0);
+              if (total <= 0) {
+                return (
+                  <EmptyStateV3
+                    compact
+                    icon={<IconUser className="h-5 w-5" />}
+                    title="Belum ada data pengguna"
+                    desc="Statistik role akan tampil setelah data sekolah dimuat."
+                  />
+                );
+              }
+              return (
+                <div className="space-y-3">
+                  <div
+                    className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted"
+                    role="img"
+                    aria-label="Proporsi pengguna per peran"
+                  >
+                    {s.usersByRole.map((u, i) => (
+                      <span
+                        key={u.role}
+                        className={SEGMENT_COLORS[i % SEGMENT_COLORS.length]}
+                        style={{ width: `${(u.count / total) * 100}%` }}
+                      />
+                    ))}
+                  </div>
+                  <ul className="space-y-1.5">
+                    {s.usersByRole.map((u, i) => (
+                      <li key={u.role} className="flex items-center justify-between gap-3 text-sm">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                              SEGMENT_COLORS[i % SEGMENT_COLORS.length]
+                            }`}
+                          />
+                          <span className="truncate font-medium text-foreground">{u.role}</span>
+                        </span>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                          <span className="font-semibold text-foreground">{u.count}</span>
+                          <span className="ml-1 text-xs">
+                            ({Math.round((u.count / total) * 100)}%)
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       ) : null}

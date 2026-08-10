@@ -223,10 +223,10 @@ export default function SiswaDashboardPage(): JSX.Element {
       <StatGrid>
         <StatCard
           label="Tugas belum dikerjakan"
-          value={String(openTaskCount)}
+          value={tasks.data ? String(openTaskCount) : "-"}
           icon={<IconClipboard className="h-5 w-5" aria-hidden="true" />}
           tone="warning"
-          hint="perlu dikerjakan"
+          hint={tasks.data ? "perlu dikerjakan" : "memuat data"}
           href="/siswa/tugas"
         />
         <StatCard
@@ -234,7 +234,7 @@ export default function SiswaDashboardPage(): JSX.Element {
           value={gradeAvg === null ? "-" : gradeAvg.toFixed(1)}
           icon={<IconGrade className="h-5 w-5" aria-hidden="true" />}
           tone="brand"
-          hint={`${gradeRows.length} mapel dinilai`}
+          hint={grades.data ? `${gradeRows.length} mapel dinilai` : "memuat data"}
           href="/siswa/nilai"
         />
         <StatCard
@@ -242,15 +242,21 @@ export default function SiswaDashboardPage(): JSX.Element {
           value={attPct === null ? "-" : `${attPct}%`}
           icon={<IconQr className="h-5 w-5" aria-hidden="true" />}
           tone={attPct !== null && attPct < 80 ? "danger" : "success"}
-          hint={att ? `alpa ${att.alpa} dari ${att.total} absensi` : "belum ada absensi"}
+          hint={
+            att
+              ? `alpa ${att.alpa} dari ${att.total} absensi`
+              : att === undefined
+                ? "memuat data"
+                : "belum ada absensi"
+          }
           href="/siswa/absensi"
         />
         <StatCard
           label="Ujian aktif / terjadwal"
-          value={String(scheduledExams)}
+          value={exams.data ? String(scheduledExams) : "-"}
           icon={<IconExam className="h-5 w-5" aria-hidden="true" />}
           tone="info"
-          hint="jadwal ujian"
+          hint={exams.data ? "jadwal ujian" : "memuat data"}
           href="/siswa/ujian"
         />
       </StatGrid>

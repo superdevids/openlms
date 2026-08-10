@@ -166,15 +166,21 @@ export default function GuruDashboardPage(): JSX.Element {
       <StatGrid>
         <StatCard
           label="Perlu dinilai"
-          value={String(gradingRecap)}
+          value={assignments.data ? String(gradingRecap) : "—"}
           icon={<IconGrade className="h-5 w-5" />}
-          tone={gradingRecap > 0 ? "danger" : "success"}
-          hint={pendingGrade > 0 ? `${pendingGrade} tugas menunggu` : "Antrean bersih"}
+          tone={assignments.data ? (gradingRecap > 0 ? "danger" : "success") : "neutral"}
+          hint={
+            assignments.data
+              ? pendingGrade > 0
+                ? `${pendingGrade} tugas butuh aksi`
+                : "Antrean bersih"
+              : "memuat data"
+          }
           href="/guru/penilaian"
         />
         <StatCard
           label="Kelas diampu"
-          value={String(classes.data?.length ?? 0)}
+          value={classes.data ? String(classes.data.length) : "—"}
           icon={<IconBook className="h-5 w-5" />}
           tone="brand"
           hint="Mapel yang Anda ampu"
@@ -182,7 +188,7 @@ export default function GuruDashboardPage(): JSX.Element {
         />
         <StatCard
           label="Ujian terjadwal"
-          value={String(exams.data?.length ?? 0)}
+          value={exams.data ? String(exams.data.length) : "—"}
           icon={<IconExam className="h-5 w-5" />}
           tone="info"
           hint="Jadwal & sesi ujian"
