@@ -21,6 +21,20 @@ SPP/denda (manual trigger + cron). Semua jumlah memakai kalkulator sen
 - Arus kas: summary per periode, catat transaksi manual.
 - Job: `run-all` (SPP + denda) dengan idempotensi berbasis data.
 
+## Keamanan (SEC-002 — scope aktor)
+
+- Aktor pemanggil WAJIB dari `@CurrentUser` (AuthGuard); handler non-publik
+  melempar `UnauthorizedException` bila konteks autentikasi tidak ditemukan.
+- **Scope baca invoice (list/findById/paymentHistory):** aktor dengan scope
+  SEKOLAH (`invoice:read:school` — role SUPERADMIN/OPERATOR/KEUANGAN/WAKEPSEK/
+  KEPSEK/AUDITOR) boleh baca semua data. SISWA/WALI_MURID dengan
+  `invoice:read:self` HANYA boleh melihat tagihan milik sendiri/anak:
+  - SISWA → `student_id = userId` sendiri.
+  - WALI_MURID → `student_id` dari `ParentStudentLink` (anak yang terhubung).
+  - Akses di luar scope → `403` ("Anda tidak memiliki akses ke tagihan ini").
+- `paymentHistory` memvalidasi kepemilikan invoice dulu (via `findById`) sebelum
+  riwayat pembayaran dikembalikan.
+
 ## Endpoint (prefix global `/api/v1`)
 
 | Method | Path                                            | Permission                                     | Deskripsi                   |
@@ -56,16 +70,18 @@ SPP/denda (manual trigger + cron). Semua jumlah memakai kalkulator sen
 
 ## Struktur File
 
-| Path                                 | Isi                  |
-| ------------------------------------ | -------------------- |
-| `finance.controller.ts`              | REST endpoint        |
-| `services/invoice.service.ts`        | Invoice + summary    |
-| `services/payment.service.ts`        | Pembayaran + alokasi |
-| `services/spp-scheduler.service.ts`  | Generate SPP         |
-| `services/late-fee.service.ts`       | Denda                |
-| `services/refund.service.ts`         | Refund + approval    |
-| `services/reconciliation.service.ts` | Rekonsiliasi         |
-| `services/cash-flow.service.ts`      | Arus kas             |
-| `services/finance-jobs.service.ts`   | Job SPP + denda      |
-| `calculator/money.ts`                | Aritmetika sen       |
-| `dto/finance.dto.ts`                 | DTO                  |
+| Path                                 | Isi                              |
+| ------------------------------------ | -------------------------------- |
+| `finance.controller.ts`              | REST endpoint                    |
+| `finance.store.ts`                   | Interface store (abstraksi data) |
+| `prisma-finance.store.ts`            | Implementasi store Prisma        |
+| `services/invoice.service.ts`        | Invoice + summary                |
+| `services/payment.service.ts`        | Pembayaran + alokasi             |
+| `services/spp-scheduler.service.ts`  | Generate SPP                     |
+| `services/late-fee.service.ts`       | Denda                            |
+| `services/refund.service.ts`         | Refund + approval                |
+| `services/reconciliation.service.ts` | Rekonsiliasi                     |
+| `services/cash-flow.service.ts`      | Arus kas                         |
+| `services/finance-jobs.service.ts`   | Job SPP + denda                  |
+| `calculator/money.ts`                | Aritmetika sen                   |
+| `dto/finance.dto.ts`                 | DTO                              |

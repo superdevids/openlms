@@ -17,18 +17,33 @@ undangan pengguna. Modul ini juga memasang guard global
 - Undangan (link + role) → `UserRole` ACTIVE saat accept.
 - `PermissionsResolver` (cache TTL 60s) memuat permission role + user override.
 
+## Keamanan
+
+- **Revoke refresh token saat ganti/reset password (SEC-007):** `changePassword`
+  dan `resetPassword` me-revoke SEMUA refresh token aktif user
+  (`refreshToken.updateMany` di mana `user_id` + `revoked_at: null`) sehingga
+  sesi lama mati setelah kredensial berubah. Revoke TIDAK terjadi bila password
+  saat ini salah (BadRequestException).
+- **COOKIE_SECURE fail-fast (CFG-02):** cookie `httpOnly + Secure + SameSite=Lax`
+  (`auth.constants.ts`). Di `NODE_ENV=production`, boot gagal (throw) bila
+  `COOKIE_SECURE !== "true"` — mencegah cookie JWT tanpa flag Secure di HTTPS
+  (`src/main.ts`). CORS juga fail-fast bila `CORS_ORIGINS` kosong di production.
+- **Aktor JWT canonical:** identitas dan roles selalu dibaca dari
+  `request.requestContext` (`@CurrentUser`/`AuthUser` dari AuthGuard), bukan dari
+  header/body klien.
+
 ## Endpoint (prefix global `/api/v1`)
 
-| Method | Path                       | Permission                   | Deskripsi                                              |
-| ------ | -------------------------- | ---------------------------- | ------------------------------------------------------ |
-| POST   | `/auth/login`              | Publik                       | Login; set cookie `opensis_access` + `opensis_refresh` |
-| POST   | `/auth/refresh`            | Publik                       | Rotasi refresh token; set cookie baru                  |
-| POST   | `/auth/logout`             | Publik                       | Hapus sesi + bersihkan cookie                          |
-| GET    | `/auth/me`                 | `auth:me:self`               | Profil user + roles + scope                            |
-| POST   | `/auth/reset-password`     | `user:reset-password:school` | Reset password oleh OPERATOR                           |
-| POST   | `/auth/change-password`    | `auth:password:change:self`  | Ganti password sendiri                                 |
-| POST   | `/auth/invitations`        | `invitation:send:school`     | Kirim undangan (link + role)                           |
-| POST   | `/auth/invitations/accept` | Publik                       | Terima undangan (token)                                |
+| Method | Path                       | Permission                   | Deskripsi                                                               |
+| ------ | -------------------------- | ---------------------------- | ----------------------------------------------------------------------- |
+| POST   | `/auth/login`              | Publik                       | Login; set cookie `opensis_access` + `opensis_refresh`                  |
+| POST   | `/auth/refresh`            | Publik                       | Rotasi refresh token; set cookie baru                                   |
+| POST   | `/auth/logout`             | Publik                       | Hapus sesi + bersihkan cookie                                           |
+| GET    | `/auth/me`                 | `auth:me:self`               | Profil user + roles + scope                                             |
+| POST   | `/auth/reset-password`     | `user:reset-password:school` | Reset password oleh OPERATOR; revoke semua refresh token user (SEC-007) |
+| POST   | `/auth/change-password`    | `auth:password:change:self`  | Ganti password sendiri; revoke semua refresh token user (SEC-007)       |
+| POST   | `/auth/invitations`        | `invitation:send:school`     | Kirim undangan (link + role)                                            |
+| POST   | `/auth/invitations/accept` | Publik                       | Terima undangan (token)                                                 |
 
 ## Struktur File
 

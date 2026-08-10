@@ -19,16 +19,25 @@ Storage file **lokal saja** (S3/MinIO tidak dipakai). DEV: `STORAGE_LOCAL_DIR`
 relatif dari host (mis. `./storage`). PROD: volume Docker `opensis-storage`
 di-mount ke `/app/storage` (`STORAGE_LOCAL_DIR=/app/storage`).
 
+Backup & restore DB + storage: lihat [BACKUP.md](BACKUP.md) (skrip
+`deploy/scripts/backup.sh` + `restore.sh`). Lingkungan staging (mirror prod,
+overlay `docker-compose.staging.yml`): lihat [README.staging.md](README.staging.md).
+
 ## Struktur Folder
 
-| File                         | Isi                                                                                           |
-| ---------------------------- | --------------------------------------------------------------------------------------------- |
-| `nginx.conf`                 | Reverse proxy production versi host (upstream `127.0.0.1:3000/:3001`)                         |
-| `nginx.docker.conf`          | Reverse proxy versi container PROD (upstream `web:3000` / `api:3001`)                         |
-| `nginx.dev.conf`             | Reverse proxy DEV (upstream `host.docker.internal:3000/:3001`) + healthcheck `/_nginx_health` |
-| `README.deploy.md`           | Panduan ini                                                                                   |
-| `../docker-compose.yml`      | Base DEV: postgres + redis + nginx (3 service)                                                |
-| `../docker-compose.prod.yml` | Overlay PROD: + api + web + override nginx (5 service total)                                  |
+| File                            | Isi                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `nginx.conf`                    | Reverse proxy production versi host (upstream `127.0.0.1:3000/:3001`)                             |
+| `nginx.docker.conf`             | Reverse proxy versi container PROD (upstream `web:3000` / `api:3001`)                             |
+| `nginx.dev.conf`                | Reverse proxy DEV (upstream `host.docker.internal:3000/:3001`) + healthcheck `/_nginx_health`     |
+| `scripts/backup.sh`             | Backup DB (pg_dump custom) + storage (tar.gz) ke `deploy/backups/` — lihat [BACKUP.md](BACKUP.md) |
+| `scripts/restore.sh`            | Restore DB (`pg_restore --clean`) + storage, konfirmasi DESTRUKTIF — lihat [BACKUP.md](BACKUP.md) |
+| `README.deploy.md`              | Panduan ini                                                                                       |
+| `README.staging.md`             | Panduan lingkungan staging (overlay `docker-compose.staging.yml`)                                 |
+| `BACKUP.md`                     | Panduan lengkap backup & restore (cron, manual, drill bulanan, RPO/RTO)                           |
+| `../docker-compose.yml`         | Base DEV: postgres + redis + nginx (3 service)                                                    |
+| `../docker-compose.prod.yml`    | Overlay PROD: + api + web + override nginx (5 service total)                                      |
+| `../docker-compose.staging.yml` | Overlay STAGING: dipakai BERSAMA prod (resource/branding khusus, port 3000/3001 di-`!reset`)      |
 
 ## Tabel Service & Resource Limits
 
@@ -129,18 +138,21 @@ Prasyarat: Docker Engine + Docker Compose v2 + Node ≥ 20.
 
 ## Operasional Harian
 
-| Kebutuhan           | Perintah (DEV)                                                                          | Perintah (PROD)                                                                                                                                          |
-| ------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rebuild image       | — (aplikasi di host)                                                                    | `docker compose -f docker-compose.yml -f docker-compose.prod.yml build api web && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` |
-| Lihat log           | `docker compose logs -f nginx`                                                          | `docker compose logs -f api web nginx`                                                                                                                   |
-| Restart service     | `docker compose restart <service>`                                                      | sama                                                                                                                                                     |
-| Stop semua          | `docker compose down`                                                                   | sama                                                                                                                                                     |
-| Stop + hapus volume | `docker compose down -v` (⚠️ menghapus data DB, Redis, dan storage)                     | sama                                                                                                                                                     |
-| Migrasi skema baru  | `npm run db:migrate:deploy` (dari host)                                                 | sama                                                                                                                                                     |
-| Akses DB (psql)     | `docker compose exec postgres psql -U postgres -d opensis`                              | sama                                                                                                                                                     |
-| Backup DB           | `docker compose exec postgres pg_dump -U postgres opensis > backup.sql`                 | sama                                                                                                                                                     |
-| Restore DB          | `Get-Content backup.sql \| docker compose exec -T postgres psql -U postgres -d opensis` | sama                                                                                                                                                     |
-| TLS (opsional)      | Nginx di balik proxy TLS + `COOKIE_SECURE=true`                                         | sama                                                                                                                                                     |
+| Kebutuhan           | Perintah (DEV)                                                                                                                                                    | Perintah (PROD)                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rebuild image       | — (aplikasi di host)                                                                                                                                              | `docker compose -f docker-compose.yml -f docker-compose.prod.yml build api web && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d` |
+| Lihat log           | `docker compose logs -f nginx`                                                                                                                                    | `docker compose logs -f api web nginx`                                                                                                                   |
+| Restart service     | `docker compose restart <service>`                                                                                                                                | sama                                                                                                                                                     |
+| Stop semua          | `docker compose down`                                                                                                                                             | sama                                                                                                                                                     |
+| Stop + hapus volume | `docker compose down -v` (⚠️ menghapus data DB, Redis, dan storage)                                                                                               | sama                                                                                                                                                     |
+| Migrasi skema baru  | `npm run db:migrate:deploy` (dari host)                                                                                                                           | sama                                                                                                                                                     |
+| Akses DB (psql)     | `docker compose exec postgres psql -U postgres -d opensis`                                                                                                        | sama                                                                                                                                                     |
+| Backup DB           | `docker compose exec postgres pg_dump -U postgres opensis > backup.sql`                                                                                           | sama                                                                                                                                                     |
+| Restore DB          | `Get-Content backup.sql \| docker compose exec -T postgres psql -U postgres -d opensis`                                                                           | sama                                                                                                                                                     |
+| Backup DB+storage   | `bash deploy/scripts/backup.sh` (→ `deploy/backups/`, retensi 14 hari) — panduan lengkap di [BACKUP.md](BACKUP.md)                                                | sama                                                                                                                                                     |
+| Restore DB+storage  | `bash deploy/scripts/restore.sh --yes deploy/backups/opensis-db-<ts>.dump deploy/backups/opensis-storage-<ts>.tar.gz` (DESTRUKTIF — lihat [BACKUP.md](BACKUP.md)) | sama                                                                                                                                                     |
+| Staging environment | Lihat [README.staging.md](README.staging.md) — `docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.staging.yml up -d --build`      | sama (host terpisah dari prod)                                                                                                                           |
+| TLS (opsional)      | Nginx di balik proxy TLS + `COOKIE_SECURE=true`                                                                                                                   | sama                                                                                                                                                     |
 
 ## Troubleshooting
 
@@ -156,8 +168,9 @@ Prasyarat: Docker Engine + Docker Compose v2 + Node ≥ 20.
 
 - **`api` restart-loop / unhealthy (PROD)**
   Cek log: `docker compose logs api`. Umum: `DATABASE_URL` salah, koneksi
-  ditolak (pastikan user/password/db cocok dengan `POSTGRES_*`), atau
-  `CORS_ORIGINS` kosong di production (API fail-fast saat boot).
+  ditolak (pastikan user/password/db cocok dengan `POSTGRES_*`), `CORS_ORIGINS`
+  kosong, atau **`COOKIE_SECURE` bukan `"true"`** (API menolak start dengan
+  error `FATAL: COOKIE_SECURE wajib 'true' di production` — lihat `apps/api/src/main.ts`).
 
 - **`nginx` unhealthy (PROD)**
   Pastikan `web` dan `api` sudah `healthy` (lihat `docker compose ps`).

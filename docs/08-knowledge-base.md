@@ -1,6 +1,6 @@
 # Project Knowledge Base — opensis
 
-> Dokumen ini adalah **basis pengetahuan internal** yang merangkum pemahaman mendalam atas codebase opensis (repository: `openlms`): peta arsitektur, peta data, alur bisnis kritis, RBAC, infrastruktur, frontend, dan status kesehatan proyek. Dibuat dari hasil deep-dive atas dokumen teknis (`docs/01`–`docs/07`), kontrak modul (`apps/api/src/modules/*/README.*.md`), skema database, dan laporan audit. Angka di dokumen ini terverifikasi terhadap kode pada **8 Agustus 2026**.
+> Dokumen ini adalah **basis pengetahuan internal** yang merangkum pemahaman mendalam atas codebase opensis (repository: `openlms`): peta arsitektur, peta data, alur bisnis kritis, RBAC, infrastruktur, frontend, dan status kesehatan proyek. Dibuat dari hasil deep-dive atas dokumen teknis (`docs/01`–`docs/07`), kontrak modul (`apps/api/src/modules/*/README.*.md`), skema database, dan laporan audit. Angka di dokumen ini terverifikasi terhadap kode pada **8 Agustus 2026** (pembaruan sinkronisasi 10 Agustus 2026: modul public-content & metrics, FE v3/landing v2, angka test).
 
 **Cara pakai:** baca [Peta Arsitektur](#1-peta-arsitektur) dulu untuk konteks, lalu lompat ke bagian yang relevan. Ini dokumen hidup — perbarui saat ada keputusan arsitektur atau perubahan struktural.
 
@@ -23,13 +23,13 @@
 
 ### 1.1 Komponen
 
-| Komponen            | Path                | Peran                                                                           | Aturan batas                                                            |
-| ------------------- | ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `apps/api`          | NestJS 11           | Semua logika bisnis, otorisasi, real-time gateway, storage file lokal           | Tidak boleh import komponen UI; tanpa dependensi API fitur pihak ketiga |
-| `apps/web`          | Next.js App Router  | Presentasi, routing per role, state UI, PWA/offline, upload via API (multipart) | Tidak boleh query Prisma langsung; hanya via HTTP ke API                |
-| `packages/database` | Prisma + PostgreSQL | Skema tunggal (90 model), client singleton, migrasi, seed, RLS opsional         | Tidak boleh berisi logika bisnis                                        |
-| `packages/ui`       | shadcn/ui           | Komponen shared yang di-styling                                                 | Stateless; data lewat props                                             |
-| `packages/types`    | TypeScript          | Enum & DTO bersama (satu sumber kebenaran tipe)                                 | Tanpa runtime berat                                                     |
+| Komponen            | Path                | Peran                                                                                                                                                                                     | Aturan batas                                                            |
+| ------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `apps/api`          | NestJS 11           | Semua logika bisnis, otorisasi, real-time gateway, storage file lokal, endpoint publik landing (`public-content`), observability proses (`metrics`)                                       | Tidak boleh import komponen UI; tanpa dependensi API fitur pihak ketiga |
+| `apps/web`          | Next.js App Router  | Presentasi, routing per role, state UI, PWA/offline, upload via API (multipart); **App Design System v3** (AppShell v2 + `components/ui` 12 ekspor) + **Landing v2** (10 halaman mandiri) | Tidak boleh query Prisma langsung; hanya via HTTP ke API                |
+| `packages/database` | Prisma + PostgreSQL | Skema tunggal (90 model), client singleton, migrasi, seed, RLS opsional                                                                                                                   | Tidak boleh berisi logika bisnis                                        |
+| `packages/ui`       | shadcn/ui           | Komponen shared yang di-styling                                                                                                                                                           | Stateless; data lewat props                                             |
+| `packages/types`    | TypeScript          | Enum & DTO bersama (satu sumber kebenaran tipe)                                                                                                                                           | Tanpa runtime berat                                                     |
 
 Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): `web → api` (HTTP), `web → packages/{ui,types}`, `api → packages/{database,types}`, `packages/database → packages/types` (enum).
 
@@ -40,6 +40,8 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
 - **ADR-003/004**: Turborepo; NestJS + Prisma.
 - **ADR-005 — JWT = identitas**: role di-resolve dari tabel `UserRole` per request (cache 60 detik); JWT hanya membawa `sub`; perubahan role instan.
 - **ADR-006 — Live class DITUNDA**: tanpa Jitsi/Zoom/Meet; MVP memakai tautan manual (`live_class_url`); bila dibangun = WebRTC self-hosted.
+- **ADR-007 — Landing page mandiri, bukan section**: tiap halaman publik (tentang, program-keahlian, fasilitas, galeri, testimoni, faq, dll.) punya data/endpoint sendiri — modul `public-content` (12 endpoint GET `/public/*`, cache 300s) — menggantikan pola "semua section dari satu `GET /public/landing`" (2026-08-09/10, [docs/landing-design-v2.md](landing-design-v2.md)).
+- **ADR-008 — Design system FE v3**: App Design System v3 (AppShell v2, `components/ui` 12 ekspor) untuk halaman role; Landing v2 (10 halaman mandiri, 21 SVG playful lokal) untuk publik. Keduanya token-additif terhadap token shadcn existing ([docs/app-design-system-v3.md](app-design-system-v3.md), [docs/landing-design-v2.md](landing-design-v2.md)).
 
 ### 1.3 Alur Request
 
@@ -244,22 +246,22 @@ Kunci: **otoritas role adalah tabel `UserRole`**, bukan klaim JWT — perubahan 
 
 ### 6.1 Halaman & Route Groups
 
-**55 file `page.tsx`** di `apps/web/src/app` tersebar dalam **11 route group** + `support` + root `app/page.tsx` (landing) ([apps/web/src/app/README.app.md](../apps/web/src/app/README.app.md), verifikasi 2026-08-08):
+**64 file `page.tsx`** di `apps/web/src/app` tersebar dalam **11 route group** + `support` + root `app/page.tsx` (landing) ([apps/web/src/app/README.app.md](../apps/web/src/app/README.app.md), verifikasi glob 2026-08-10): 11 halaman di `(landing)` + 53 halaman role/publik lain (termasuk login split-screen). Sebelumnya 55 (2026-08-08); +9 dari Landing v2.
 
-| Group          | URL             | Peran                             | Halaman                                                                                                              |
-| -------------- | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `(siswa)`      | `/siswa/*`      | SISWA                             | dashboard, kelas (+detail), tugas, kuis (+detail), ujian (+detail/kerjakan), nilai, absensi, kalender                |
-| `(guru)`       | `/guru/*`       | GURU                              | dashboard, kelas (+detail), materi, tugas, bank-soal, ujian, absensi, penilaian                                      |
-| `(admin)`      | `/admin/*`      | OPERATOR/KEPSEK/KEUANGAN/WAKEPSEK | dashboard, operator, kepsek (+change-logs), keuangan, wakepsek                                                       |
-| `(superadmin)` | `/superadmin/*` | SUPERADMIN                        | dashboard (+change-logs), admin-sistem, branding, landing, onboarding, rbac, rollover, maintenance, dashboard-config |
-| `(ortu)`       | `/ortu/*`       | WALI_MURID                        | dashboard, nilai, absensi, tagihan                                                                                   |
-| `(ppdb)`       | `/ppdb/*`       | Publik/CALON_SISWA                | ppdb (beranda), daftar, status                                                                                       |
-| `(landing)`    | `/berita/*`     | Publik                            | berita (+detail)                                                                                                     |
-| `(auth)`       | `/login`        | Publik                            | login                                                                                                                |
-| `(calonsiswa)` | `/calonsiswa/*` | CALON_SISWA                       | dashboard, pengumuman                                                                                                |
-| `(pembimbing)` | `/pembimbing/*` | PEMBIMBING_INDUSTRI               | dashboard, siswa (bimbingan)                                                                                         |
-| `(penguji)`    | `/penguji/*`    | PENGUJI_EKSTERNAL                 | dashboard, jadwal                                                                                                    |
-| `support`      | `/support`      | Publik                            | dukungan                                                                                                             |
+| Group          | URL                                                                                                                                          | Peran                             | Halaman                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `(siswa)`      | `/siswa/*`                                                                                                                                   | SISWA                             | dashboard, kelas (+detail), tugas, kuis (+detail), ujian (+detail/kerjakan), nilai, absensi, kalender                |
+| `(guru)`       | `/guru/*`                                                                                                                                    | GURU                              | dashboard, kelas (+detail), materi, tugas, bank-soal, ujian, absensi, penilaian                                      |
+| `(admin)`      | `/admin/*`                                                                                                                                   | OPERATOR/KEPSEK/KEUANGAN/WAKEPSEK | dashboard, operator, kepsek (+change-logs), keuangan, wakepsek                                                       |
+| `(superadmin)` | `/superadmin/*`                                                                                                                              | SUPERADMIN                        | dashboard (+change-logs), admin-sistem, branding, landing, onboarding, rbac, rollover, maintenance, dashboard-config |
+| `(ortu)`       | `/ortu/*`                                                                                                                                    | WALI_MURID                        | dashboard, nilai, absensi, tagihan                                                                                   |
+| `(ppdb)`       | `/ppdb/*`                                                                                                                                    | Publik/CALON_SISWA                | ppdb (beranda), daftar, status                                                                                       |
+| `(landing)`    | `/`, `/tentang`, `/kontak`, `/program-keahlian`, `/fasilitas`, `/ekstrakurikuler`, `/prestasi`, `/galeri`, `/testimoni`, `/faq`, `/berita/*` | Publik                            | Landing v2 — 10 halaman mandiri + berita (+detail); data via modul `public-content` (cache 300s)                     |
+| `(auth)`       | `/login`                                                                                                                                     | Publik                            | login                                                                                                                |
+| `(calonsiswa)` | `/calonsiswa/*`                                                                                                                              | CALON_SISWA                       | dashboard, pengumuman                                                                                                |
+| `(pembimbing)` | `/pembimbing/*`                                                                                                                              | PEMBIMBING_INDUSTRI               | dashboard, siswa (bimbingan)                                                                                         |
+| `(penguji)`    | `/penguji/*`                                                                                                                                 | PENGUJI_EKSTERNAL                 | dashboard, jadwal                                                                                                    |
+| `support`      | `/support`                                                                                                                                   | Publik                            | dukungan                                                                                                             |
 
 ### 6.2 Pola Fetching & State
 
@@ -269,6 +271,7 @@ Kunci: **otoritas role adalah tabel `UserRole`**, bukan klaim JWT — perubahan 
 - **localStorage/sessionStorage** (`lib/storage.ts`, key `opensis_*`) untuk cache ber-TTL (branding/dashboard config), draft PPDB (localStorage), serta antrean jawaban ujian offline (sessionStorage). **Bukan** IndexedDB — scan absensi offline belum punya queue di klien.
 - **Realtime**: hook `useSocket` (namespace `/ws`) — event → refetch `useApi` / toast; badge notifikasi live via `useUnreadNotifications` (REST tetap sumber kebenaran).
 - Halaman ujian online adalah **Client Component** (timer + autosave + `visibilitychange`), tetapi token & jadwal diverifikasi dari server; jawaban tidak pernah dikirim via Server Action — selalu via REST dengan idempotency key.
+- **Komponen shared (App Design System v3)** — `apps/web/src/components/ui` **12 ekspor** (`index.ts`): `PageContainer`, `PageHeader`, `StatCard`/`StatGrid`/`Sparkline`, `StatusBadge`, `DataTable`, `EmptyStateV3`, `FormPage`/`FormSection`/`ValidationAlert`, `CommandPalette`. Shell aplikasi = **AppShell v2** (`components/layout/app-shell.tsx`): sidebar per role, topbar + CommandPalette + notifikasi, drawer mobile, focus trap, theme/font-size toggle. Login **split-screen** (`(auth)/login/page.tsx:32`). Referensi: [docs/app-design-system-v3.md](../app-design-system-v3.md), [docs/landing-design-v2.md](../landing-design-v2.md).
 
 ### 6.3 Auth di Browser
 
@@ -281,21 +284,24 @@ Kunci: **otoritas role adalah tabel `UserRole`**, bukan klaim JWT — perubahan 
 
 ### 7.1 Bukti Verifikasi (audit 2026-08-07, [riview02 §7](riview/riview02.md))
 
-| Check                           | Hasil                                                                                                                                              |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `typecheck` (turbo)             | PASS                                                                                                                                               |
-| `lint` (turbo)                  | PASS                                                                                                                                               |
-| `build` (turbo)                 | PASS (`nest build` + `next build` + `prisma generate`)                                                                                             |
-| Test API                        | **±1.900 tes lulus, 0 gagal** (estimasi 2026-08-08: unit seed-data ~973 + 357 + 29 + dst; 5 suite pra-existing kini hijau — lihat [riview04 §5.3]) |
-| Test web (Vitest)               | **94 test** (9 file di `apps/web/src/lib/__tests__/`, 2026-08-08)                                                                                  |
-| `npm audit`                     | 0 kerentanan (audit-level=high)                                                                                                                    |
-| `db:validate` (prisma validate) | PASS                                                                                                                                               |
-| Referensi `eclass` tersisa      | 0                                                                                                                                                  |
-| CI                              | 7 gate: lint → typecheck → unit → integration → build → audit → secret scan (gitleaks)                                                             |
+| Check                           | Hasil                                                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `typecheck` (turbo)             | PASS                                                                                                                                                                |
+| `lint` (turbo)                  | PASS                                                                                                                                                                |
+| `build` (turbo)                 | PASS (`nest build` + `next build` + `prisma generate`)                                                                                                              |
+| Test API                        | **2.140 tes lulus, 0 gagal** (catatan eksekusi orkestrator 2026-08-10 — lihat [riview05 §6](riview/riview05.md); termasuk 20 test `public-content.service.spec.ts`) |
+| Test web (Vitest)               | **99 test** (8 file di `apps/web/src/lib/__tests__/`, catatan eksekusi 2026-08-10)                                                                                  |
+| Test integration API            | **10 test** (`apps/api/test/integration/*.spec.ts` + `app.e2e-spec.ts`, catatan eksekusi 2026-08-10)                                                                |
+| `npm audit`                     | 0 kerentanan (audit-level=high)                                                                                                                                     |
+| `db:validate` (prisma validate) | PASS                                                                                                                                                                |
+| Referensi `eclass` tersisa      | 0                                                                                                                                                                   |
+| CI                              | 7 gate: lint → typecheck → unit → integration → build → audit → secret scan (gitleaks)                                                                              |
 
 ### 7.2 Temuan QA yang Tersisa
 
 Register audit putaran 2 (R-01..R-48): **seluruh 3 CRITICAL dan 10 HIGH sudah ditutup**. Status akhir: 31 selesai penuh, 4 sebagian (R-02, R-35, R-43, R-44), 3 dipertahankan (kontrol), **9 terbuka (semua MEDIUM/LOW, non-blocking)**: R-07, R-09, R-10, R-13, R-14, R-22, R-41, R-46, R-47.
+
+**Putaran 5 (2026-08-10, [riview05](riview/riview05.md)):** seluruh temuan fungsional ditutup — Landing v2 (10 halaman mandiri + a11y), App v3 (AppShell v2 + 12 komponen + 53 halaman role + login split-screen), modul `public-content` (12 endpoint) & `metrics`, perbaikan keamanan/reliability (SEC-001/002/007, REL-001/002/003/006/009, CFG-02, PERF-01/04/05/06), migrasi DB +2 (audit_fixes, exam_attempt_token_dedupe), backup/restore (deploy/BACKUP.md + script), staging overlay (docker-compose.staging.yml), E2E scaffold (smoke). **Tersisa (prasyarat produksi):** E2E belum di CI, coverage gate belum aktif, staging belum live, migrasi belum di-deploy di prod, allowlist linkChild oleh OPERATOR belum.
 
 Risiko operasional tersisa ([riview02 §8](riview/riview02.md)): akses change-log WAKEPSEK belum diputus (R1), hardcoded neutral light sebagian (R2), exports 50MB via memoryStorage (R3), coverage belum diukur formal (R4), data demo tanpa gate DEMO_MODE (R5), kontrak antrean penilaian guru belum disamakan (R6), kualitas `actor_role` AuditLog + audit login gagal (R7), rate limit upload belum ada (R8), web tests baru bootstrap (R9), beberapa higienis UX (R10), form kontak publik (R11), middleware web opsional (R12).
 
@@ -318,6 +324,8 @@ Risiko operasional tersisa ([riview02 §8](riview/riview02.md)): akses change-lo
 - Riset & validasi keputusan: [docs/06-research-validations.md](06-research-validations.md)
 - PRD produk: [docs/01-master-prd.md](01-master-prd.md), [docs/prd/prd04.md](prd/prd04.md)
 - PRD development & roadmap: [docs/prd/prd05.md](prd/prd05.md), [docs/prd/prd06.md](prd/prd06.md), [docs/prd/prd07.md](prd/prd07.md)
-- Laporan audit: [docs/riview/riview01.md](riview/riview01.md), [docs/riview/riview02.md](riview/riview02.md), [docs/riview/riview03.md](riview/riview03.md), [docs/riview/riview04.md](riview/riview04.md)
+- Laporan audit: [docs/riview/riview01.md](riview/riview01.md), [docs/riview/riview02.md](riview/riview02.md), [docs/riview/riview03.md](riview/riview03.md), [docs/riview/riview04.md](riview/riview04.md), [docs/riview/riview05.md](riview/riview05.md)
+- Spesifikasi desain FE: [docs/app-design-system-v3.md](app-design-system-v3.md), [docs/landing-design-v2.md](landing-design-v2.md)
+- Operasional: [deploy/README.deploy.md](../deploy/README.deploy.md), [deploy/BACKUP.md](../deploy/BACKUP.md), [deploy/README.staging.md](../deploy/README.staging.md), [apps/web/e2e/README.e2e.md](../apps/web/e2e/README.e2e.md)
 - Kontrak modul per direktori: `apps/api/src/modules/<modul>/README.<modul>.md`
 - Indeks seluruh dokumentasi: [docs/README.docs.md](README.docs.md)

@@ -1,6 +1,6 @@
 # Panduan Kontribusi — opensis
 
-Terima kasih atas minat Anda untuk berkontribusi ke **opensis** (repository: `openlms`). Dokumen ini menjelaskan cara berkontribusi secara konsisten: setup pengembangan, alur kerja git, konvensi commit, standar kode, persyaratan pengujian, proses pull request, checklist review, dan konvensi dokumentasi.
+Terima kasih atas minat Anda untuk berkontribusi ke **opensis** (repository GitHub: `superdevids/openlms`). Dokumen ini menjelaskan cara berkontribusi secara konsisten: setup pengembangan, alur kerja git, konvensi commit, standar kode, persyaratan pengujian, proses pull request, checklist review, dan konvensi dokumentasi.
 
 ## Daftar Isi
 
@@ -28,7 +28,7 @@ Dengan berpartisipasi dalam proyek ini, Anda setuju untuk mematuhi [CODE_OF_COND
    - Issue berlabel `bug` — laporan bug yang sudah dikonfirmasi.
    - Diskusikan ide besar (fitur baru, perubahan arsitektur) di issue terlebih dahulu sebelum menulis kode.
 3. **Jangan pernah mengerjakan issue tanpa koordinasi** di komentar issue terlebih dahulu, agar tidak terjadi pekerjaan ganda.
-4. **Baca dulu dokumen acuan** sebelum menyentuh area baru: [docs/02-technical-architecture.md](docs/02-technical-architecture.md) (arsitektur & ADR), [docs/03-database-erd.md](docs/03-database-erd.md) (data), [docs/04-api-contract.md](docs/04-api-contract.md) (kontrak API), dan [docs/knowledge-base.md](docs/knowledge-base.md) (peta proyek).
+4. **Baca dulu dokumen acuan** sebelum menyentuh area baru: [docs/02-technical-architecture.md](docs/02-technical-architecture.md) (arsitektur & ADR), [docs/03-database-erd.md](docs/03-database-erd.md) (data), [docs/04-api-contract.md](docs/04-api-contract.md) (kontrak API), [docs/knowledge-base.md](docs/knowledge-base.md) (peta proyek), dan untuk pekerjaan UI: [docs/app-design-system-v3.md](docs/app-design-system-v3.md) (design system) + [docs/landing-design-v2.md](docs/landing-design-v2.md) (desain landing).
 
 ## Setup Pengembangan
 
@@ -127,6 +127,7 @@ npx prettier --check .
 **Aturan implementasi:**
 
 - Ikuti pola arsitektur yang ada: **Controller → Service → Repository** di `apps/api`; Server Components untuk data-fetching di `apps/web`; Client Components hanya untuk interaktivitas.
+- **UI wajib memakai komponen shared dari `packages/ui`** — jangan membuat komponen duplikat; ikuti [docs/app-design-system-v3.md](docs/app-design-system-v3.md) (token, warna, tipografi, komponen) dan [docs/landing-design-v2.md](docs/landing-design-v2.md) untuk halaman landing.
 - Setiap query Prisma di repository **wajib memfilter scope RBAC** (SENDIRI/KELAS/SEKOLAH) — jangan query tanpa scope kecuali modul global (User, SchoolProfile).
 - Alur kritis (autosave ujian, scan QR, pembayaran) **wajib idempotent** — pakai `Idempotency-Key`; perubahan data sensitif tulis `AuditLog`.
 - Gunakan satu sumber `PrismaClient` (singleton dari `DatabaseModule`) — **jangan** membuat `new PrismaClient()` baru.
@@ -145,13 +146,13 @@ Setiap perubahan **wajib disertai test** yang relevan:
 | Unit        | Jest             | Logika murni: auto-grade, guard RBAC (matrix role×aksi), perhitungan tagihan, validasi token QR |
 | Integration | Jest + Supertest | Alur lintas layer dengan PostgreSQL: ujian E2E alur, scan QR absensi, isolasi scope RBAC        |
 | Web         | Vitest           | Utilitas frontend, komponen & halaman (berjalan tanpa server)                                   |
-| E2E         | Playwright       | Alur pengguna lintas UI (roadmap, lihat [prd05 G-60](docs/prd/prd05-development.md))            |
+| E2E         | Playwright       | Alur pengguna lintas UI (roadmap, lihat [prd05 G-60](docs/prd/prd05.md))                        |
 
 **Aturan:**
 
 - `npm run test:unit` — tanpa database, harus selalu hijau.
 - `npm run test:integration` — butuh PostgreSQL (CI menyediakan service postgres; lokal dapat memakai `docker compose up -d`).
-- Jangan menurunkan coverage modul kritis (auth, RBAC, exam, finance) — target coverage **≥ 80%** bertahap ([prd05 G-60/G-61](docs/prd/prd05-development.md), [prd06 §4](docs/prd/prd06-development-v2.md)).
+- Jangan menurunkan coverage modul kritis (auth, RBAC, exam, finance) — target coverage **≥ 80%** bertahap ([prd05 G-60/G-61](docs/prd/prd05.md), [prd06 §4](docs/prd/prd06.md)).
 - Perubahan yang menyentuh kontrak API wajib menyinkronkan: DTO/service di API, klien di web, dan `README.<modul>.md`.
 - Perubahan skema Prisma wajib disertai file migrasi baru (jangan mengedit migrasi yang sudah diterapkan).
 

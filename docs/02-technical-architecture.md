@@ -7,6 +7,8 @@
 
 > **Catatan versi 1.1:** dokumen ini menggantikan desain multi-tenant v1.0. Aplikasi melayani **SATU sekolah** (prd04 §16.3(g) [owner-v4.2]): tanpa kolom identitas sekolah di tiap entitas, tanpa tenant isolation, tanpa layanan auth/storage pihak ketiga, tanpa school switcher. Rincian keputusan di §16 ADR.
 
+> **Catatan pembaruan 2026-08-10:** §4.1 — implementasi aktual 34 modul (tambah `public-content` 12 endpoint publik + `metrics`); §5.4 — App Design System v3 (AppShell v2, components/ui 12 ekspor) & Landing v2 (10 halaman mandiri); §13 — catatan keamanan terkini (JWT canonical, SEC-001/002/007, COOKIE_SECURE fail-fast, audit failure logging, P2002/P2025/P2003); §17 — 11 migrasi Prisma.
+
 ---
 
 ## 1. Ringkasan Eksekutif
@@ -110,17 +112,37 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
 | `RealtimeModule`      | Socket.IO gateway, namespace tunggal `/ws` (siap multi-instance)                                               | Notification                                                                                                            |
 | `IntegrationModule`   | Storage file lokal (uploads + serve berkas via `/api/v1/storage/files/*`); tanpa integrasi fitur pihak ketiga  | —                                                                                                                       |
 
-> **Catatan Pembaruan 2026-08-08:** tabel modul di atas mencerminkan desain awal.
-> Implementasi aktual kini memiliki **32 modul** (`apps/api/src/modules/*/*.module.ts`,
-> diverifikasi 2026-08-08): `auth`, `academic`, `lms`, `quiz`, `exam`, `attendance`,
+> **Catatan Pembaruan 2026-08-10:** tabel modul di atas mencerminkan desain awal.
+> Implementasi aktual kini memiliki **34 modul** (`apps/api/src/modules/*/*.module.ts`,
+> diverifikasi 2026-08-10): `auth`, `academic`, `lms`, `quiz`, `exam`, `attendance`,
 > `finance`, `payroll`, `asset`, `ppdb`, `communication`, `parent-portal`, `smk`,
 > `rollover`, `alumni`, `branding`, `landing`, `onboarding`, `maintenance`,
 > `notifications`, `rbac-admin`, `realtime`, `storage`, `feature-flags`,
 > `app-settings`, `audit`, `users-admin`, `admin-stats`, `dashboard-config`, `health`,
-> `queue`, `jobs`. Perubahan lain per 2026-08-08: **enum `Role` = 14 nilai**
-> (`GURU_BK` → `BK`, tambah `KAPRODI` & `AUDITOR` — `schema.prisma:29-44`), klaim
-> skema diperbarui ke **90 model + 62 enum**. Rincian terkini per modul ada di
+> `queue`, `jobs`, **`public-content`**, **`metrics`**. Perubahan lain per
+> 2026-08-08: **enum `Role` = 14 nilai** (`GURU_BK` → `BK`, tambah `KAPRODI` &
+> `AUDITOR` — `schema.prisma:29-44`), klaim skema diperbarui ke **90 model + 62
+> enum**. Rincian terkini per modul ada di
 > `apps/api/src/modules/<modul>/README.<modul>.md`.
+
+**Modul baru (2026-08-10):**
+
+- **`PublicContentModule`** — endpoint publik **per-halaman landing** (halaman
+  mandiri, bukan agregat section): **12 endpoint GET `/api/v1/public/*`**
+  (`programs`, `extracurriculars`, `achievements`, `school-profile`,
+  `facilities`, `gallery`, `testimonials`, `faqs`, `contact`,
+  `school-structure`, `school-profile-extra`, `ppdb-info`). Seluruhnya `@Public()`
+  dengan header **`Cache-Control: public, max-age=300`** (cache 5 menit);
+  sumber data: tabel domain (`Prodi`, `Extracurricular`, `Achievement`,
+  `SchoolProfile`) + JSON `LandingContent` (`public-content.controller.ts:31-118`,
+  `public-content.service.ts`). Melengkapi endpoint agregat `GET /public/landing`
+  (`landing` module) yang tetap ada.
+- **`MetricsModule`** — observability proses ringan tanpa dependency baru:
+  **GET `/api/v1/metrics`** — uptime, memori (`process.memoryUsage()`), event loop
+  lag (delta `setImmediate`); hanya **SUPERADMIN** dengan permission
+  `system:status:read` (fail-closed RBAC), `Cache-Control: no-store`
+  (`metrics.controller.ts:16-22`, `metrics.service.ts`; terdaftar di
+  `app.module.ts:72`).
 
 ### 4.2 Lapisan (Layers)
 
@@ -164,8 +186,11 @@ HTTP request
 
 ```
 app/
-├── (auth)/login                  # login Email/Username + Password (tanpa OAuth)
+├── (auth)/login                  # login Email/Username + Password (split-screen, tanpa OAuth)
 ├── (ppdb)/pendaftaran            # publik (WCAG AA, no auth)
+├── (landing)/                    # landing v2 — 10 halaman mandiri (lihat §5.4)
+│   # / (beranda), /tentang, /kontak, /program-keahlian, /fasilitas,
+│   # /ekstrakurikuler, /prestasi, /galeri, /testimoni, /faq (+ /berita[/slug])
 ├── (siswa)/kelas, /tugas, /kuis, /ujian, /nilai, /absensi, /kalender
 ├── (guru)/kelas, /materi, /tugas, /bank-soal, /penilaian, /absensi, /ekskul
 ├── (admin)/
@@ -195,6 +220,32 @@ Aturan: halaman ujian online adalah Client Component (butuh timer + autosave + v
 - **Client state** (UI): React Context untuk state lintas komponen (auth, branding, mode data-saver dsb.); local state untuk form.
 - **Offline queue**: `localStorage`/`sessionStorage` (`apps/web/src/lib/storage.ts`, key `opensis_*`) — draft PPDB & cache TTL di localStorage; attempt ujian & antrean jawaban offline di sessionStorage (lihat §10).
 - **Realtime**: hook Socket.IO (`useSocket`) namespace `/ws`; event → refetch `useApi`/toast (REST tetap sumber kebenaran).
+
+### 5.4 App Design System v3 & Landing v2 (2026-08-09/10)
+
+Dua spesifikasi desain final diimplementasikan dan menjadi acuan FE (sumber:
+`docs/app-design-system-v3.md`, `docs/landing-design-v2.md`):
+
+- **App Design System v3 (aplikasi role)** — `AppShell v2`
+  (`apps/web/src/components/layout/app-shell.tsx`, 566 baris): sidebar per role
+  (dari `lib/roles.ts`), topbar dengan breadcrumb + CommandPalette + notifikasi,
+  drawer di mobile, focus trap, theme toggle & font-size toggle. Komponen shared
+  di **`apps/web/src/components/ui`** — **12 ekspor** (`components/ui/index.ts`):
+  `PageContainer`, `PageHeader`, `StatCard`/`StatGrid`/`Sparkline`, `StatusBadge`,
+  `DataTable`, `EmptyStateV3`, `FormPage`/`FormSection`/`ValidationAlert`,
+  `CommandPalette`. Login memakai **split-screen**
+  (`(auth)/login/page.tsx:32` — `grid lg:grid-cols-2`). 53 halaman role/publik
+  lain + login ter-redesign (total 64 file `page.tsx` di `apps/web/src/app`,
+  verifikasi glob 2026-08-10).
+- **Landing v2 (publik)** — **10 halaman mandiri** (beranda, tentang, kontak,
+  program-keahlian, fasilitas, ekstrakurikuler, prestasi, galeri, testimoni, faq)
+  - berita; satu sistem token warna/typografi/spasi, 9 komponen aturan baku, dan
+    21 aset SVG playful lokal (`apps/web/public/landing/playful/*.svg`, wajib lokal
+    karena CSP `img-src 'self' data:`). Aksesibilitas WCAG AA (kontras token,
+    `aria-hidden` untuk SVG dekoratif, `focus-visible`, reduced-motion). Data tiap
+    halaman disuplai modul `public-content` (12 endpoint, cache 300s — §4.1).
+    Keputusan: landing adalah **halaman mandiri**, bukan section dari satu
+    `GET /public/landing` (catatan keputusan — [docs/08 §1.2](08-knowledge-base.md)).
 
 ---
 
@@ -446,6 +497,34 @@ di bawah adalah desain target PWA:
 | RLS                 | **Opsional** (defense-in-depth RBAC, tanpa session var tenant); test **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)** di integration test                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | Privacy (G14)       | AuditLog untuk perubahan data sensitif; field-level access untuk `CounselingNote` (hanya role **BK/WAKEPSEK/KEPSEK**)                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
+> **Catatan keamanan terkini (verifikasi 2026-08-10):**
+>
+> - **JWT canonical signature ditolak** — verifier in-house menolak signature
+>   base64url NON-kanonik (mutasi bit padding di karakter terakhir): decode →
+>   re-encode harus sama persis; selain itu juga `timingSafeEqual` + cek
+>   panjang signature (`apps/api/src/modules/auth/jwt.util.ts:88-96`).
+> - **RBAC scope enforcement** — permission + scope (SENDIRI/KELAS/SEKOLAH)
+>   diperkuat di kasus spesifik: **parent-portal IDOR (SEC-001)** — setiap akses
+>   data anak wajib lolos cek relasi `ParentStudentLink` (`parent-portal.service.ts:124,176`);
+>   **finance scope (SEC-002)** — baca invoice memaksa scope ke pemilik/anak via
+>   `ParentStudentLink` bila aktor SISWA/WALI_MURID (`finance/services/invoice.service.ts:21,233`).
+> - **Refresh token di-revoke saat ganti/reset password (SEC-007)** — `changePassword`
+>   dan `resetPassword` mencabut SELURUH refresh token aktif user
+>   (`auth.service.ts:320-323, 363-366`; unit test `auth.service.spec.ts:295,350`).
+> - **`COOKIE_SECURE` fail-fast di production** — `main.ts:21-23`: bila
+>   `NODE_ENV=production` dan `COOKIE_SECURE !== "true"`, aplikasi **gagal boot**
+>   (tidak memakai cookie non-Secure diam-diam).
+> - **Audit log failure logging** — `writeAudit` membungkus kegagalan dengan
+>   try/catch agar tidak menggagalkan request utama, lalu mencatat
+>   `logger.error("writeAudit gagal", ...)` (`lms/lms-audit.ts:65,93`).
+> - **Mapping error Prisma** — filter exception memetakan **P2002** (unique →
+>   409), **P2025** (record tidak ditemukan → 404), **P2003** (foreign key → 409) dengan pesan GENERIK ke klien (`common/filters/all-exceptions.filter.ts:111-125`).
+> - **Race & reliability** — verifikasi pembayaran memakai transaksi + re-check
+>   status (race dua verify → 1 sukses, 1 Conflict, notifikasi sekali —
+>   `finance/services/payment.service.ts:122,166,203` + spec); `RolloverProcessor`
+>   cek terminal state + cocokkan `idempotency_key` sebelum eksekusi
+>   (`jobs/processors/rollover.processor.ts:38-56`).
+
 ---
 
 ## 14. Strategi Testing (G6) & CI
@@ -568,7 +647,7 @@ Waktu habis (server-side, tidak bergantung client)
 
 ## 17. Keterkaitan dengan Dokumen Lain
 
-- Skema lengkap **90 model + 62 enum single-school** (`packages/database/prisma/schema.prisma`, verifikasi 2026-08-08) + RLS opsional: `03-database-erd.md`.
+- Skema lengkap **90 model + 62 enum single-school** (`packages/database/prisma/schema.prisma`, verifikasi 2026-08-08) + **11 folder migrasi Prisma** (`packages/database/prisma/migrations/`, verifikasi 2026-08-10 — tambah `20260809000000_audit_fixes` & `20260809010000_exam_attempt_token_dedupe`) + RLS opsional: `03-database-erd.md`.
 - Kontrak endpoint, RBAC matrix, contoh payload: `04-api-contract.md`.
 - Urutan implementasi, task breakdown, risk register: `05-implementation-plan.md`.
 - Keputusan single-school & no-third-party: prd04 v4.2 §16.3(g) [owner-v4.2].

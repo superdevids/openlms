@@ -36,6 +36,28 @@ Konvensi tipe perubahan:
     direname); referensi `openlms` di `docs/prd`, `docs/riview`, `docs/01`–`07`,
     dan riwayat changelog di bawah adalah catatan sejarah.
 
+### Added (gelombang fitur & desain — 2026-08-10, lihat [riview05](docs/riview/riview05.md))
+
+- **FE redesign v3 — App Design System v3**: AppShell v2 (`components/layout/app-shell.tsx` — sidebar per role, topbar + CommandPalette, drawer mobile, focus trap), 12 komponen shared di `apps/web/src/components/ui/` (PageContainer, PageHeader, StatCard/StatGrid/Sparkline, StatusBadge, DataTable, EmptyStateV3, FormPage/FormSection/ValidationAlert, CommandPalette), 53 halaman role diredesain + login split-screen (`(auth)/login/page.tsx`); token additif v3 ([docs/app-design-system-v3.md](docs/app-design-system-v3.md)).
+- **Landing v2**: 10 halaman mandiri (home, tentang, program-keahlian, fasilitas, ekstrakurikuler, prestasi, galeri, testimoni, faq, kontak + berita) dengan design system v2 dan 21 SVG playful di `public/landing/playful/` ([docs/landing-design-v2.md](docs/landing-design-v2.md)).
+- **Modul API `public-content`**: 12 endpoint publik GET `/public/*` (`@Public()` + `Cache-Control: public, max-age=300`), 20 test unit ([README.public-content.md](apps/api/src/modules/public-content/README.public-content.md)).
+- **Modul API `metrics`**: `GET /metrics` — uptime, memori, event loop lag; SUPERADMIN + `system:status:read` ([README.metrics.md](apps/api/src/modules/metrics/README.metrics.md)).
+- **Ops**: script backup/restore (`deploy/scripts/backup.sh`, `restore.sh`) + [deploy/BACKUP.md](deploy/BACKUP.md); overlay staging `docker-compose.staging.yml` + [deploy/README.staging.md](deploy/README.staging.md); scaffold E2E Playwright `apps/web/e2e/`.
+
+### Changed
+
+- **Migrasi DB 9 → 11**: tambah `20260809000000_audit_fixes` (unique `invoice(student_id, type, period)` + index hot-path exam + unique `exam_attempt(exam_session_id, token_used)`) dan `20260809010000_exam_attempt_token_dedupe` (pre-dedupe duplikat token historis).
+- **Jumlah modul API 32 → 34** (tambah `public-content`, `metrics`); seed baru: extracurricular 8, achievement 5, user siswa1.
+- **Angka test final** (catatan eksekusi 2026-08-10): API unit **2.140** (100 suite) + integration **10** + public-content **20**; web Vitest **99** — menggantikan estimasi ±2.000.
+
+### Security
+
+- **JWT canonical signature** ditolak (base64url non-kanonik + `timingSafeEqual`, `jwt.util.ts:88-96`).
+- **RBAC scope enforcement** di service (SEC-001/002/007); **refresh token di-revoke saat ganti password** (SEC-007).
+- **`COOKIE_SECURE` fail-fast** di production (`main.ts:21-23`, CFG-02).
+- **Audit failure logging** (`lms-audit.ts:65,93`) dan mapping error Prisma P2002/P2025/P2003 (`all-exceptions.filter.ts:111-125`).
+- Perbaikan reliability: race payment verify, idempotensi rollover processor (REL-001/002/003/006/009), dedupe token sesi ujian (PERF-05).
+
 ### Rencana (roadmap — lihat [docs/prd/prd05-development.md](docs/prd/prd05-development.md))
 
 - **Performa & scaling 1.500–2.000 user**: rate limit berbasis identitas untuk

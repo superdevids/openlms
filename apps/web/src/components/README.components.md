@@ -24,8 +24,9 @@ diimpor via `@opensis/ui`.
 
 > Primitives shadcn/ui (button, card, dialog, table, toast, dll.) ada di
 > **`packages/ui/src/components/`** (25 file, diekspor via `packages/ui/src/index.ts`)
-> — lihat `packages/ui/README.ui.md`. Folder `apps/web/src/components/ui/` **tidak
-> ada**; jangan impor dari `@/components/ui`.
+> — lihat `packages/ui/README.ui.md`. Komponen _lanjutan_ aplikasi (App Design
+> System v3) tinggal di **`apps/web/src/components/ui/`** (9 file, 12 ekspor) dan
+> diimpor via `@/components/ui` — lihat seksi berikut.
 
 ## Daftar Komponen ui/ (di packages/ui)
 
@@ -40,6 +41,32 @@ diimpor via `@opensis/ui`.
 | `icons`                                                                                      | Kumpulan ikon                 |
 | `toast`                                                                                      | Notifikasi toast              |
 | `index.ts`                                                                                   | Barrel export (`@opensis/ui`) |
+
+## Komponen lanjutan (App Design System v3)
+
+Folder **`apps/web/src/components/ui/`** berisi komponen shared aplikasi (bukan
+primitives shadcn/ui — itu tetap di `packages/ui`). 9 file, 12 ekspor via
+`apps/web/src/components/ui/index.ts`; diimpor via **`@/components/ui`**
+(lihat [docs/app-design-system-v3.md](../../../docs/app-design-system-v3.md)):
+
+| Komponen                                       | Fungsi                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------ |
+| `PageContainer`                                | Wrapper halaman role (layout + spacing konsisten)                  |
+| `PageHeader`                                   | Header halaman (judul, deskripsi, aksi) — menggantikan `h1` manual |
+| `StatCard` / `StatGrid` / `Sparkline`          | KPI cards + grid + sparkline tanpa dependency                      |
+| `StatusBadge`                                  | Badge status dengan tone terstandar (`DEFAULT_STATUS_TONE`)        |
+| `DataTable`                                    | Tabel data generik (kolom, pagination, sorting)                    |
+| `EmptyStateV3`                                 | State kosong versi v3                                              |
+| `FormPage` / `FormSection` / `ValidationAlert` | Halaman & seksi form + alert validasi                              |
+| `CommandPalette`                               | Palet perintah (Cmd+K) global                                      |
+
+```tsx
+import { PageHeader, StatCard, StatusBadge, DataTable } from "@/components/ui";
+```
+
+Shell aplikasi memakai **AppShell v2** (`components/layout/app-shell.tsx`) yang
+menggabungkan komponen di atas — lihat README.web.md dan
+[docs/app-design-system-v3.md](../../../docs/app-design-system-v3.md).
 
 ## Penggunaan
 

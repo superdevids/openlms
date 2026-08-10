@@ -19,7 +19,17 @@
 > audit (`AuditLog`), admin-stats, health. **Enum `Role` = 14 nilai**: SISWA, GURU,
 > **BK** (rename `GURU_BK`), **KAPRODI**, KEUANGAN, OPERATOR, WAKEPSEK, KEPSEK,
 > **AUDITOR**, SUPERADMIN, CALON_SISWA, WALI_MURID, PEMBIMBING_INDUSTRI,
-> PENGUJI_EKSTERNAL. Migrasi terkait belum dieksekusi (lihat [riview04 Rv4-02]).
+> PENGUJI_EKSTERNAL. Migrasi role dieksekusi via `20260808143817_add_roles_bk_kaprodi_auditor`.
+>
+> **Catatan Migrasi 2026-08-09 — 11 migrasi total** (`packages/database/prisma/migrations/`):
+> `20260809000000_audit_fixes` — REL-003 unique `invoice(student_id, type, period)` + dedupe
+> tagihan ganda (sisanya `CANCELLED`); PERF-01 index hot-path exam
+> (`question[exam_package_id]`, `question[quiz_id]`, `exam_package[exam_id]`); PERF-05 unique
+> `exam_attempt(exam_session_id, token_used)` (token sesi sekali pakai); PERF-04 exclusion
+> constraint anti double-booking aset dikomentari (opsional, di luar Prisma).
+> `20260809010000_exam_attempt_token_dedupe` — pre-dedupe duplikat historis
+> `(exam_session_id, token_used)` (keep id terkecil; sisanya `EXPIRED`) agar unique index di
+> `audit_fixes` tidak gagal saat `migrate deploy`; idempotent/no-op bila tak ada duplikat.
 
 ---
 
@@ -211,7 +221,7 @@
 
 - `student_id: String` (FK → User)
 - `invoice_no: String` — nomor unik
-- `type: InvoiceType` — SPP / UANG_KEGIATAN / UANG_DAFTAR / UANG_SERAGAM / LAINNYA
+- `type: InvoiceType` — SPP / UANG_KEGIATAN / UANG_DAFTAR / UANG_SERAGAM / UANG_OSIS / DENDA / LAINNYA
 - `period: String?` — "2026-08" untuk SPP bulanan
 - `amount: Decimal(12,2)`, `discount: Decimal(12,2) @default(0)`
 - `due_date: DateTime`, `status: PaymentStatus @default(PENDING)`
@@ -648,7 +658,7 @@
 | `AttendanceStatus`     | HADIR, IZIN, SAKIT, ALPA, TERLAMBAT                                                                                                                                                                               |
 | `AttendanceMethod`     | MANUAL, QR_CODE, GEOFENCING, RFID (cadangan)                                                                                                                                                                      |
 | `GradeType`            | TUGAS, KUIS, UJIAN, PRAKTIK, SIKAP, SUMATIF                                                                                                                                                                       |
-| `InvoiceType`          | SPP, UANG_KEGIATAN, UANG_DAFTAR, UANG_SERAGAM, LAINNYA                                                                                                                                                            |
+| `InvoiceType`          | SPP, UANG_KEGIATAN, UANG_DAFTAR, UANG_SERAGAM, UANG_OSIS, DENDA, LAINNYA                                                                                                                                          |
 | `PaymentStatus`        | PENDING, PAID, PARTIAL, OVERDUE, CANCELLED, REFUNDED, CARRIED_OVER                                                                                                                                                |
 | `PaymentMethod`        | TUNAI, TRANSFER, LAINNYA                                                                                                                                                                                          |
 | `Gender`               | L, P                                                                                                                                                                                                              |
@@ -680,6 +690,8 @@
 | `NotificationType`     | TASK_NEW, TASK_GRADED, EXAM_START, EXAM_AUTOSUBMIT, ATTENDANCE_ALPA, INVOICE_DUE, PAYMENT_CONFIRMED, PPDB_STATUS, ANNOUNCEMENT, LETTER_STATUS, LIBRARY_DUE, ASSET_APPROVED, DISCIPLINE, BK_REMINDER, EXPORT_READY |
 
 > **Catatan v1.2:** `SchoolStatus` DIHAPUS; enum `Role` mengikuti prd04 §3.1 lalu diperbarui per 2026-08-08 menjadi **14 role** (`GURU_BK` → `BK`, tambah `KAPRODI` & `AUDITOR` — sumber `schema.prisma:29-44`); wali kelas = scope override `Class.homeroom_teacher_id` untuk role GURU.
+>
+> **Catatan kelengkapan:** tabel di atas mencantumkan enum inti desain awal (45). Total enum aktual = **62** (`schema.prisma`); sisanya — PermissionEffect, PermissionScope, PermitType, PermitStatus, CurriculumReferenceType, PayrollRunStatus, PayslipStatus, LateFeeRuleType, RefundStatus, RefundMethod, ReconciliationRowStatus, CashFlowDirection, CashFlowCategory, AssetSourceFund, MaintenanceStatus, AuditType, AuditResultStatus — didefinisikan di `schema.prisma` dan diekspor via `@prisma/client` / `@opensis/types`.
 
 ---
 
@@ -843,4 +855,5 @@ CompetencyTest 1──N CompetencyRubricItem
 - **`school_id` eksplisit DIHAPUS** di semua tabel (single-school, prd04 §16.3(g)); akses data dikontrol permission + scope RBAC (SENDIRI/KELAS/SEKOLAH) di aplikasi.
 - **RLS opsional** tanpa session var tenant (hanya `app.user_id`); lapis utama tetap guard NestJS.
 - **Jumlah entitas: desain awal 61** (56 v1.0 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni); **implementasi aktual 90 model + 62 enum** per 2026-08-08 (lihat Catatan Pembaruan di header).
+- **Migrasi:** 11 migrasi di `packages/database/prisma/migrations/`; terbaru `20260809000000_audit_fixes` (unique `invoice(student_id, type, period)` + index hot-path exam + unique `exam_attempt(exam_session_id, token_used)`) dan `20260809010000_exam_attempt_token_dedupe` (pre-dedupe duplikat token historis).
 - **Perubahan skema** memakai Prisma Migrate; file RLS opsional dikelola di `packages/database/prisma/rls/*.sql` dan dijalankan di migrasi (lihat 05-implementation-plan F0-T5).

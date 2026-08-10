@@ -27,6 +27,7 @@ tidak terjadi drift antara backend dan frontend.
 | `PaymentStatus`    | PENDING, PAID, PARTIAL, OVERDUE, CANCELLED, REFUNDED, CARRIED_OVER                                                                                                                                             |
 | `InvoiceType`      | SPP, UANG_KEGIATAN, UANG_DAFTAR, UANG_SERAGAM, UANG_OSIS, DENDA, LAINNYA                                                                                                                                       |
 | `GradeType`        | TUGAS, KUIS, UJIAN, PRAKTIK, SIKAP, SUMATIF                                                                                                                                                                    |
+| `ErrorCode`        | VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, FEATURE_DISABLED, ARCHIVED_YEAR, NOT_FOUND, CONFLICT, RATE_LIMITED, INTERNAL (9 nilai, `ERROR_CODE_VALUES`)                                                         |
 | `RequestContext`   | userId, roles, classIds, homeroomClassId, requestId                                                                                                                                                            |
 | `ApiErrorBody`     | Format error API (`code`, `message`, `details`, `requestId`)                                                                                                                                                   |
 

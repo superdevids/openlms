@@ -3,7 +3,7 @@
 **Super-app LMS + SIS untuk satu sekolah SMA/SMK Indonesia.** Satu platform, satu akun, satu sumber data untuk seluruh operasional sekolah — dengan fokus inti yang tidak bisa ditawar: belajar dan mengajar (LMS).
 
 ![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![Tests](https://img.shields.io/badge/tests-2000%2B%20hijau-brightgreen)
+![Tests](https://img.shields.io/badge/tests-2140%2B-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-339933)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -52,23 +52,24 @@
 
 ## Fitur Utama
 
-| Area                      | Status  | Cakupan                                                                                                                                                           |
-| ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LMS (inti)**            | Aktif   | Kelas, materi, tugas & submission, kuis & bank soal, ujian online (token sesi, autosave idempotent, auto-submit server-side), penilaian, absensi (manual/QR/izin) |
-| **SIS**                   | Aktif   | Data induk siswa/guru/staf, kelas & rombel, jadwal, impor Excel, undangan user                                                                                    |
-| **Keuangan**              | Aktif   | Tagihan (SPP dkk.), pembayaran & alokasi cicilan, denda, refund, rekonsiliasi bank (CSV), arus kas                                                                |
-| **Payroll**               | Aktif   | Run payroll bulanan (hitung → validasi → approve keuangan → rekap → approve kepsek), komponen gaji, slip digital, PPh 21 TER & BPJS                               |
-| **Aset**                  | Aktif   | Inventaris, peminjaman (cek bentrok jadwal), penyusutan, pemeliharaan, opname                                                                                     |
-| **PPDB**                  | Aktif   | Pendaftaran publik tanpa login, upload dokumen, tracking status, verifikasi, seleksi/waitlist, enroll ke kelas                                                    |
-| **Absensi**               | Aktif   | Manual bulk idempotent, sesi QR + token sekali pakai, geofencing, izin/sakit online + verifikasi, rekap & dashboard kedisiplinan                                  |
-| **e-Rapor**               | Roadmap | Konsolidasi nilai → rapor dua-track Kurikulum Merdeka (mapel + P5) [prd05 G-49](docs/prd/prd05.md)                                                                |
-| **Branding config**       | Aktif   | Identitas visual sekolah (nama, logo, warna) dikelola via API + UI SUPERADMIN                                                                                     |
-| **RBAC configurable**     | Aktif   | CRUD permission/role per SUPERADMIN (`/superadmin/rbac`)                                                                                                          |
-| **Maintenance mode**      | Aktif   | Mode pemeliharaan global dikontrol SUPERADMIN (`system:maintenance:write`)                                                                                        |
-| **Landing CMS**           | Aktif   | Kelola konten halaman landing (hero, sambutan, visi-misi, program, ekstrakurikuler, prestasi, fasilitas, galeri, FAQ, berita)                                     |
-| **Portal wali murid**     | Aktif   | Read-only: nilai, absensi, tagihan anak                                                                                                                           |
-| **Realtime**              | Aktif   | Socket.IO namespace `/ws` — notifikasi, event ujian (`exam:force-submit`, `exam:tick`), pengumuman; Redis adapter untuk multi-instance                            |
-| **Rollover tahun ajaran** | Aktif   | Preview/execute/rollback tutup tahun ajaran (draft → pre-check → dry-run → execute → rollback)                                                                    |
+| Area                      | Status  | Cakupan                                                                                                                                                                                                                                      |
+| ------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LMS (inti)**            | Aktif   | Kelas, materi, tugas & submission, kuis & bank soal, ujian online (token sesi, autosave idempotent, auto-submit server-side), penilaian, absensi (manual/QR/izin)                                                                            |
+| **SIS**                   | Aktif   | Data induk siswa/guru/staf, kelas & rombel, jadwal, impor Excel, undangan user                                                                                                                                                               |
+| **Keuangan**              | Aktif   | Tagihan (SPP dkk.), pembayaran & alokasi cicilan, denda, refund, rekonsiliasi bank (CSV), arus kas                                                                                                                                           |
+| **Payroll**               | Aktif   | Run payroll bulanan (hitung → validasi → approve keuangan → rekap → approve kepsek), komponen gaji, slip digital, PPh 21 TER & BPJS                                                                                                          |
+| **Aset**                  | Aktif   | Inventaris, peminjaman (cek bentrok jadwal), penyusutan, pemeliharaan, opname                                                                                                                                                                |
+| **PPDB**                  | Aktif   | Pendaftaran publik tanpa login, upload dokumen, tracking status, verifikasi, seleksi/waitlist, enroll ke kelas                                                                                                                               |
+| **Absensi**               | Aktif   | Manual bulk idempotent, sesi QR + token sekali pakai, geofencing, izin/sakit online + verifikasi, rekap & dashboard kedisiplinan                                                                                                             |
+| **e-Rapor**               | Roadmap | Konsolidasi nilai → rapor dua-track Kurikulum Merdeka (mapel + P5) [prd05 G-49](docs/prd/prd05.md)                                                                                                                                           |
+| **Branding config**       | Aktif   | Identitas visual sekolah (nama, logo, warna) dikelola via API + UI SUPERADMIN                                                                                                                                                                |
+| **RBAC configurable**     | Aktif   | CRUD permission/role per SUPERADMIN (`/superadmin/rbac`)                                                                                                                                                                                     |
+| **Maintenance mode**      | Aktif   | Mode pemeliharaan global dikontrol SUPERADMIN (`system:maintenance:write`)                                                                                                                                                                   |
+| **Landing CMS**           | Aktif   | 10 halaman mandiri (home & berita + tentang, program keahlian, fasilitas, ekstrakurikuler, prestasi, galeri, testimoni, faq, kontak) dengan design system v2 — data per halaman via modul API `public-content` (12 endpoint GET `/public/*`) |
+| **UI aplikasi**           | Aktif   | App Design System v3 (shadcn/ui) — 53 halaman role diredesain: AppShell v2, `components/ui` (12 komponen shared), login split-screen, token additif v3                                                                                       |
+| **Portal wali murid**     | Aktif   | Read-only: nilai, absensi, tagihan anak                                                                                                                                                                                                      |
+| **Realtime**              | Aktif   | Socket.IO namespace `/ws` — notifikasi, event ujian (`exam:force-submit`, `exam:tick`), pengumuman; Redis adapter untuk multi-instance                                                                                                       |
+| **Rollover tahun ajaran** | Aktif   | Preview/execute/rollback tutup tahun ajaran (draft → pre-check → dry-run → execute → rollback)                                                                                                                                               |
 
 ## Tangkapan Layar
 
@@ -86,17 +87,17 @@
 
 ## Teknologi
 
-| Komponen           | Path                | Teknologi                                                                                                                                                       |
-| ------------------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| API                | `apps/api`          | NestJS 11, REST prefix `/api/v1`, Socket.IO namespace `/ws`, Prisma                                                                                             |
-| Web                | `apps/web`          | Next.js App Router, Tailwind CSS v4, shadcn/ui, hook `useApi`/`useAsyncData` (client data fetching), React Context, localStorage/sessionStorage (offline queue) |
-| Database           | `packages/database` | Prisma + PostgreSQL (skema tunggal, single-school)                                                                                                              |
-| UI kit             | `packages/ui`       | Komponen shared (shadcn/ui primitives)                                                                                                                          |
-| Types              | `packages/types`    | Enum & tipe bersama (satu sumber kebenaran)                                                                                                                     |
-| Orchestrasi        | root                | Turborepo, npm workspaces, Node.js ≥ 20                                                                                                                         |
-| Antrean (opsional) | `apps/api`          | BullMQ via Redis (`REDIS_URL`); fallback in-process tanpa Redis                                                                                                 |
-| Testing            | API / Web           | Jest + Supertest (API); Vitest + Testing Library (web); Playwright (E2E, roadmap)                                                                               |
-| Reverse proxy      | `deploy/nginx.conf` | Nginx — rate limit, security headers, gzip, WebSocket                                                                                                           |
+| Komponen           | Path                | Teknologi                                                                                                                                                                                                                                                                                  |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| API                | `apps/api`          | NestJS 11, REST prefix `/api/v1`, Socket.IO namespace `/ws`, Prisma                                                                                                                                                                                                                        |
+| Web                | `apps/web`          | Next.js App Router, Tailwind CSS v4, shadcn/ui, **App Design System v3** (AppShell v2, `components/ui` 12 ekspor), hook `useApi`/`useAsyncData` (client data fetching), React Context, localStorage/sessionStorage (offline queue)                                                         |
+| Database           | `packages/database` | Prisma + PostgreSQL (skema tunggal, single-school)                                                                                                                                                                                                                                         |
+| UI kit             | `packages/ui`       | Komponen shared (shadcn/ui primitives)                                                                                                                                                                                                                                                     |
+| Types              | `packages/types`    | Enum & tipe bersama (satu sumber kebenaran)                                                                                                                                                                                                                                                |
+| Orchestrasi        | root                | Turborepo, npm workspaces, Node.js ≥ 20                                                                                                                                                                                                                                                    |
+| Antrean (opsional) | `apps/api`          | BullMQ via Redis (`REDIS_URL`); fallback in-process tanpa Redis                                                                                                                                                                                                                            |
+| Testing            | API / Web           | Jest + Supertest (API); Vitest + Testing Library (web); Playwright (E2E, scaffold). Angka terverifikasi: API unit **2.140** (100 suite) + integration **10** + public-content **20**; web Vitest **99** — catatan eksekusi 2026-08-10 ([docs/riview/riview05.md](docs/riview/riview05.md)) |
+| Reverse proxy      | `deploy/nginx.conf` | Nginx — rate limit, security headers, gzip, WebSocket                                                                                                                                                                                                                                      |
 
 ## Arsitektur
 
@@ -118,8 +119,9 @@
         │  JWT middleware → RBAC guard → Controller → Service → Repo    │
         │  Guard: @RequirePermission + scope SENDIRI/KELAS/SEKOLAH      │
         │  Rate limiter · Request ID · pino · AuditLog · Helmet         │
-        │  32 modul domain (auth, lms, quiz, exam, finance, payroll,    │
-        │  asset, ppdb, attendance, smk, parent-portal, rollover, dll.) │
+        │  34 modul domain (auth, lms, quiz, exam, finance, payroll,    │
+        │  asset, ppdb, attendance, smk, parent-portal, rollover,       │
+        │  public-content, metrics, dll.)                               │
         └──────┬──────────────┬──────────────┬──────────────┬───────────┘
                │              │              │              │
         ┌──────▼─────┐ ┌──────▼─────┐ ┌──────▼──────┐ ┌─────▼──────────┐
@@ -142,6 +144,8 @@ HTTP request
 ```
 
 Diagram detail dan alur data ujian online: [docs/02-technical-architecture.md §15](docs/02-technical-architecture.md).
+
+**Catatan arsitektur 2026-08-10:** API kini **34 modul** — tambah `public-content` (12 endpoint publik `GET /public/*`, `@Public()` + cache 300s, [README.public-content.md](apps/api/src/modules/public-content/README.public-content.md)) dan `metrics` (`GET /metrics`, SUPERADMIN, [README.metrics.md](apps/api/src/modules/metrics/README.metrics.md)). Frontend memakai **App Design System v3** (AppShell v2 + `components/ui` 12 ekspor) untuk halaman role dan **Landing v2** (10 halaman mandiri) untuk publik — [docs/app-design-system-v3.md](docs/app-design-system-v3.md), [docs/landing-design-v2.md](docs/landing-design-v2.md).
 
 ## Quick Start (Pengembangan)
 
@@ -261,9 +265,10 @@ opensis/
 ├── apps/
 │   ├── api/                    # NestJS backend (REST + Socket.IO gateway)
 │   │   ├── src/common/         # guard, middleware, interceptor, filter
-│   │   └── src/modules/        # 32 modul domain + README.<modul>.md
+│   │   └── src/modules/        # 34 modul domain + README.<modul>.md (termasuk public-content, metrics)
 │   └── web/                    # Next.js App Router (frontend)
-│       └── src/app/            # 11 route group per role & halaman publik (55 page.tsx)
+│       ├── src/app/            # 11 route group per role & halaman publik (64 page.tsx: 11 landing + 53 role/publik)
+│       └── src/components/     # komponen shared web; components/ui (FE v3): 12 ekspor App Design System v3
 ├── packages/
 │   ├── database/               # Prisma schema (90 model), migrasi, seed, RLS opsional
 │   ├── ui/                     # komponen shared (shadcn/ui)
@@ -276,7 +281,9 @@ opensis/
 │
 │   # docker-compose.yml (DEV infra-only) + docker-compose.prod.yml (overlay PROD) di root
 ├── docs/                       # PRD, arsitektur, ERD, kontrak API, riset, UX, KB
-│   ├── 01-master-prd.md … 07-ux-design.md
+│   ├── 01-master-prd.md … 08-knowledge-base.md
+│   ├── landing-design-v2.md    # design system Landing v2 (10 halaman mandiri)
+│   ├── app-design-system-v3.md # design system FE aplikasi v3 (AppShell v2, components/ui)
 │   └── prd/                    # prd01–prd07
 ├── .github/
 │   ├── workflows/ci.yml        # 7 gate: lint → typecheck → unit → integration → build → audit → secret scan
@@ -404,6 +411,7 @@ Praktik keamanan yang diterapkan di proyek (detail: [docs/02-technical-architect
 
 - **Auth in-house**: Argon2id untuk hash password; JWT di httpOnly cookie; refresh rotation; role di-resolve dari tabel `UserRole` (bukan dari JWT) — perubahan role instan.
 - **RBAC fail-closed**: `AuthGuard` global → `PermissionsGuard` (`@RequirePermission`, scope SENDIRI/KELAS/SEKOLAH) → `FeatureFlagGuard`. Fitur OFF ditolak di API, bukan hanya disembunyikan di UI.
+- **Hardening putaran 5 (riview05)**: JWT canonical signature ditolak (base64url non-kanonik + `timingSafeEqual`, `jwt.util.ts:88-96`); RBAC scope enforcement di service (SEC-001/002/007); refresh token di-revoke saat ganti password; `COOKIE_SECURE` fail-fast di production (`main.ts:21-23`); audit failure logging (`lms-audit.ts:65,93`); mapping error Prisma P2002/P2025/P2003 (`all-exceptions.filter.ts:111-125`).
 - **Anti-impersonation**: aktor dibaca dari `request.requestContext`, bukan header klien.
 - **Helmet** aktif di `main.ts`; CORS dibatasi `CORS_ORIGINS`; cookie `SameSite=Lax`.
 - **Rate limiting** login & API + security headers di Nginx (`deploy/nginx.conf`); aplikasi juga menegakkan rate limit per-IP/identitas (`RATE_LIMIT_*`) + brute-force lockout (5 gagal/15 menit).
@@ -423,7 +431,7 @@ npm run test:integration  # integration test (butuh PostgreSQL)
 npm run audit             # npm audit --audit-level=high
 ```
 
-Status terkini: **estimasi ±2.000+ test hijau** (API unit ±1.900 — seed-data ~973 + 357 + 29 + dst, web Vitest **94 test**), catatan eksekusi 2026-08-08 ([docs/riview/riview04.md](docs/riview/riview04.md)); 5 suite pra-existing telah diperbaiki dan hijau di `NODE_ENV=production` tanpa env. Verifikasi akhir pipeline oleh tester dijalankan paralel — angka final menggantikan estimasi ini. Target roadmap **2.000+ test hijau dan coverage ≥ 80%** ([docs/prd/prd06.md](docs/prd/prd06.md)).
+Status terkini: **API unit 2.140** (100 suite, 0 gagal), **web Vitest 99**, **integration 10**, **public-content 20** — catatan eksekusi orkestrator 2026-08-10 ([docs/riview/riview05.md](docs/riview/riview05.md), juga di [docs/08-knowledge-base.md §7.1](docs/08-knowledge-base.md)). Target roadmap **coverage ≥ 80%** dan **E2E Playwright di CI** masih terbuka ([docs/prd/prd06.md](docs/prd/prd06.md), [docs/prd/prd07.md](docs/prd/prd07.md)).
 
 Pipeline CI (`.github/workflows/ci.yml`) menjalankan **7 gate**: lint → typecheck → unit → integration (dengan service PostgreSQL) → build → npm audit → secret scan (gitleaks), pada setiap push ke `main` dan pull request. Panduan berkontribusi: [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -444,8 +452,9 @@ Pipeline CI (`.github/workflows/ci.yml`) menjalankan **7 gate**: lint → typech
 
 - `docs/01-master-prd.md` … `docs/08-knowledge-base.md` — PRD, arsitektur, ERD, kontrak API, rencana implementasi, riset, desain UX, basis pengetahuan.
 - `docs/08-knowledge-base.md` — **Project Knowledge Base**: peta arsitektur, peta data, alur bisnis kritis, RBAC, realtime/queue/storage, status kesehatan.
+- `docs/landing-design-v2.md` & `docs/app-design-system-v3.md` — design system Landing v2 (10 halaman mandiri) dan FE aplikasi v3 (AppShell v2 + `components/ui`).
 - `docs/prd/prd01.md` … `docs/prd/prd07.md` — PRD terpisah (produk & development roadmap).
-- `docs/riview/` — laporan review berkala (`riview01.md` … `riview04.md`).
+- `docs/riview/` — laporan review berkala (`riview01.md` … `riview05.md`).
 - `apps/api/src/modules/*/README.<modul>.md` — kontrak endpoint per modul.
 - Indeks dokumen: [docs/README.docs.md](docs/README.docs.md).
 
@@ -453,12 +462,12 @@ Pipeline CI (`.github/workflows/ci.yml`) menjalankan **7 gate**: lint → typech
 
 Prioritas pengembangan (detail: [docs/prd/prd05.md](docs/prd/prd05.md) dan [docs/prd/prd06.md](docs/prd/prd06.md)):
 
-- **Performa & kapasitas**: target 1.500–2.000 pengguna ujian bersamaan (load test k6, p95 autosave < 300 ms), optimasi autosave, indeks hot-path.
-- **Keamanan**: proteksi CSRF penuh, rate limit upload, sanitasi konten landing, gate `DEMO_MODE`.
-- **Integritas data**: idempotensi pembayaran, payroll PAID transaksional, rollback rollover PPDB.
-- **Fitur bisnis**: e-Rapor dua-track Kurikulum Merdeka, ekspor Dapodik.
-- **Testing & kualitas**: kampanye 2.000+ test, coverage ≥ 80%, E2E Playwright, gate coverage di CI.
-- **Ops/infra**: backup/restore & drill (RPO ≤ 24 jam / RTO ≤ 4 jam), observability lengkap (metrik, slow query, alerting).
+- **Performa & kapasitas**: target 1.500–2.000 pengguna ujian bersamaan (load test k6, p95 autosave < 300 ms), optimasi autosave, indeks hot-path. **Selesai 2026-08-10:** indeks hot-path + dedupe token sesi ujian (migrasi `20260808000000_add_perf_indexes`, `20260809010000_exam_attempt_token_dedupe`, PERF-01/04/05/06).
+- **Keamanan**: proteksi CSRF penuh, rate limit upload, sanitasi konten landing, gate `DEMO_MODE`. **Selesai 2026-08-10:** JWT canonical signature, RBAC scope enforcement, revoke refresh saat ganti password, COOKIE_SECURE fail-fast, audit failure logging (SEC-001/002/007, REL-*, CFG-02).
+- **Integritas data**: idempotensi pembayaran, payroll PAID transaksional, rollback rollover PPDB. **Sebagian:** race payment verify & idempotensi rollover processor diperbaiki (REL-003/006/009); sisa roadmapped.
+- **Fitur bisnis**: e-Rapor dua-track Kurikulum Merdeka, ekspor Dapodik. **Belum dimulai.**
+- **Testing & kualitas**: kampanye 2.000+ test (tercapai: API 2.140 + web 99 + integration 10 + public-content 20), coverage ≥ 80% (**tersisa — gate belum aktif di CI**), E2E Playwright (**tersisa — scaffold `apps/web/e2e/` siap, belum di CI**), gate coverage di CI.
+- **Ops/infra**: backup/restore & drill (RPO ≤ 24 jam / RTO ≤ 4 jam), observability lengkap (metrik, slow query, alerting). **Selesai 2026-08-10:** `deploy/scripts/backup.sh` + `restore.sh` + [deploy/BACKUP.md](deploy/BACKUP.md), `GET /metrics`, overlay staging [deploy/README.staging.md](deploy/README.staging.md). **Tersisa:** drill backup belum diverifikasi, staging belum live, slow query & alerting.
 
 ## Lisensi
 
