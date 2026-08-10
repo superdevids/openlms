@@ -239,8 +239,8 @@ Angka yang terverifikasi langsung terhadap source pada penyusunan dokumen
 | Staging                             | `docker-compose.staging.yml`                                                                                             |
 | E2E                                 | `apps/web/e2e/smoke.spec.ts` + `README.e2e.md`                                                                           |
 | Test API (catatan eksekusi)         | **2.140** lulus, 0 gagal                                                                                                 |
-| Test web (catatan eksekusi)         | **99** (8 file di `apps/web/src/lib/__tests__/`)                                                                         |
-| Test integration (catatan eksekusi) | **10** (`apps/api/test/integration/*.spec.ts` + `app.e2e-spec.ts`)                                                       |
+| Test web (catatan eksekusi)         | **99** (10 file di `apps/web/src/lib/__tests__/`)                                                                        |
+| Test integration (catatan eksekusi) | **10** (`apps/api/test/integration/*.spec.ts`; `app.e2e-spec.ts` terpisah +4)                                            |
 
 > Angka test agregat (2.140/99/10) adalah catatan eksekusi orkestrator dari
 > kampanye tester paralel; verifikasi ulang dari CI tetap menjadi rekomendasi

@@ -290,8 +290,8 @@ Kunci: **otoritas role adalah tabel `UserRole`**, bukan klaim JWT — perubahan 
 | `lint` (turbo)                  | PASS                                                                                                                                                                |
 | `build` (turbo)                 | PASS (`nest build` + `next build` + `prisma generate`)                                                                                                              |
 | Test API                        | **2.140 tes lulus, 0 gagal** (catatan eksekusi orkestrator 2026-08-10 — lihat [riview05 §6](riview/riview05.md); termasuk 20 test `public-content.service.spec.ts`) |
-| Test web (Vitest)               | **99 test** (8 file di `apps/web/src/lib/__tests__/`, catatan eksekusi 2026-08-10)                                                                                  |
-| Test integration API            | **10 test** (`apps/api/test/integration/*.spec.ts` + `app.e2e-spec.ts`, catatan eksekusi 2026-08-10)                                                                |
+| Test web (Vitest)               | **99 test** (10 file di `apps/web/src/lib/__tests__/`, catatan eksekusi 2026-08-10)                                                                                 |
+| Test integration API            | **10 test** (`apps/api/test/integration/*.spec.ts`; `app.e2e-spec.ts` terpisah +4, catatan eksekusi 2026-08-10)                                                     |
 | `npm audit`                     | 0 kerentanan (audit-level=high)                                                                                                                                     |
 | `db:validate` (prisma validate) | PASS                                                                                                                                                                |
 | Referensi `eclass` tersisa      | 0                                                                                                                                                                   |
