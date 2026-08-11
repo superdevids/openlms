@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { Invoice, PaymentStatus } from "@prisma/client";
+import { Invoice, PaymentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@opensis/database";
 import { Decimal } from "@prisma/client/runtime/library";
 import { computeInvoiceTotals } from "../calculator/invoice-status";
@@ -55,6 +55,25 @@ export interface CreateInvoiceInput {
 export type InvoiceWithPayments = Invoice & {
   payments: Array<{ status: PaymentStatus; amount: Decimal }>;
 };
+
+/** Satu halaman hasil list invoice (pagination). */
+export interface InvoiceListPage {
+  items: Array<Invoice & { outstanding: Decimal; paidAmount: Decimal }>;
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Filter list invoice + pagination (page 1-based, pageSize default 20 max 100). */
+export interface InvoiceListQuery {
+  studentId?: string;
+  type?: string;
+  status?: string;
+  period?: string;
+  academicYear?: string;
+  page?: number;
+  pageSize?: number;
+}
 
 @Injectable()
 export class InvoiceService {
@@ -215,71 +234,52 @@ export class InvoiceService {
     return invoice;
   }
 
-  async list(
-    query: {
-      studentId?: string;
-      type?: string;
-      status?: string;
-      period?: string;
-      academicYear?: string;
-    } = {},
-    actor: InvoiceActor
-  ): Promise<Array<Invoice & { outstanding: Decimal; paidAmount: Decimal }>> {
-    const schoolScoped = this.isSchoolScoped(actor);
-    let studentFilter: { student_id: string } | { student_id: { in: string[] } } | undefined;
-    if (schoolScoped) {
-      if (query.studentId) studentFilter = { student_id: query.studentId };
-    } else {
-      // SISWA/WALI_MURID: paksa scope ke diri sendiri/anak (ParentStudentLink).
-      const allowed = await this.resolveAllowedStudentIds(actor);
-      if (query.studentId) {
-        if (!allowed.includes(query.studentId)) {
-          throw new ForbiddenException({
-            error: {
-              code: "FORBIDDEN",
-              message: "Anda tidak memiliki akses ke tagihan siswa ini"
-            }
-          });
-        }
-        studentFilter = { student_id: query.studentId };
-      } else {
-        studentFilter = { student_id: { in: allowed } };
-      }
+  /**
+   * Daftar tagihan dengan pagination (prd04 §5.F.1).
+   * Tanpa filter status: pagination di SQL (skip/take) + count — efisien.
+   * Dengan filter status: status DERIVED dari pembayaran (computeInvoiceTotals),
+   * tidak bisa dipaginasi/di-count di SQL, jadi ambil semua baris yang cocok
+   * filter dasar lalu paginate + total dari hasil terfilter di memori.
+   * Trade-off (didokumentasikan): request ber-filter status memuat semua baris
+   * dasar tanpa limit; hanya terjadi saat klien memfilter status (jarang).
+   */
+  async list(query: InvoiceListQuery = {}, actor: InvoiceActor): Promise<InvoiceListPage> {
+    const page = Math.max(1, query.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+    const where = await this.buildListWhere(query, actor);
+
+    if (query.status) {
+      const filtered = (await this.listAll(query, actor)).filter(
+        (inv) => inv.status === query.status
+      );
+      return {
+        items: filtered.slice((page - 1) * pageSize, page * pageSize),
+        total: filtered.length,
+        page,
+        pageSize
+      };
     }
 
-    const invoices = await prisma.invoice.findMany({
-      where: {
-        ...(studentFilter ?? {}),
-        ...(query.type ? { type: query.type as never } : {}),
-        ...(query.period ? { period: query.period } : {}),
-        ...(query.academicYear ? { academic_year: query.academicYear } : {})
-      },
-      include: { payments: true },
-      orderBy: { created_at: "desc" }
-    });
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where,
+        include: { payments: true },
+        orderBy: { created_at: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize
+      }),
+      prisma.invoice.count({ where })
+    ]);
 
-    return invoices
-      .map((inv) => {
-        const paidAmount = inv.payments
-          .filter((p) => p.status === "PAID")
-          .reduce((sum, p) => sum.plus(p.amount), new Decimal(0));
-        const totals = computeInvoiceTotals({
-          amount: inv.amount,
-          discount: inv.discount,
-          paidSum: paidAmount,
-          dueDate: inv.due_date,
-          now: new Date()
-        });
-        return {
-          ...inv,
-          paidAmount: totals.paidAmount,
-          outstanding: totals.outstanding
-        };
-      })
-      .filter((inv) => (query.status ? inv.status === query.status : true));
+    return {
+      items: this.enrich(invoices),
+      total,
+      page,
+      pageSize
+    };
   }
 
-  /** Rekap status bulanan per siswa (prd04 §5.F.1). */
+  /** Rekap status bulanan per siswa (prd04 §5.F.1) — agregasi penuh tanpa pagination. */
   async monthlySummary(
     period: string,
     actor: InvoiceActor
@@ -290,7 +290,7 @@ export class InvoiceService {
     overdue: number;
     outstanding: Decimal;
   }> {
-    const invoices = await this.list({ period }, actor);
+    const invoices = await this.listAll({ period }, actor);
     const outstanding = invoices.reduce((s, i) => s.plus(i.outstanding), new Decimal(0));
     return {
       total: invoices.length,
@@ -384,6 +384,78 @@ export class InvoiceService {
     return actor.roles.some((r) => INVOICE_SCHOOL_READ_ROLES.has(r));
   }
 
+  /** Bangun where clause list dari filter + scope (SEC-002). */
+  private async buildListWhere(
+    query: InvoiceListQuery,
+    actor: InvoiceActor
+  ): Promise<Prisma.InvoiceWhereInput> {
+    const schoolScoped = this.isSchoolScoped(actor);
+    let studentFilter: { student_id: string } | { student_id: { in: string[] } } | undefined;
+    if (schoolScoped) {
+      if (query.studentId) studentFilter = { student_id: query.studentId };
+    } else {
+      // SISWA/WALI_MURID: paksa scope ke diri sendiri/anak (ParentStudentLink).
+      const allowed = await this.resolveAllowedStudentIds(actor);
+      if (query.studentId) {
+        if (!allowed.includes(query.studentId)) {
+          throw new ForbiddenException({
+            error: {
+              code: "FORBIDDEN",
+              message: "Anda tidak memiliki akses ke tagihan siswa ini"
+            }
+          });
+        }
+        studentFilter = { student_id: query.studentId };
+      } else {
+        studentFilter = { student_id: { in: allowed } };
+      }
+    }
+
+    return {
+      ...(studentFilter ?? {}),
+      ...(query.type ? { type: query.type as never } : {}),
+      ...(query.period ? { period: query.period } : {}),
+      ...(query.academicYear ? { academic_year: query.academicYear } : {})
+    };
+  }
+
+  /** Semua baris yang cocok filter dasar (tanpa pagination) + enrichment status. */
+  private async listAll(
+    query: InvoiceListQuery,
+    actor: InvoiceActor
+  ): Promise<Array<Invoice & { outstanding: Decimal; paidAmount: Decimal }>> {
+    const where = await this.buildListWhere(query, actor);
+    const invoices = await prisma.invoice.findMany({
+      where,
+      include: { payments: true },
+      orderBy: { created_at: "desc" }
+    });
+    return this.enrich(invoices);
+  }
+
+  /** Enrich invoice dengan paidAmount/outstanding (computeInvoiceTotals). */
+  private enrich(
+    invoices: InvoiceWithPayments[]
+  ): Array<Invoice & { outstanding: Decimal; paidAmount: Decimal }> {
+    return invoices.map((inv) => {
+      const paidAmount = inv.payments
+        .filter((p) => p.status === "PAID")
+        .reduce((sum, p) => sum.plus(p.amount), new Decimal(0));
+      const totals = computeInvoiceTotals({
+        amount: inv.amount,
+        discount: inv.discount,
+        paidSum: paidAmount,
+        dueDate: inv.due_date,
+        now: new Date()
+      });
+      return {
+        ...inv,
+        paidAmount: totals.paidAmount,
+        outstanding: totals.outstanding
+      };
+    });
+  }
+
   /** Student id yang sah diakses aktor SENDIRI: diri sendiri (SISWA) + anak (WALI_MURID via ParentStudentLink). */
   private async resolveAllowedStudentIds(actor: InvoiceActor): Promise<string[]> {
     const allowed = new Set<string>();
@@ -391,8 +463,10 @@ export class InvoiceService {
       allowed.add(actor.userId);
     }
     if (actor.roles.includes("WALI_MURID")) {
+      // Rv5-17 (SEC-001): hanya tautan APPROVED (allowlist OPERATOR) yang
+      // memberi hak baca tagihan anak — PENDING/REJECTED tidak.
       const links = await prisma.parentStudentLink.findMany({
-        where: { parent: { user_id: actor.userId } },
+        where: { parent: { user_id: actor.userId }, status: "APPROVED" },
         select: { student_id: true }
       });
       for (const link of links) allowed.add(link.student_id);

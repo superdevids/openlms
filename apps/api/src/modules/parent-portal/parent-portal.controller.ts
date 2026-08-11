@@ -17,6 +17,33 @@ import type { AuditActorContext } from "../lms/lms-audit";
 export class ParentPortalController {
   constructor(private readonly parentPortalService: ParentPortalService) {}
 
+  // ============================================================
+  // Allowlist OPERATOR (Rv5-17 / SEC-001): antrian tautan PENDING +
+  // approve/reject. Route statis "links" — tidak bentrok dengan
+  // ":parentGuardianId/children" (segmen literal beda & lebih dulu dicocok).
+  // ============================================================
+
+  @Get("links/pending")
+  @Roles(Role.OPERATOR, Role.SUPERADMIN)
+  @RequirePermission("parent:link:approve:school")
+  listPendingLinks() {
+    return this.parentPortalService.listPendingLinks();
+  }
+
+  @Post("links/:linkId/approve")
+  @Roles(Role.OPERATOR, Role.SUPERADMIN)
+  @RequirePermission("parent:link:approve:school")
+  approveLink(@Param("linkId") linkId: string, @CurrentUser() user: AuthUser | undefined) {
+    return this.parentPortalService.approveLink(linkId, this.actor(user));
+  }
+
+  @Post("links/:linkId/reject")
+  @Roles(Role.OPERATOR, Role.SUPERADMIN)
+  @RequirePermission("parent:link:approve:school")
+  rejectLink(@Param("linkId") linkId: string, @CurrentUser() user: AuthUser | undefined) {
+    return this.parentPortalService.rejectLink(linkId, this.actor(user));
+  }
+
   @Post("me")
   @Roles(Role.WALI_MURID)
   @RequirePermission("user:write:self")

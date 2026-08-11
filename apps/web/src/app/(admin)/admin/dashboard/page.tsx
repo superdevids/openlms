@@ -35,11 +35,13 @@ export default function AdminDashboardPage(): JSX.Element {
   const role = user?.primaryRole ?? user?.roles[0];
   const invoices = useApi<{ amount: number; paid: number; status: string }[]>(
     async () => {
-      const rows =
-        await api.get<
-          Array<{ amount: number | string; paidAmount: number | string; status: string }>
-        >("/finance/invoices");
-      return rows.map((r) => ({
+      const res = await api.get<{
+        items: Array<{ amount: number | string; paidAmount: number | string; status: string }>;
+        total: number;
+        page: number;
+        pageSize: number;
+      }>("/finance/invoices", { query: { pageSize: 100 } });
+      return res.items.map((r) => ({
         amount: Number(r.amount),
         paid: Number(r.paidAmount),
         status: r.status

@@ -1,12 +1,14 @@
-import { HttpException, HttpStatus, Injectable, NestMiddleware } from "@nestjs/common";
+import { HttpException, HttpStatus, Injectable, NestMiddleware, Optional } from "@nestjs/common";
 import type { NextFunction, Request, Response } from "express";
 import { parseCookies } from "../../modules/auth/cookie.util";
 import { verifyAccessToken } from "../../modules/auth/jwt.util";
 import { ACCESS_COOKIE_NAME, SESSION_COOKIE_NAME } from "../../modules/auth/auth.constants";
+import { createRateLimitStore, RateLimitStore } from "../rate-limit/redis-rate-limit.store";
 
 /**
- * Rate limit sliding window — in-memory Map dengan TTL cleanup.
- * Keying (G-06):
+ * Rate limit sliding window — store terdistribusi (Redis) dengan fallback
+ * in-memory (Map + TTL cleanup) bila REDIS_URL kosong / Redis gagal
+ * (lihat RedisRateLimitStore). Threshold & keying TIDAK berubah (G-06):
  * - Route terautentikasi (ada JWT access valid di cookie / requestContext):
  *   dikunci per-IDENTITAS USER (`user:<id>`) → 2000 siswa di belakang 1 NAT IP
  *   tidak saling potong; limit USER_RATE_LIMIT_MAX (default 120/menit/user).
@@ -16,15 +18,7 @@ import { ACCESS_COOKIE_NAME, SESSION_COOKIE_NAME } from "../../modules/auth/auth
  * - Endpoint publik tanpa identitas: per-IP RATE_LIMIT_MAX (default 100/menit).
  * - Socket.IO (/socket.io, /ws) dikecualikan — di-throttle di Nginx.
  * Respon 429 + header Retry-After (format error standar lewat AllExceptionsFilter).
- *
- * Catatan: memori per-instance (bukan distributed). Untuk multi-instance gunakan
- * store eksternal (Redis) — lihat docs/03 scalability.
  */
-
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
 
 const LOGIN_MARKER = "/auth/login";
 const REFRESH_MARKER = "/auth/refresh";
@@ -42,22 +36,23 @@ type RateLimitRequest = Request & { requestContext?: { userId?: string } };
 
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
-  private readonly buckets = new Map<string, Bucket>();
+  private readonly store: RateLimitStore;
   private readonly windowMs = envNumber("RATE_LIMIT_WINDOW_MS", 60_000);
   private readonly generalMax = envNumber("RATE_LIMIT_MAX", 100);
   private readonly loginMax = envNumber("LOGIN_RATE_LIMIT_MAX", 10);
   private readonly refreshMax = envNumber("REFRESH_RATE_LIMIT_MAX", 30);
   private readonly authUserMax = envNumber("USER_RATE_LIMIT_MAX", 120);
   private readonly uploadMax = envNumber("UPLOAD_RATE_LIMIT_MAX", 30);
-  private readonly cleanupTimer: NodeJS.Timeout;
 
-  constructor() {
-    // Cleanup berkala agar Map tidak membengkak (interval 2x window, timer tidak menahan proses).
-    this.cleanupTimer = setInterval(() => this.cleanup(), Math.max(this.windowMs, 1000) * 2);
-    this.cleanupTimer.unref();
+  /**
+   * @param store store rate limit (inject untuk test); default: Redis bila
+   * REDIS_URL diset, else in-memory (pola QueueModule, non-fatal bila Redis mati).
+   */
+  constructor(@Optional() store?: RateLimitStore) {
+    this.store = store ?? createRateLimitStore();
   }
 
-  use(req: Request, res: Response, next: NextFunction): void {
+  async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     const path = (req.originalUrl ?? req.url ?? "") as string;
 
     if (SKIPPED_PREFIXES.some((prefix) => path.startsWith(prefix))) {
@@ -66,35 +61,32 @@ export class RateLimitMiddleware implements NestMiddleware {
     }
 
     const { key, max } = this.limitForKey(path, req);
-    const now = Date.now();
 
-    const bucket = this.buckets.get(key);
-    if (!bucket || bucket.resetAt <= now) {
-      this.buckets.set(key, { count: 1, resetAt: now + this.windowMs });
+    try {
+      const result = await this.store.consume(key, this.windowMs, max);
+
+      if (!result.allowed) {
+        const retryAfterSec = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000));
+        res.setHeader("Retry-After", String(retryAfterSec));
+        next(
+          new HttpException(
+            {
+              error: {
+                code: "RATE_LIMITED",
+                message: "Terlalu banyak permintaan, coba lagi nanti",
+                details: { retryAfterSec }
+              }
+            },
+            HttpStatus.TOO_MANY_REQUESTS
+          )
+        );
+        return;
+      }
+
       next();
-      return;
+    } catch (err) {
+      next(err instanceof Error ? err : new Error(String(err)));
     }
-
-    if (bucket.count >= max) {
-      const retryAfterSec = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-      res.setHeader("Retry-After", String(retryAfterSec));
-      next(
-        new HttpException(
-          {
-            error: {
-              code: "RATE_LIMITED",
-              message: "Terlalu banyak permintaan, coba lagi nanti",
-              details: { retryAfterSec }
-            }
-          },
-          HttpStatus.TOO_MANY_REQUESTS
-        )
-      );
-      return;
-    }
-
-    bucket.count += 1;
-    next();
   }
 
   /**
@@ -137,13 +129,5 @@ export class RateLimitMiddleware implements NestMiddleware {
       if (payload?.sub) return payload.sub;
     }
     return null;
-  }
-
-  /** Hapus bucket yang sudah lewat window — mencegah kebocoran memori. */
-  private cleanup(): void {
-    const now = Date.now();
-    for (const [key, bucket] of this.buckets) {
-      if (bucket.resetAt <= now) this.buckets.delete(key);
-    }
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type JSX } from "react";
+import { useEffect, useState, type FormEvent, type JSX } from "react";
 
 import Link from "next/link";
 import { api, DEMO_MODE } from "@/lib/api-client";
@@ -15,6 +15,7 @@ import {
   Input,
   Label,
   Alert,
+  toast,
   IconCheck,
   IconAlert,
   IconFile,
@@ -90,6 +91,17 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
     setSubmittedNo(regNo.trim());
   };
 
+  // Gagal lookup via API → toast (bukan Alert inline).
+  useEffect(() => {
+    if (track.status === "error" && submittedNo) {
+      toast({
+        variant: "error",
+        title: "Gagal mengecek status",
+        description: track.error?.message ?? "Nomor pendaftaran tidak ditemukan."
+      });
+    }
+  }, [track.status, submittedNo, track.error]);
+
   const effectiveStatus =
     DEMO_MODE && track.status !== "success" ? DEMO_STATUS : (track.data ?? null);
   const checklistDone = CHECKLIST.filter((c) => c.done).length;
@@ -150,12 +162,6 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
                 Cek Status
               </Button>
             </form>
-
-            {track.status === "error" && submittedNo ? (
-              <Alert variant="danger" className="text-sm">
-                {track.error?.message ?? "Nomor pendaftaran tidak ditemukan."}
-              </Alert>
-            ) : null}
 
             {effectiveStatus ? (
               <div role="status" className="rounded-lg border border-border bg-background p-4">

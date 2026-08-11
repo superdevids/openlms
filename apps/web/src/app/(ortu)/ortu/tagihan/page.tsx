@@ -44,17 +44,20 @@ const INVOICE_LABEL: Record<string, string> = {
 export default function OrtuTagihanPage(): JSX.Element {
   const list = useApi<InvoiceRow[]>(
     async () => {
-      const rows = await api.get<
-        Array<{
+      const res = await api.get<{
+        items: Array<{
           type: string;
           period: string | null;
           amount: number | string;
           paidAmount: number | string;
           due_date: string;
           status: string;
-        }>
-      >("/finance/invoices");
-      return rows.map((r) => ({
+        }>;
+        total: number;
+        page: number;
+        pageSize: number;
+      }>("/finance/invoices", { query: { pageSize: 100 } });
+      return res.items.map((r) => ({
         type: r.type,
         period: r.period ?? "",
         amount: Number(r.amount),

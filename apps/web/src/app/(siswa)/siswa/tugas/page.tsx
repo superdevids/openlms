@@ -4,7 +4,7 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Button, Textarea, Label, Alert, Dialog, toast } from "@opensis/ui";
+import { DataView, Button, Textarea, Label, Dialog, toast } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
@@ -38,7 +38,6 @@ export default function SiswaTugasPage(): JSX.Element {
   const [openId, setOpenId] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const open = list.data?.find((t) => t.id === openId) ?? null;
 
@@ -46,7 +45,6 @@ export default function SiswaTugasPage(): JSX.Element {
     e.preventDefault();
     if (!open) return;
     setSubmitting(true);
-    setSubmitError(null);
     try {
       await api.post(
         `/assignments/${open.id}/submissions`,
@@ -57,11 +55,14 @@ export default function SiswaTugasPage(): JSX.Element {
       setOpenId(null);
       list.refetch();
     } catch (err) {
-      setSubmitError(
-        err instanceof ApiError && isFeatureDisabledError(err)
-          ? "Fitur tugas sedang dinonaktifkan."
-          : errorMessage(err)
-      );
+      toast({
+        variant: "error",
+        title: "Gagal mengirim tugas",
+        description:
+          err instanceof ApiError && isFeatureDisabledError(err)
+            ? "Fitur tugas sedang dinonaktifkan."
+            : errorMessage(err)
+      });
     } finally {
       setSubmitting(false);
     }
@@ -127,7 +128,6 @@ export default function SiswaTugasPage(): JSX.Element {
         open={open !== null}
         onOpenChange={(v) => {
           setOpenId(null);
-          setSubmitError(null);
           void v;
         }}
         title={open?.title ?? "Kerjakan Tugas"}
@@ -145,13 +145,6 @@ export default function SiswaTugasPage(): JSX.Element {
               required
             />
           </div>
-          {submitError ? (
-            <div role="alert">
-              <Alert variant="danger" className="text-sm">
-                {submitError}
-              </Alert>
-            </div>
-          ) : null}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setOpenId(null)}>
               Batal

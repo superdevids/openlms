@@ -1,13 +1,18 @@
 /**
  * Unit test — HealthController (healthcheck API).
  */
+import { PrismaClient } from "@opensis/database";
 import { HealthController } from "../../src/modules/health/health.controller";
 
 describe("HealthController", () => {
   let controller: HealthController;
+  const prismaMock = {
+    $queryRaw: jest.fn()
+  } as unknown as PrismaClient;
 
   beforeEach(() => {
-    controller = new HealthController();
+    jest.clearAllMocks();
+    controller = new HealthController(prismaMock);
   });
 
   it("mengembalikan status ok + service opensis-api", () => {

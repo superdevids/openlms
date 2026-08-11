@@ -69,11 +69,13 @@ describe("InvoiceService (SEC-002 scope baca)", () => {
   describe("list — aktor scope SENDIRI", () => {
     it("SISWA tanpa filter: hanya tagihan milik sendiri", async () => {
       prismaMock.invoice.findMany.mockResolvedValue([makeInvoice("inv_1", "stu_1")]);
+      prismaMock.invoice.count.mockResolvedValue(1);
       const actor = { userId: "stu_1", roles: ["SISWA"], classIds: [] };
 
       const result = await service.list({}, actor);
 
-      expect(result).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBe(1);
       expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ student_id: { in: ["stu_1"] } })
@@ -88,11 +90,12 @@ describe("InvoiceService (SEC-002 scope baca)", () => {
         { student_id: "stu_2" }
       ]);
       prismaMock.invoice.findMany.mockResolvedValue([makeInvoice("inv_1", "stu_1")]);
+      prismaMock.invoice.count.mockResolvedValue(1);
       const actor = { userId: "user_wali_1", roles: ["WALI_MURID"], classIds: [] };
 
       const result = await service.list({}, actor);
 
-      expect(result).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
       expect(prismaMock.parentStudentLink.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ parent: { user_id: "user_wali_1" } })
@@ -116,11 +119,12 @@ describe("InvoiceService (SEC-002 scope baca)", () => {
 
     it("SISWA dengan ?studentId=diri sendiri → diizinkan", async () => {
       prismaMock.invoice.findMany.mockResolvedValue([makeInvoice("inv_1", "stu_1")]);
+      prismaMock.invoice.count.mockResolvedValue(1);
       const actor = { userId: "stu_1", roles: ["SISWA"], classIds: [] };
 
       const result = await service.list({ studentId: "stu_1" }, actor);
 
-      expect(result).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
       expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ student_id: "stu_1" })
@@ -135,11 +139,12 @@ describe("InvoiceService (SEC-002 scope baca)", () => {
         makeInvoice("inv_1", "stu_1"),
         makeInvoice("inv_2", "stu_2")
       ]);
+      prismaMock.invoice.count.mockResolvedValue(2);
       const actor = { userId: "keu_1", roles: ["KEUANGAN"], classIds: [] };
 
       const result = await service.list({}, actor);
 
-      expect(result).toHaveLength(2);
+      expect(result.items).toHaveLength(2);
       const callArg = prismaMock.invoice.findMany.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
@@ -149,13 +154,72 @@ describe("InvoiceService (SEC-002 scope baca)", () => {
 
     it("KEPSEK dengan ?studentId= → tetap difilter sesuai query", async () => {
       prismaMock.invoice.findMany.mockResolvedValue([makeInvoice("inv_1", "stu_1")]);
+      prismaMock.invoice.count.mockResolvedValue(1);
       const actor = { userId: "kep_1", roles: ["KEPSEK"], classIds: [] };
 
       const result = await service.list({ studentId: "stu_1" }, actor);
 
-      expect(result).toHaveLength(1);
+      expect(result.items).toHaveLength(1);
       expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ student_id: "stu_1" }) })
+      );
+    });
+  });
+
+  describe("list — pagination", () => {
+    it("menerapkan skip/take dari page/pageSize", async () => {
+      prismaMock.invoice.findMany.mockResolvedValue([makeInvoice("inv_3", "stu_1")]);
+      prismaMock.invoice.count.mockResolvedValue(42);
+      const actor = { userId: "keu_1", roles: ["KEUANGAN"], classIds: [] };
+
+      const result = await service.list({ page: 3, pageSize: 10 }, actor);
+
+      expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 20, take: 10 })
+      );
+      expect(prismaMock.invoice.count).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+      expect(result).toEqual({
+        items: [expect.objectContaining({ id: "inv_3" })],
+        total: 42,
+        page: 3,
+        pageSize: 10
+      });
+    });
+
+    it("menggunakan default page=1 dan pageSize=20 saat kosong", async () => {
+      prismaMock.invoice.findMany.mockResolvedValue([]);
+      prismaMock.invoice.count.mockResolvedValue(0);
+      const actor = { userId: "keu_1", roles: ["KEUANGAN"], classIds: [] };
+
+      const result = await service.list({}, actor);
+
+      expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0, take: 20 })
+      );
+      expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
+    });
+
+    it("filter status: total dari item terfilter (status derived in-memory)", async () => {
+      const paid = {
+        ...makeInvoice("inv_paid", "stu_1"),
+        status: "PAID" as const,
+        payments: [{ status: "PAID" as const, amount: new Decimal("100000") }]
+      };
+      const pending = {
+        ...makeInvoice("inv_pending", "stu_1"),
+        due_date: new Date("2099-01-01")
+      };
+      prismaMock.invoice.findMany.mockResolvedValue([paid, pending]);
+      const actor = { userId: "keu_1", roles: ["KEUANGAN"], classIds: [] };
+
+      const result = await service.list({ status: "PAID" }, actor);
+
+      expect(result.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]?.id).toBe("inv_paid");
+      // Filter status tidak bisa dipaginasi di SQL → tanpa skip/take.
+      expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
+        expect.not.objectContaining({ skip: expect.any(Number) })
       );
     });
   });

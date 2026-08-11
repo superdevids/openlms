@@ -15,6 +15,10 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // Dev-mode first compile (Next dev on-demand) lambat — beri waktu cukup
+  // agar tidak flaky di CI. Batas keras tetap timeout-minutes job CI (15m).
+  timeout: 120_000,
+  expect: { timeout: 15_000 },
   reporter: "html",
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",

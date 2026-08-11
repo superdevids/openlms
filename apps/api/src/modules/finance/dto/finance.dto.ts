@@ -290,6 +290,21 @@ export class InvoiceQueryDto {
   @IsOptional()
   @IsString()
   academicYear?: string;
+
+  /** Halaman (1-based); default 1. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  /** Ukuran halaman; default 20, maks 100. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
 }
 
 export class MonthPeriodQueryDto {

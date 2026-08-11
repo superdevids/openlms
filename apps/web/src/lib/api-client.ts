@@ -10,6 +10,10 @@ import { getDataSaverPreference } from "./storage";
 
 export const API_BASE: string = process.env.NEXT_PUBLIC_API_BASE ?? "/api/v1";
 export const SESSION_COOKIE = "opensis_session";
+// DEMO_MODE hanya sinyal UI klien (NEXT_PUBLIC_* dibundel di browser — tidak
+// bisa dipercaya sebagai gate). Pengecualian production ditegakkan di sisi
+// server: apps/api/src/main.ts menolak boot bila NEXT_PUBLIC_DEMO=1 &&
+// NODE_ENV=production (G-21/R-07).
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO === "1";
 
 export interface RequestOptions {

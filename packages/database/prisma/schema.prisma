@@ -305,6 +305,12 @@ enum ConsentStatus {
   EXPIRED
 }
 
+enum ParentLinkStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum ImportType {
   STUDENT
   TEACHER
@@ -1497,12 +1503,15 @@ model ParentGuardian {
 // ============================================================
 
 model ParentStudentLink {
-  id           String   @id @default(cuid())
+  id           String            @id @default(cuid())
   parent_id    String
   student_id   String
   relationship String // AYAH / IBU / WALI
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  // Rv5-17 (SEC-001): allowlist OPERATOR — linkChild membuat PENDING;
+  // OPERATOR/SUPERADMIN approve/reject; WALI_MURID hanya membaca APPROVED.
+  status       ParentLinkStatus @default(PENDING)
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @updatedAt
 
   parent  ParentGuardian @relation(fields: [parent_id], references: [id], onDelete: Cascade)
   student User           @relation("ParentStudentLinkStudent", fields: [student_id], references: [id])

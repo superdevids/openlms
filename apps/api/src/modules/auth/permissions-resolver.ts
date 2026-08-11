@@ -1,7 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PermissionEffect, PermissionScope, Role } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
+import { Redis } from "ioredis";
 import { TtlCache } from "../../common/cache/ttl-cache";
+import { RedisTtlCache } from "../../common/cache/redis-ttl-cache";
+import { createRedisClient, redisUrl } from "../../common/redis/redis.client";
 
 export interface PermissionGrant {
   code: string;
@@ -12,6 +15,12 @@ export interface PermissionGrant {
 export interface PermissionOverrideGrant {
   code: string;
   effect: PermissionEffect;
+}
+
+/** Kontrak cache yang dipakai resolver — TtlCache (in-memory) atau RedisTtlCache. */
+interface PermissionsCacheLike<V> {
+  wrap(key: string, loader: () => Promise<V>): Promise<V>;
+  invalidateAll(): void | Promise<void>;
 }
 
 const SCOPE_RANK: Record<PermissionScope, number> = {
@@ -72,24 +81,59 @@ export function canAccess(
 /**
  * PermissionsResolver — memuat permission set role (RolePermission + Permission)
  * dan UserPermissionOverride dari database (F1-T4, prd04 §4.3).
- * Cache in-memory TTL 60 detik untuk menghindari 2 query DB per request
- * (security hardening). Di-invalidate otomatis via TTL; panggil `invalidate()`
- * saat role/permission berubah (mis. dari service yang mengubah RolePermission).
+ * Cache TTL 60 detik untuk menghindari 2 query DB per request (security
+ * hardening). Multi-instance: cache disimpan di Redis (`perm:*` / `override:*`)
+ * bila REDIS_URL tersedia, fallback in-memory (TtlCache) bila tidak / Redis
+ * gagal — kontrak pemakai tidak berubah (wrap + invalidate).
  */
 @Injectable()
 export class PermissionsResolver {
   private static readonly TTL_MS = 60_000;
+  private static readonly PERM_PREFIX = "perm:";
+  private static readonly OVERRIDE_PREFIX = "override:";
 
-  /** Cache permission per kombinasi role + override per user (TTL 60s). */
-  private readonly permissionsCache = new TtlCache<PermissionGrant[]>(PermissionsResolver.TTL_MS);
-  private readonly overridesCache = new TtlCache<PermissionOverrideGrant[]>(
-    PermissionsResolver.TTL_MS
-  );
+  private readonly logger = new Logger(PermissionsResolver.name);
+  private readonly permissionsCache: PermissionsCacheLike<PermissionGrant[]>;
+  private readonly overridesCache: PermissionsCacheLike<PermissionOverrideGrant[]>;
 
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) {
+    const url = redisUrl();
+    let redis: Redis | null = null;
+    if (url) {
+      try {
+        redis = createRedisClient(url);
+        redis.on("error", (err) =>
+          this.logger.warn(
+            `Redis permission-cache error: ${err instanceof Error ? err.message : String(err)}`
+          )
+        );
+      } catch (err) {
+        redis = null;
+        this.logger.warn(
+          `Redis permission-cache gagal init, fallback in-memory: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+
+    this.permissionsCache = redis
+      ? new RedisTtlCache<PermissionGrant[]>(
+          PermissionsResolver.TTL_MS,
+          PermissionsResolver.PERM_PREFIX,
+          redis
+        )
+      : new TtlCache<PermissionGrant[]>(PermissionsResolver.TTL_MS);
+    this.overridesCache = redis
+      ? new RedisTtlCache<PermissionOverrideGrant[]>(
+          PermissionsResolver.TTL_MS,
+          PermissionsResolver.OVERRIDE_PREFIX,
+          redis
+        )
+      : new TtlCache<PermissionOverrideGrant[]>(PermissionsResolver.TTL_MS);
+  }
 
   /** Hapus seluruh cache (dipanggil saat role/permission/override berubah). */
   invalidate(): void {
+    // Memori dibersihkan sinkron di dalam implementasi; Redis SCAN+DEL async.
     this.permissionsCache.invalidateAll();
     this.overridesCache.invalidateAll();
   }

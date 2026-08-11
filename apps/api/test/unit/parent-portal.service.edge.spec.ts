@@ -102,7 +102,7 @@ describe("ParentPortalService edge", () => {
     await service.listChildren("pg-1", actor);
     expect(mockFn(db, "parentStudentLink", "findMany")).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { parent_id: "pg-1" },
+        where: { parent_id: "pg-1", status: "APPROVED" },
         include: { student: { select: { id: true, full_name: true, email: true, phone: true } } }
       })
     );

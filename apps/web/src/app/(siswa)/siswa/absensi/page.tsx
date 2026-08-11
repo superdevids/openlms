@@ -9,7 +9,6 @@ import { DataView, Card, CardContent, Button, Input, Label, IconQr, toast } from
 import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
-import { cn } from "@opensis/ui";
 import { PageHeader, StatCard, StatGrid, EmptyStateV3 } from "@/components/ui";
 
 interface AttendanceRekapSummary {
@@ -28,11 +27,6 @@ interface AttendanceRekap {
   summary: AttendanceRekapSummary;
   perStudent: Array<{ studentId: string; summary: AttendanceRekapSummary }>;
 }
-
-type ScanResult =
-  | { ok: true; status: "HADIR" | "TERLAMBAT"; recordedAt: string }
-  | { ok: false; message: string }
-  | null;
 
 export default function SiswaAbsensiPage(): JSX.Element {
   // Rekap nyata siswa: GET /attendance/rekap (scope SENDIRI — selalu dirinya sendiri).
@@ -54,17 +48,19 @@ export default function SiswaAbsensiPage(): JSX.Element {
   });
   const [sessionId, setSessionId] = useState("");
   const [token, setToken] = useState("");
-  const [result, setResult] = useState<ScanResult>(null);
   const [scanning, setScanning] = useState(false);
 
   const scan = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
-    setResult(null);
     setScanning(true);
     try {
       if (DEMO_MODE) {
         await new Promise((r) => setTimeout(r, 400));
-        setResult({ ok: true, status: "HADIR", recordedAt: new Date().toISOString() });
+        toast({
+          variant: "success",
+          title: "Absensi tercatat",
+          description: `Hadir — ${formatTime(new Date().toISOString())}`
+        });
         return;
       }
       const res = await api.post<{ status: "HADIR" | "TERLAMBAT"; recordedAt: string }>(
@@ -72,13 +68,17 @@ export default function SiswaAbsensiPage(): JSX.Element {
         { sessionId, token: token.trim().toUpperCase() },
         { idempotencyKey: newIdempotencyKey("att") }
       );
-      setResult({ ok: true, status: res.status, recordedAt: res.recordedAt });
-      toast({ variant: "success", title: "Absensi tercatat" });
+      toast({
+        variant: "success",
+        title: "Absensi tercatat",
+        description: `${res.status === "TERLAMBAT" ? "Terlambat" : "Hadir"} — ${formatTime(res.recordedAt)}`
+      });
       list.refetch();
     } catch (err) {
-      setResult({
-        ok: false,
-        message: err instanceof ApiError ? errorMessage(err) : "QR tidak valid"
+      toast({
+        variant: "error",
+        title: "Absensi gagal",
+        description: err instanceof ApiError ? errorMessage(err) : "QR tidak valid"
       });
     } finally {
       setScanning(false);
@@ -124,49 +124,6 @@ export default function SiswaAbsensiPage(): JSX.Element {
               Scan / Validasi Absensi
             </Button>
           </form>
-
-          {result ? (
-            result.ok ? (
-              <div
-                role="status"
-                className={cn(
-                  "rounded-lg border p-4",
-                  result.status === "TERLAMBAT"
-                    ? "border-status-warning-border bg-status-warning-bg/60"
-                    : "border-status-success-border bg-status-success-bg/60"
-                )}
-              >
-                <p
-                  className={cn(
-                    "text-lg font-bold",
-                    result.status === "TERLAMBAT"
-                      ? "text-status-warning-fg"
-                      : "text-status-success-fg"
-                  )}
-                >
-                  {result.status === "TERLAMBAT" ? "Terlambat" : "Hadir"} —{" "}
-                  {formatTime(result.recordedAt)}
-                </p>
-                <p className="text-sm text-foreground">
-                  Absensi tercatat.{" "}
-                  {result.status === "TERLAMBAT"
-                    ? "Perhatikan toleransi keterlambatan kelas."
-                    : "Tepat waktu."}
-                </p>
-              </div>
-            ) : (
-              <div
-                role="alert"
-                className="rounded-lg border border-status-danger-border bg-status-danger-bg/60 p-4"
-              >
-                <p className="text-lg font-bold text-status-danger-fg">Gagal</p>
-                <p className="text-sm text-foreground">{result.message}</p>
-                <p className="mt-1 text-sm text-foreground">
-                  Minta QR baru ke guru jika token sudah kedaluwarsa.
-                </p>
-              </div>
-            )
-          ) : null}
         </CardContent>
       </Card>
 

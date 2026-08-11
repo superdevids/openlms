@@ -31,13 +31,14 @@ function statusToCode(status: number, fallback: ErrorCode): ErrorCode {
   }
 }
 
-/** Kode error yang dibawa eksplisit di body exception (FEATURE_DISABLED, ARCHIVED_YEAR, dst.). */
+/** Kode error yang dibawa eksplisit di body exception (FEATURE_DISABLED, ARCHIVED_YEAR, SERVICE_DEGRADED, dst.). */
 const EXPLICIT_CODES = new Set<ErrorCode>([
   "VALIDATION_ERROR",
   "UNAUTHORIZED",
   "FORBIDDEN",
   "FEATURE_DISABLED",
   "ARCHIVED_YEAR",
+  "SERVICE_DEGRADED",
   "NOT_FOUND",
   "CONFLICT",
   "RATE_LIMITED",

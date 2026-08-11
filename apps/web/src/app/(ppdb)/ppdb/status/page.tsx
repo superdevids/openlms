@@ -12,23 +12,20 @@ import {
   Button,
   Input,
   Label,
-  Alert,
+  toast,
   IconCheck,
   IconAlert
 } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
 import { PageContainer, PageHeader, StatusBadge } from "@/components/ui";
 
-type Status =
-  | {
-      ok: true;
-      status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "WAITLIST" | "REJECTED";
-      next: string;
-    }
-  | { ok: false; message: string }
-  | null;
+type Status = {
+  ok: true;
+  status: "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "WAITLIST" | "REJECTED";
+  next: string;
+} | null;
 
-const DEMO_STATUS: NonNullable<Status> & { ok: true } = {
+const DEMO_STATUS: NonNullable<Status> = {
   ok: true,
   status: "SUBMITTED",
   next: "Dokumen sedang diverifikasi TU — pengumuman 20 Agustus 2026"
@@ -51,12 +48,10 @@ export default function PPDBStatusPage(): JSX.Element {
   const [regNo, setRegNo] = useState("");
   const [status, setStatus] = useState<Status>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const check = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     setStatus(null);
-    setError(null);
     setLoading(true);
     try {
       if (DEMO_MODE) {
@@ -75,7 +70,12 @@ export default function PPDBStatusPage(): JSX.Element {
         next: `Pendaftar ${res.full_name} — ikuti informasi lanjutan dari sekolah.`
       });
     } catch (err) {
-      setError(err instanceof ApiError ? errorMessage(err) : "Nomor pendaftaran tidak ditemukan.");
+      toast({
+        variant: "error",
+        title: "Gagal mengecek status",
+        description:
+          err instanceof ApiError ? errorMessage(err) : "Nomor pendaftaran tidak ditemukan."
+      });
     } finally {
       setLoading(false);
     }
@@ -118,39 +118,25 @@ export default function PPDBStatusPage(): JSX.Element {
               </Button>
             </form>
 
-            {error ? (
-              <div role="alert">
-                <Alert variant="danger" className="text-sm">
-                  {error}
-                </Alert>
-              </div>
-            ) : null}
-
             {status ? (
-              status.ok ? (
-                <div role="status" className="rounded-lg border border-border bg-background p-4">
-                  <div className="flex items-center gap-2">
-                    {STATUS_SUCCESS.has(status.status) ? (
-                      <IconCheck className="h-5 w-5 text-status-success-fg" />
-                    ) : (
-                      <IconAlert className="h-5 w-5 text-status-warning-fg" />
-                    )}
-                    <p className="font-semibold text-foreground">Status: {status.status}</p>
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{status.next}</p>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Pipeline:</span>
-                    <StatusBadge
-                      status={status.status}
-                      label={STATUS_LABEL[status.status] ?? status.status}
-                    />
-                  </div>
+              <div role="status" className="rounded-lg border border-border bg-background p-4">
+                <div className="flex items-center gap-2">
+                  {STATUS_SUCCESS.has(status.status) ? (
+                    <IconCheck className="h-5 w-5 text-status-success-fg" />
+                  ) : (
+                    <IconAlert className="h-5 w-5 text-status-warning-fg" />
+                  )}
+                  <p className="font-semibold text-foreground">Status: {status.status}</p>
                 </div>
-              ) : (
-                <Alert variant="danger" className="text-sm">
-                  {status.message}
-                </Alert>
-              )
+                <p className="mt-1 text-sm text-muted-foreground">{status.next}</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Pipeline:</span>
+                  <StatusBadge
+                    status={status.status}
+                    label={STATUS_LABEL[status.status] ?? status.status}
+                  />
+                </div>
+              </div>
             ) : null}
           </CardContent>
         </Card>

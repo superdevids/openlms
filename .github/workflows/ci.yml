@@ -42,13 +42,37 @@ jobs:
       - run: npm ci
       - name: Generate Prisma client
         run: npm run db:generate
-      - name: Unit tests (exclude integration & e2e)
+      - name: Unit tests (exclude integration & e2e) + coverage gate
         working-directory: apps/api
         # Pola test:unit di apps/api/package.json hanya mengecualikan path
         # berisi "integration"; test/app.e2e-spec.ts TIDAK cocok pola itu dan
         # butuh PostgreSQL, sehingga e2e juga dikecualikan di sini (dijalankan
         # di job `integration` yang menyediakan service postgres).
-        run: npx jest --testPathPattern="^(?!.*(integration|e2e))" --runInBand
+        # --coverage: QA-007 — coverageThreshold di apps/api/jest.config.js
+        # (floor anti-regresi; target 80%). Gagal bila di bawah ambang.
+        run: npx jest --testPathPattern="^(?!.*(integration|e2e))" --runInBand --coverage --coverageReporters=json-summary --coverageReporters=text
+      - name: Upload coverage artifact (api)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-api
+          path: apps/api/coverage
+          retention-days: 14
+
+  web-test:
+    name: Web unit tests (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Web unit tests
+        # QA-007: web tidak pernah dijalankan di CI sebelumnya; vitest (jsdom)
+        # tidak butuh DB/Prisma client, cukup npm ci + test workspace.
+        run: npm run test --workspace=@opensis/web
 
   integration:
     name: Integration + e2e tests (PostgreSQL)
@@ -85,6 +109,95 @@ jobs:
         # Menjalankan test/integration/* DAN test/app.e2e-spec.ts (butuh
         # PostgreSQL — disediakan service `postgres` pada job ini).
         run: npx jest --testPathPattern="^.*(integration|e2e).*" --runInBand
+
+  web-e2e:
+    name: Web E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: false
+    services:
+      # Service postgres PER-JOB aman di GitHub Actions (container terpisah);
+      # tidak bentrok dengan service job `integration`.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opensis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/opensis?schema=public
+      # Web → API di dev: web :3000, api :3001 (lihat apps/web/.env.example).
+      # Nginx/proxy TIDAK ada di CI, jadi browser memanggil API langsung.
+      NEXT_PUBLIC_API_BASE: http://localhost:3001/api/v1
+      NEXT_PUBLIC_DEMO: "0"
+      # Kredensial user dev seed (DIDOKUMENTASIKAN di packages/database/prisma/seed.ts:
+      # admin / password → SUPERADMIN; siswa1 / password → SISWA). Bukan secret
+      # produksi; ganti via secrets bila env lain diinginkan.
+      E2E_ADMIN_USERNAME: admin
+      E2E_ADMIN_PASSWORD: password
+      E2E_SISWA_USERNAME: siswa1
+      E2E_SISWA_PASSWORD: password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Deploy migrations
+        run: npm run db:migrate:deploy --workspace=@opensis/database
+      - name: Seed database (user dev admin + siswa1)
+        run: npm run db:seed
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start dev stack lalu jalankan E2E
+        # Playwright TIDAK auto-start server (config tanpa webServer); stack
+        # dijalankan manual di background (turbo dev: api :3001 + web :3000),
+        # tunggu health check, baru jalankan test — semuanya dalam satu step
+        # agar lifecycle proses dev terkontrol.
+        shell: bash
+        run: |
+          set -uo pipefail
+          LOG=/tmp/opensis-dev.log
+          nohup npm run dev >"$LOG" 2>&1 &
+          DEV_PID=$!
+          cleanup() { kill "$DEV_PID" 2>/dev/null || true; }
+          trap cleanup EXIT
+          wait_health() {
+            local url="$1" label="$2"
+            for _ in $(seq 1 60); do
+              if curl -fsS --max-time 5 "$url" >/dev/null 2>&1; then
+                echo "OK: $label siap ($url)"
+                return 0
+              fi
+              sleep 2
+            done
+            echo "GAGAL: $label tidak siap dalam 120s" >&2
+            tail -n 120 "$LOG" >&2 || true
+            return 1
+          }
+          wait_health http://localhost:3001/api/v1/health "API" || exit 1
+          wait_health http://localhost:3000/login "Web" || exit 1
+          npm run test:e2e --workspace=@opensis/web
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
 
   build:
     name: Build

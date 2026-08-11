@@ -23,6 +23,14 @@ async function bootstrap(): Promise<void> {
         "FATAL: COOKIE_SECURE wajib 'true' di production (HTTPS). Set COOKIE_SECURE=true di .env."
       );
     }
+    // G-21/R-07: demo mode TIDAK boleh aktif di production. NEXT_PUBLIC_DEMO
+    // dipakai di web (dibundel ke klien) — API memegang kunci pintu: gagal
+    // cepat saat boot agar demo tidak pernah berjalan di lingkungan production.
+    if (process.env.NEXT_PUBLIC_DEMO === "1") {
+      throw new Error(
+        "FATAL: NEXT_PUBLIC_DEMO=1 (DEMO_MODE) dilarang di production. Hapus variabel dari env production."
+      );
+    }
   }
   // bodyParser express dimatikan; dipasang manual di bawah dengan limit eksplisit.
   // Upload file TIDAK terpengaruh: multer (FileInterceptor) mem-parsing multipart

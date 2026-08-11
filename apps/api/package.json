@@ -58,29 +58,5 @@
     "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": ".",
-    "testEnvironment": "node",
-    "setupFiles": [
-      "reflect-metadata"
-    ],
-    "testRegex": ".*\\.(spec|e2e-spec)\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "moduleNameMapper": {
-      "^@opensis/types$": "<rootDir>/../../packages/types/src",
-      "^@opensis/database$": "<rootDir>/../../packages/database/src"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "./coverage"
   }
 }

@@ -11,7 +11,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import type { ParentStudentLink } from "@prisma/client";
+import type { ParentLinkStatus, ParentStudentLink } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 
@@ -49,8 +49,9 @@ export class ParentPortalService {
   /**
    * Link anak — hanya wali (ParentGuardian) MILIK aktor yang boleh menautkan,
    * dan hanya siswa aktif ber-role SISWA yang sah ditautkan (SEC-001).
-   * TODO: mekanisme persetujuan resmi (allowlist dibuat OPERATOR) masih
-   * mengikuti; saat ini pembatasan berbasis role siswa aktif.
+   * Rv5-17: tautan dibuat berstatus PENDING; akses data anak baru terbuka
+   * setelah OPERATOR/SUPERADMIN menyetujui (allowlist). Tautan REJECTED boleh
+   * diajukan ulang oleh wali (status kembali PENDING).
    */
   async linkChild(input: LinkChildInput, actor: AuditActorContext): Promise<ParentStudentLink> {
     // Cek kepemilikan wali (throws 403 bila bukan milik aktor) — hasilnya tidak dipakai.
@@ -80,13 +81,32 @@ export class ParentPortalService {
         }
       }
     });
-    if (existing) throw new ConflictException("Relasi wali-anak sudah ada");
+    if (existing) {
+      if (existing.status === "REJECTED") {
+        // Allowlist menolak sebelumnya — wali berhak mengajukan ulang.
+        const reRequested = await this.db.parentStudentLink.update({
+          where: { id: existing.id },
+          data: { status: "PENDING" }
+        });
+        await writeAudit({
+          ctx: actor,
+          action: "UPDATE",
+          entity: "parent_student_link",
+          entityId: existing.id,
+          before: { status: "REJECTED" },
+          after: { status: "PENDING" }
+        });
+        return reRequested;
+      }
+      throw new ConflictException("Relasi wali-anak sudah ada");
+    }
 
     const link = await this.db.parentStudentLink.create({
       data: {
         parent_id: input.parentGuardianId,
         student_id: input.studentId,
-        relationship: input.relationship
+        relationship: input.relationship,
+        status: "PENDING" // Rv5-17: butuh persetujuan OPERATOR sebelum akses data.
       }
     });
     await writeAudit({
@@ -97,19 +117,68 @@ export class ParentPortalService {
       after: {
         parent_id: input.parentGuardianId,
         student_id: input.studentId,
-        relationship: input.relationship
+        relationship: input.relationship,
+        status: "PENDING"
       }
     });
     return link;
   }
 
-  /** Daftar anak — hanya ParentGuardian milik aktor (SEC-001). */
+  /** Daftar anak — hanya ParentGuardian milik aktor & tautan APPROVED (SEC-001, Rv5-17). */
   async listChildren(parentGuardianId: string, actor: AuditActorContext) {
     await this.resolveOwnedParent(parentGuardianId, actor.userId);
     return this.db.parentStudentLink.findMany({
-      where: { parent_id: parentGuardianId },
+      where: { parent_id: parentGuardianId, status: "APPROVED" },
       include: { student: { select: { id: true, full_name: true, email: true, phone: true } } }
     });
+  }
+
+  /** Antrian persetujuan tautan (allowlist OPERATOR/SUPERADMIN — Rv5-17). */
+  async listPendingLinks() {
+    return this.db.parentStudentLink.findMany({
+      where: { status: "PENDING" },
+      include: {
+        parent: { select: { id: true, full_name: true, phone: true } },
+        student: { select: { id: true, full_name: true, email: true } }
+      },
+      orderBy: { created_at: "asc" }
+    });
+  }
+
+  /** Setujui tautan wali-anak (allowlist OPERATOR/SUPERADMIN). */
+  async approveLink(linkId: string, actor: AuditActorContext): Promise<ParentStudentLink> {
+    return this.setLinkStatus(linkId, "APPROVED", actor);
+  }
+
+  /** Tolak tautan wali-anak (allowlist OPERATOR/SUPERADMIN). */
+  async rejectLink(linkId: string, actor: AuditActorContext): Promise<ParentStudentLink> {
+    return this.setLinkStatus(linkId, "REJECTED", actor);
+  }
+
+  /** Mutasi status tautan + audit; transisi ke status sama ditolak (409). */
+  private async setLinkStatus(
+    linkId: string,
+    status: ParentLinkStatus,
+    actor: AuditActorContext
+  ): Promise<ParentStudentLink> {
+    const link = await this.db.parentStudentLink.findUnique({ where: { id: linkId } });
+    if (!link) throw new NotFoundException("Relasi wali-anak tidak ditemukan");
+    if (link.status === status) {
+      throw new ConflictException(`Relasi wali-anak sudah berstatus ${status}`);
+    }
+    const updated = await this.db.parentStudentLink.update({
+      where: { id: linkId },
+      data: { status }
+    });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "parent_student_link",
+      entityId: linkId,
+      before: { status: link.status },
+      after: { status }
+    });
+    return updated;
   }
 
   /** Izin anak: daftar consent data anak yang tercatat. */
@@ -173,7 +242,7 @@ export class ParentPortalService {
     return parent;
   }
 
-  /** Scope SENDIRI: parent hanya boleh akses anak yang terhubung (SEC-001). */
+  /** Scope SENDIRI: parent hanya boleh akses anak yang terhubung & APPROVED (SEC-001, Rv5-17). */
   private async assertChildAccess(
     parentGuardianId: string,
     studentId: string,
@@ -181,7 +250,7 @@ export class ParentPortalService {
   ): Promise<void> {
     const parent = await this.resolveOwnedParent(parentGuardianId, actor.userId);
     const link = await this.db.parentStudentLink.findFirst({
-      where: { parent_id: parent.id, student_id: studentId }
+      where: { parent_id: parent.id, student_id: studentId, status: "APPROVED" }
     });
     if (!link) {
       throw new ForbiddenException({

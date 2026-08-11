@@ -183,6 +183,11 @@ export const PERMISSIONS: PermissionSeed[] = [
   { code: "counseling:write:school", category: "KESISWAAN", description: "Tulis catatan BK" },
   { code: "discipline:record:class", category: "KESISWAAN", description: "Catat poin pelanggaran" },
   { code: "discipline:read:school", category: "KESISWAAN", description: "Lihat data kedisiplinan" },
+  {
+    code: "parent:link:approve:school",
+    category: "KESISWAAN",
+    description: "Approve/reject tautan wali murid-anak (allowlist OPERATOR)"
+  },
   { code: "extracurricular:read:school", category: "KESISWAAN", description: "Lihat ekskul" },
   { code: "extracurricular:write:school", category: "KESISWAAN", description: "Kelola ekskul" },
   { code: "extracurricular:join:self", category: "KESISWAAN", description: "Daftar ekskul" },
@@ -575,6 +580,8 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
       "extracurricular:write:school",
       "achievement:write:school"
     ),
+    // Rv5-17: OPERATOR adalah approver tautan wali murid-anak (allowlist).
+    ...s("SEKOLAH", "parent:link:approve:school"),
     ...s("SEKOLAH", "invoice:read:school", "invoice:write:school"),
     ...s(
       "SEKOLAH",
