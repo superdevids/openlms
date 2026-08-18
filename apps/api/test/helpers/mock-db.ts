@@ -20,14 +20,23 @@ function createModelProxy(): ModelProxy {
 
 export function createMockDb(): DatabaseClient {
   const store: Record<string, ModelProxy> = {};
-  return new Proxy(store, {
+  const proxy = new Proxy(store, {
     get: (target: Record<string, ModelProxy>, model: string) => {
+      // $transaction: mock yang meneruskan callback dengan db (pola transaksi).
+      if (model === "$transaction") {
+        if (!target[model]) {
+          const tx = jest.fn((fn: (tx: unknown) => unknown) => fn(proxy));
+          target[model] = tx as unknown as ModelProxy;
+        }
+        return target[model];
+      }
       if (!(model in target)) {
         target[model] = createModelProxy();
       }
       return target[model];
     }
-  }) as unknown as DatabaseClient;
+  });
+  return proxy as unknown as DatabaseClient;
 }
 
 export type MockDb = DatabaseClient;

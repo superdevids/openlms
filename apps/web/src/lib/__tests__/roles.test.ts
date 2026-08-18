@@ -4,8 +4,78 @@
  * visibleNav dengan filter role & feature flag.
  */
 import { describe, expect, it } from "vitest";
-import { roleGroupFor, roleHome, roleLabel, visibleNav } from "../roles";
+import {
+  roleGroupFor,
+  roleHome,
+  roleLabel,
+  visibleNav,
+  primaryRoleOf,
+  switchableRoles,
+  resolveActiveRole,
+  ROLE_PRIORITY
+} from "../roles";
 import { NAV_ITEMS } from "../roles";
+
+describe("lib/roles — primaryRoleOf (multi-role, item 18)", () => {
+  it("memilih role tertinggi sesuai ROLE_PRIORITY", () => {
+    expect(primaryRoleOf(["GURU", "KEPSEK"])).toBe("KEPSEK");
+    expect(primaryRoleOf(["GURU", "BK", "WAKEPSEK"])).toBe("WAKEPSEK");
+    expect(primaryRoleOf(["SISWA", "CALON_SISWA"])).toBe("SISWA");
+  });
+
+  it("ROLE_PRIORITY mirror lms-audit (SUPERADMIN > KEPSEK > ... > PENGUJI_EKSTERNAL)", () => {
+    expect(ROLE_PRIORITY[0]).toBe("SUPERADMIN");
+    expect(ROLE_PRIORITY[1]).toBe("KEPSEK");
+    expect(ROLE_PRIORITY[ROLE_PRIORITY.length - 1]).toBe("PENGUJI_EKSTERNAL");
+  });
+
+  it("fallback ke roles[0] bila tidak dikenal", () => {
+    expect(primaryRoleOf(["ROLE_X" as never, "ROLE_Y" as never])).toBe("ROLE_X" as never);
+    expect(primaryRoleOf([])).toBeUndefined();
+  });
+});
+
+describe("lib/roles — switchableRoles (item 18)", () => {
+  it("mengecualikan SUPERADMIN & SISWA", () => {
+    expect(switchableRoles(["SUPERADMIN", "SISWA"])).toEqual([]);
+    expect(switchableRoles(["GURU", "SISWA"])).toEqual(["GURU"]);
+    expect(switchableRoles(["KEPSEK", "GURU", "SUPERADMIN"])).toEqual(["KEPSEK", "GURU"]);
+  });
+
+  it("mempertahankan urutan input", () => {
+    expect(switchableRoles(["GURU", "KEPSEK", "WALI_MURID"])).toEqual([
+      "GURU",
+      "KEPSEK",
+      "WALI_MURID"
+    ]);
+  });
+});
+
+describe("lib/roles — resolveActiveRole (item 18)", () => {
+  it("menerima stored role yang termasuk switchable", () => {
+    expect(resolveActiveRole({ roles: ["KEPSEK", "GURU"] }, "GURU")).toBe("GURU");
+    expect(resolveActiveRole({ roles: ["KEPSEK", "GURU"] }, "KEPSEK")).toBe("KEPSEK");
+  });
+
+  it("menolak stored role yang tidak termasuk switchable (SUPERADMIN/SISWA)", () => {
+    expect(resolveActiveRole({ roles: ["GURU", "SISWA"] }, "SISWA")).toBe("GURU");
+    expect(resolveActiveRole({ roles: ["SUPERADMIN"] }, "SUPERADMIN")).toBe("SUPERADMIN");
+  });
+
+  it("menolak stored role yang bukan milik user → fallback primaryRoleOf", () => {
+    expect(resolveActiveRole({ roles: ["KEPSEK", "GURU"] }, "OPERATOR")).toBe("KEPSEK");
+    expect(resolveActiveRole({ roles: ["OPERATOR", "GURU"] }, "KEUANGAN")).toBe("OPERATOR");
+  });
+
+  it("stored null/undefined → fallback primaryRoleOf", () => {
+    expect(resolveActiveRole({ roles: ["KEPSEK", "GURU"] }, null)).toBe("KEPSEK");
+    expect(resolveActiveRole({ roles: ["KEPSEK", "GURU"] }, undefined)).toBe("KEPSEK");
+  });
+
+  it("user tanpa roles → undefined", () => {
+    expect(resolveActiveRole({ roles: [] }, null)).toBeUndefined();
+  });
+});
 
 describe("lib/roles — roleGroupFor", () => {
   it("memetakan role internal ke grup yang benar", () => {

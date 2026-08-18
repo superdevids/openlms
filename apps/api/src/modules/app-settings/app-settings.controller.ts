@@ -32,6 +32,6 @@ export class AppSettingsController {
   @Patch()
   @RequirePermission("app:write:school")
   update(@Body() dto: UpdateAppSettingsDto, @CurrentUser() user: AuthUser, @Req() req: Request) {
-    return this.appSettingsService.updateSettings(dto, user.id, req.ip);
+    return this.appSettingsService.updateSettings(dto, user.id, req.ip, user.roles);
   }
 }

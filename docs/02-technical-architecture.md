@@ -7,13 +7,17 @@
 
 > **Catatan versi 1.1:** dokumen ini menggantikan desain multi-tenant v1.0. Aplikasi melayani **SATU sekolah** (prd04 §16.3(g) [owner-v4.2]): tanpa kolom identitas sekolah di tiap entitas, tanpa tenant isolation, tanpa layanan auth/storage pihak ketiga, tanpa school switcher. Rincian keputusan di §16 ADR.
 
-> **Catatan pembaruan 2026-08-10:** §4.1 — implementasi aktual 34 modul (tambah `public-content` 12 endpoint publik + `metrics`); §5.4 — App Design System v3 (AppShell v2, components/ui 12 ekspor) & Landing v2 (10 halaman mandiri); §13 — catatan keamanan terkini (JWT canonical, SEC-001/002/007, COOKIE_SECURE fail-fast, audit failure logging, P2002/P2025/P2003); §17 — 11 migrasi Prisma.
+> **Catatan pembaruan 2026-08-16 (sinkronisasi angka):** §4.1 — implementasi aktual 35 modul (tambah `public-content` 12 endpoint publik + `metrics` + **`rapor`** e-Rapor v1); §5.4 — App Design System v3 (AppShell v2, components/ui 12 ekspor) & Landing v2 (10 halaman mandiri); §13 — catatan keamanan terkini (JWT canonical, SEC-001/002/007, COOKIE_SECURE fail-fast, audit failure logging, P2002/P2025/P2003, **keamanan go-live: Redis wajib password, port loopback, gate DEMO_MODE**); §17 — **15 migrasi Prisma** (tambah `20260816000000_staff_ter_category`, `20260816010000_payment_idempotency`, `20260816020000_add_rapor_p5`; folder token-dedupe di-rename `20260809010000` → `20260808235959`); enum `schema.prisma` tetap **63** (tambah `ParentLinkStatus` di gelombang sebelumnya, tanpa enum baru di gelombang rapor); model **90 → 91** (tambah `RaporP5`); CI berisi **9 job** termasuk `web-e2e` (Playwright) dan `web-test` (vitest).
+>
+> **Catatan pembaruan 2026-08-16 (gelombang Wave 2):** §4.1 — modul API kini **37** (tambah **`pdp`** UU PDP & **`export`** generator ekspor nyata; `ReportProcessor` bukan lagi skeleton — dispatcher `export_type` RAPOR/DAPODIK/NILAI, `jobs/processors/report.processor.ts:58-70`); e-Rapor naik ke **v2** (ekspor PDF per siswa `POST /rapor/:studentId/export-pdf`, hand-rolled `rapor-pdf.ts` footer "Draft Sistem", approval KEPSEK = v2.1 belum); Dapodik **v1** (`POST /dapodik/export` — 3 CSV ber-BOM, gap kolom `nisn`/`nik`/`nuptk`); §17 — **16 migrasi Prisma** (tambah `20260816030000_add_pdp_module`); enum **63 → 65** (tambah `PdpRequestType`, `PdpRequestStatus`); model **91 → 92** (tambah `PdpRequest`); permission seed **141 → 146** (tambah `pdp:data:self`, `pdp:export:self`, `pdp:delete-request:self`, `pdp:review:school`, `report:export:self`); gate CI aktif: prettier + web coverage (floor 0) + import-no-restricted-paths.
+>
+> **Catatan pembaruan 2026-08-18 (gelombang 20-item):** §6 — **multi-role switcher** (peran aktif UI vs izin union backend, §6.1a); §17 — **squash migrasi**: 17 folder migrasi → **1 baseline `20260818000000_init_squashed`** (92 model + 65 enum + 136 index = 85 CREATE INDEX + 51 CREATE UNIQUE INDEX + 133 relasi; folder migrasi lama dihapus — DB dev di-reset & seed ulang); §4/§17 — **optimasi N+1** (rollover buildPlan/execute batch, asset list tanpa N+1, payroll payslip batch, finance late-fee/refresh batch, PDP updateMany, import chunk `$transaction`, pagination exam/alumni/smk/ppdb) + **4 index baru** (Grade `academic_year`, Invoice `status`, Enrollment `academic_year_id`, Attendance `status`); §5.4 — **UI v2 + gambar asli** (`public/landing/school/*.jpg` via `npm run images:landing`), JSON-LD, OG image, anti-CLS, tagline "Platform Digital Terpadu Sekolah", shadow token `--shadow-app-*`; **dead code cleanup** (galeri-section, `login_*.txt`, ekspor `FormPage`, seed-data finance/assets, deps cva/clsx/tailwind-merge).
 
 ---
 
 ## 1. Ringkasan Eksekutif
 
-openlms dibangun sebagai monorepo Turborepo dengan **satu backend NestJS** (`apps/api`), **satu frontend Next.js App Router** (`apps/web`), dan **tiga paket bersama** (`packages/database`, `packages/ui`, `packages/types`). Aplikasi berjalan untuk **SATU sekolah** dengan **skema tunggal** — tanpa multi-tenant, tanpa school switcher, tanpa SUPERADMIN penyedia SaaS (prd04 §16.3(g) [owner-v4.2]). Otorisasi dikendalikan **permission + scope RBAC (SENDIRI/KELAS/SEKOLAH)** di aplikasi sebagai lapis utama; **RLS PostgreSQL bersifat opsional** (defense-in-depth, tanpa session var tenant). **Auth in-house**: Email/Username + Password (Argon2id), JWT di httpOnly cookie, refresh rotation; **otoritas role adalah tabel `UserRole`** — JWT hanya identitas (`sub`), agar perubahan role instan. Real-time via **Socket.IO namespace tunggal `/ws`** (siap multi-instance via Redis adapter); storage via **filesystem lokal backend** (`STORAGE_LOCAL_DIR`, tanpa S3/MinIO — upload multipart lewat API); live class **DITUNDA** (tanpa Jitsi/Zoom/Meet); feature flags global (`FeatureFlag`/`AppFeatureSetting`) dikendalikan **SUPERADMIN = admin sistem sekolah** (prd04 §5.N).
+openlms dibangun sebagai monorepo Turborepo dengan **satu backend NestJS** (`apps/api`), **satu frontend Next.js App Router** (`apps/web`), dan **tiga paket bersama** (`packages/database`, `packages/ui`, `packages/types`). Aplikasi berjalan untuk **SATU sekolah** dengan **skema tunggal** — tanpa multi-tenant, tanpa school switcher, tanpa SUPERADMIN penyedia SaaS (prd04 §16.3(g) [owner-v4.2]). Otorisasi dikendalikan **permission + scope RBAC (SENDIRI/KELAS/SEKOLAH)** di aplikasi sebagai lapis utama; **RLS PostgreSQL bersifat opsional** (defense-in-depth, tanpa session var tenant). **Auth in-house**: login by **Username (NIS/NIP) + Password (Argon2id)** — email opsional hanya untuk notifikasi; JWT di httpOnly cookie, refresh rotation; **otoritas role adalah tabel `UserRole`** — JWT hanya identitas (`sub`), agar perubahan role instan. Real-time via **Socket.IO namespace tunggal `/ws`** (siap multi-instance via Redis adapter); storage via **filesystem lokal backend** (`STORAGE_LOCAL_DIR`, tanpa S3/MinIO — upload multipart lewat API); live class **DITUNDA** (tanpa Jitsi/Zoom/Meet); feature flags global (`FeatureFlag`/`AppFeatureSetting`) dikendalikan **SUPERADMIN = admin sistem sekolah** (prd04 §5.N).
 
 Keputusan yang membentuk arsitektur ini: modular backend per domain, route groups frontend per peran, autosave ujian yang idempotent, queue offline untuk absensi QR, observability & backup/DR sejak fase 0 (G6–G8, G11 prd04).
 
@@ -46,7 +50,7 @@ openlms/
 │   │   └── test/                     # unit + integration (Jest + Supertest)
 │   └── web/                          # Next.js App Router (frontend PWA)
 │       ├── src/app/
-│       │   ├── (auth)/login          # login Email/Username + Password (tanpa OAuth)
+│       │   ├── (auth)/login          # login Username (NIS/NIP) + Password (tanpa OAuth)
 │       │   ├── (ppdb)/               # halaman publik PPDB
 │       │   ├── (siswa)/              # route group siswa
 │       │   ├── (guru)/               # route group guru
@@ -68,20 +72,20 @@ openlms/
 ├── turbo.json                        # task orchestration (build, lint, test, typecheck)
 ├── package.json                      # workspace root
 ├── .env.example                      # template env (tanpa secret)
-└── .github/workflows/ci.yml          # CI: lint → typecheck → unit → integration → build
+└── .github/workflows/ci.yml          # CI: 10 job — lint, prettier, typecheck, unit, web-test, integration, web-e2e, build, audit, secrets
 ```
 
 **Tanggung jawab paket:**
 
-| Paket               | Tanggung jawab                                                                                                                                                             | Batas                                            |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `apps/api`          | Semua logika bisnis, otorisasi, real-time gateway, integrasi storage file lokal (`STORAGE_LOCAL_DIR`) — **tanpa dependensi API fitur pihak ketiga**                        | Tidak boleh import komponen UI                   |
-| `apps/web`          | Presentasi, routing per role, state UI, PWA/offline, upload file via API (multipart)                                                                                       | Tidak boleh query Prisma langsung; hanya via API |
-| `packages/database` | Skema Prisma (**90 model + 62 enum** — angka aktual `schema.prisma`, 2026-08-08; supersedes klaim awal 61 entitas), client singleton, migrasi, seed, file RLS **opsional** | Tidak boleh berisi logika bisnis                 |
-| `packages/ui`       | Komponen shadcn/ui yang di-styling, primitives                                                                                                                             | Stateless; data lewat props                      |
-| `packages/types`    | Enum, DTO, kontrak API (satu sumber kebenaran tipe)                                                                                                                        | Tanpa runtime berat                              |
+| Paket               | Tanggung jawab                                                                                                                                                                                                                                                                                                           | Batas                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| `apps/api`          | Semua logika bisnis, otorisasi, real-time gateway, integrasi storage file lokal (`STORAGE_LOCAL_DIR`) — **tanpa dependensi API fitur pihak ketiga**                                                                                                                                                                      | Tidak boleh import komponen UI                   |
+| `apps/web`          | Presentasi, routing per role, state UI, PWA/offline, upload file via API (multipart)                                                                                                                                                                                                                                     | Tidak boleh query Prisma langsung; hanya via API |
+| `packages/database` | Skema Prisma (**92 model + 65 enum** — angka aktual `schema.prisma`, verifikasi 2026-08-18), client singleton, migrasi (**1 baseline squashed `20260818000000_init_squashed`** — 136 index = 85 CREATE INDEX + 51 CREATE UNIQUE INDEX + 133 FK; folder migrasi lama dihapus per 2026-08-18), seed, file RLS **opsional** | Tidak boleh berisi logika bisnis                 |
+| `packages/ui`       | Komponen shadcn/ui yang di-styling, primitives                                                                                                                                                                                                                                                                           | Stateless; data lewat props                      |
+| `packages/types`    | Enum, DTO, kontrak API (satu sumber kebenaran tipe)                                                                                                                                                                                                                                                                      | Tanpa runtime berat                              |
 
-Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): `web → api (HTTP)`, `web → packages/{ui,types}`, `api → packages/{database,types}`, `packages/database → packages/types` (enum).
+Aturan dependensi (ditegakkan ESLint `import-x/no-restricted-paths` — rule aktual di `eslint.config.mjs:53`, plugin eslint-plugin-import-x; sebagian dokumen lama menulisnya `import/no-restricted-paths` / `import-no-restricted-paths` — nama yang benar untuk kode & CI adalah `import-x/no-restricted-paths` — + Turborepo): `web → api (HTTP)`, `web → packages/{ui,types}`, `api → packages/{database,types}`, `packages/database → packages/types` (enum).
 
 ---
 
@@ -91,7 +95,7 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
 
 | Modul                 | Tanggung jawab utama                                                                                           | Entitas inti (lihat ERD)                                                                                                |
 | --------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `AuthModule`          | Login Email/Username + Password (Argon2id), JWT httpOnly cookie, refresh rotation, reset via OPERATOR          | User, UserRole                                                                                                          |
+| `AuthModule`          | Login Username (NIS/NIP) + Password (Argon2id), JWT httpOnly cookie, refresh rotation, reset via OPERATOR      | User, UserRole                                                                                                          |
 | `SchoolModule`        | Pengaturan aplikasi, feature flags (FeatureFlag/AppFeatureSetting), impor data, retensi, rollover tahun ajaran | SchoolProfile, FeatureFlag, AppFeatureSetting, ImportBatch, ImportError, DataRetentionPolicy, AcademicYear, RolloverRun |
 | `AcademicModule`      | Kelas, mapel, jadwal, enrollment, rapor                                                                        | Class, Subject, ClassSubject, ScheduleEntry, Enrollment, Grade                                                          |
 | `LmsModule`           | Materi, tugas, submission, penilaian                                                                           | Material, Assignment, Submission                                                                                        |
@@ -121,9 +125,19 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
 > `app-settings`, `audit`, `users-admin`, `admin-stats`, `dashboard-config`, `health`,
 > `queue`, `jobs`, **`public-content`**, **`metrics`**. Perubahan lain per
 > 2026-08-08: **enum `Role` = 14 nilai** (`GURU_BK` → `BK`, tambah `KAPRODI` &
-> `AUDITOR` — `schema.prisma:29-44`), klaim skema diperbarui ke **90 model + 62
-> enum**. Rincian terkini per modul ada di
+> `AUDITOR` — `schema.prisma:29-44`), klaim skema diperbarui ke **90 model + 63
+> enum** (verifikasi 2026-08-16 — termasuk `ParentLinkStatus`). Rincian terkini per modul ada di
 > `apps/api/src/modules/<modul>/README.<modul>.md`.
+> _(Daftar ini historis — untuk daftar terkini **37 modul** termasuk `rapor`,
+> `pdp`, `export`, lihat **Catatan Wave 2026-08-16** di bawah.)_
+>
+> **Catatan Pembaruan 2026-08-16 (gelombang Wave 2):** modul API kini
+> **37** — tambah **`pdp`** (UU PDP) dan **`export`** (generator ekspor nyata);
+> e-Rapor **v1 → v2** (ekspor PDF per siswa + halaman `/guru/rapor` &
+> `/admin/rapor`); Dapodik **v1** (`POST /dapodik/export` — 3 CSV).
+> Skema: **92 model + 65 enum**; migrasi **1 baseline squashed** (`20260818000000_init_squashed`); permission seed **146**
+> (`pdp:data:self`, `pdp:export:self`, `pdp:delete-request:self`,
+> `pdp:review:school`, `report:export:self`). Detail di bawah.
 
 **Modul baru (2026-08-10):**
 
@@ -143,6 +157,49 @@ Aturan dependensi (ditegakkan ESLint `import/no-restricted-paths` + Turborepo): 
   `system:status:read` (fail-closed RBAC), `Cache-Control: no-store`
   (`metrics.controller.ts:16-22`, `metrics.service.ts`; terdaftar di
   `app.module.ts:72`).
+
+**Modul baru (2026-08-16):**
+
+- **`RaporModule`** — e-Rapor Kurikulum Merdeka v1 (G-49): komputasi nilai
+  akhir on-the-fly dari `Grade` + track proyek P5 manual (`RaporP5`). Endpoint:
+  `GET /rapor/:studentId` (rapor lengkap siswa; scope SENDIRI/KELAS/SEKOLAH +
+  `ParentStudentLink` APPROVED untuk WALI_MURID), `GET /rapor/class/:classId`
+  (ringkasan per kelas), `GET /rapor/students` (daftar siswa), `GET/PUT
+/rapor/settings` (bobot tipe nilai, disimpan di `SchoolProfile.settings.raporWeights`),
+  `POST/DELETE /rapor/p5` (upsert/hapus proyek P5, unique
+  `[student, semester, academicYear, project]`). Komputasi murni di
+  `rapor-compute.ts` (bobot default TUGAS 20 / KUIS 20 / UJIAN 30 / SUMATIF 30;
+  PRAKTIK/SIKAP tanpa bobot default). Permission baru: `rapor:p5:write:class`,
+  `rapor:p5:write:school`, `rapor:write:school`. Halaman web baru `/siswa/rapor`
+  (`apps/web/src/app/(siswa)/siswa/rapor/page.tsx`). Terdaftar di
+  `app.module.ts:96`. **v2 (2026-08-16):** ekspor PDF per siswa
+  `POST /rapor/:studentId/export-pdf` (`report:export:self/class/school`) —
+  PDF hand-rolled `rapor-pdf.ts` tanpa dependency (footer "Draft Sistem"
+  `rapor-pdf.ts:177`), job `report.generate` → `RaporExportService`, unduh via
+  `GET /exports/:id` + `GET /exports/:id/download`; modul rapor kini **8
+  endpoint**; halaman baru `/guru/rapor` & `/admin/rapor`; **approval KEPSEK =
+  v2.1 (roadmap, belum)**.
+- **`PdpModule`** — kepatuhan UU PDP (G12/G13, 2026-08-16): **14 endpoint
+  `/pdp/*`** (`GET /pdp/me/data`, `PUT /pdp/me`, `POST /pdp/me/export`,
+  `GET /pdp/me/exports[/:id/download]`, `POST /pdp/me/delete-request`,
+  `GET /pdp/me/requests`, `GET /pdp/consents`, `GET /pdp/requests`,
+  `POST /pdp/requests/:id/approve|reject`, `GET /pdp/retention`,
+  `PUT /pdp/retention/:entity`, `POST /pdp/retention/run`). Model `PdpRequest` +
+  enum `PdpRequestType`/`PdpRequestStatus`; `ExportType.PERSONAL`; anonimisasi
+  PII placeholder `[dihapus]` (`pdp-anonymize.service.ts`); retensi via
+  `DataRetentionPolicy` + cron `pdp-retention-monthly` (`0 3 1 * *`) dengan
+  5 kebijakan default 60 bulan; permission `pdp:data:self`, `pdp:export:self`,
+  `pdp:delete-request:self`, `pdp:review:school`.
+- **`ExportModule`** — generator ekspor nyata (2026-08-16): `RaporExportService`
+  (PDF rapor via job) + `DapodikExportService` (3 CSV ber-BOM UTF-8:
+  `peserta_didik.csv`, `pendidik.csv`, `rombongan_belajar.csv`); endpoint
+  `GET /exports/:id` + `GET /exports/:id/download` (auth pemilik ATAU
+  `export:read:school`, defense-in-depth); `POST /dapodik/export`
+  (`export:run:school`, `dapodik.controller.ts`). Dipakai `ReportProcessor`
+  (`jobs/processors/report.processor.ts:58-70` — dispatcher
+  RAPOR/DAPODIK/NILAI, idempoten). **GAP Dapodik v1:** `User`/`Staff` belum
+  punya kolom `nisn`/`nik`/`nuptk` — NISN dari `PpdbApplicant` (nullable),
+  NUPTK kosong ber-catatan; ekspor best-effort, migrasi v1.1 dijadwalkan.
 
 ### 4.2 Lapisan (Layers)
 
@@ -186,7 +243,7 @@ HTTP request
 
 ```
 app/
-├── (auth)/login                  # login Email/Username + Password (split-screen, tanpa OAuth)
+├── (auth)/login                  # login Username (NIS/NIP) + Password (split-screen, tanpa OAuth)
 ├── (ppdb)/pendaftaran            # publik (WCAG AA, no auth)
 ├── (landing)/                    # landing v2 — 10 halaman mandiri (lihat §5.4)
 │   # / (beranda), /tentang, /kontak, /program-keahlian, /fasilitas,
@@ -266,11 +323,21 @@ Dua spesifikasi desain final diimplementasikan dan menjadi acuan FE (sumber:
 
 Alasan tambahan: prd04 §5.P menetapkan satu metode login dan satu sekolah — tabel `UserRole` adalah satu-satunya otoritas; perubahan role instan; tanpa kebutuhan `active_school`. Risiko: lookup per request; mitigasi dengan cache Redis/in-memory TTL 60 s dan index `(user_id, status)`.
 
-### 6.2 Alur Lengkap (Email/Username + Password, In-house)
+### 6.1a Multi-role Switcher (2026-08-18 — item 18)
+
+Tabel `UserRole` mengizinkan **1 user → N baris role aktif** (`@@unique([user_id, role])`), sehingga user non-siswa/non-superadmin dapat **rangkap role** (mis. KEPSEK + GURU, OPERATOR + GURU). Frontend menambahkan lapisan UX **peran aktif** tanpa mengubah otorisasi backend:
+
+- **Peran aktif (UI/navigasi)** — dipilih lewat dropdown **"Ganti peran"** di AppShell (`apps/web/src/components/layout/app-shell.tsx:390`) dan disimpan di localStorage **`opensis_active_role`** (`apps/web/src/lib/active-role.ts:16`). Menentukan dashboard, menu, dan route group yang dilihat user (`roleHome`).
+- **Otorisasi backend = union seluruh roles** — guard API membaca **semua** role aktif user (`RequestContext.roles[]`) dan permission di-union; peran aktif TIDAK mempersempit izin. Ini menjaga prinsip P2 (JWT identitas, otorisasi dari `UserRole`) dan fail-closed RBAC tetap berlaku.
+- **Aturan switcher** — SISWA & SUPERADMIN selalu single-role (tidak bisa di-switch; `switchableRoles` di `apps/web/src/lib/roles.ts:52`); role aktif valid di-resolve via `resolveActiveRole` (`roles.ts:57-67`) dengan fallback ke role pertama bila nilai localStorage tidak valid.
+- **User dev** — seed menambah **`kepsek1`** (KEPSEK + GURU, keduanya ACTIVE) untuk menguji switcher (`packages/database/prisma/seed.ts:221-255`).
+- **Test** — `apps/web/src/lib/__tests__/roles.test.ts` (switchableRoles, resolveActiveRole, roleHome).
+
+### 6.2 Alur Lengkap (Username NIS/NIP + Password, In-house)
 
 ```
-1. User isi "Email atau Username" + password (web) → POST /api/v1/auth/login
-   → AuthModule: cari User (email/username) → verify password Argon2id
+1. User isi "Username" (NIS/NIP) + password (web) → POST /api/v1/auth/login
+   → AuthModule: cari User (username) → verify password Argon2id
    → buat JWT access (15–60 mnt; HS256/RS256, secret env) + refresh token (rotating)
    → set cookie httpOnly + Secure + SameSite=Lax; refresh token disimpan ter-hash
    → revoke refresh saat logout / peristiwa keamanan
@@ -293,14 +360,14 @@ Catatan penting:
 
 - **Satu akun = satu sesi ujian aktif** (prd02 §2.2.c): saat `ExamAttempt` aktif, login ganda dari device berbeda ditolak oleh `ExamModule` (cek `ExamAttempt` status `IN_PROGRESS` per user; opsi force-expire sesi lama dengan catatan audit).
 - **PPDB publik**: endpoint `/api/v1/ppdb/register` ditandai `@Public()` — tidak butuh JWT; pendaftar diberi `CALON_SISWA` role setelah lolos seleksi dan di-enroll (prd04 §5.M).
-- **Undangan & reset password**: OPERATOR/WAKEPSEK/KEPSEK/SUPERADMIN kirim undangan (in-app) dengan role tetap; `UserRole.status = INVITED` → user accept → `ACTIVE`. Reset password oleh OPERATOR/SUPERADMIN (in-app, password sementara sekali pakai) — **tanpa email/SMS** (prd04 §5.P).
+- **Undangan & reset password**: OPERATOR/WAKEPSEK/KEPSEK/SUPERADMIN kirim undangan (in-app) dengan role tetap; **username wajib (NIS/NIP), email opsional (notifikasi)**; `UserRole.status = INVITED` → user accept → `ACTIVE`. Reset password oleh OPERATOR/SUPERADMIN (in-app, password sementara sekali pakai) — **tanpa email/SMS** (prd04 §5.P).
 
 ### 6.3 Diagram Alur Auth
 
 ```
 ┌─────────┐  POST /auth/login        ┌──────────────────┐
 │ Browser │─────────────────────────►│ AuthModule       │
-│ (web)   │  { emailOrUsername,      │ (NestJS)         │
+│ (web)   │  { username,             │ (NestJS)         │
 │         │    password }            │  Argon2id verify │
 └────┬────┘                          └────────┬─────────┘
      │  set-cookie: access JWT + refresh      │ UserRole (otoritas role)
@@ -366,6 +433,15 @@ Semua event ujian bersifat **best-effort**; sumber kebenaran tetap REST API (aut
 | `official-letters`       | Surat resmi                 | OPERATOR + approver                       |
 | `exports`                | Rekap nilai, ekspor Dapodik | homeroom/OPERATOR/SUPERADMIN              |
 | `avatars`                | Foto profil                 | Public-read (bukan PII sensitif)          |
+
+> **Catatan drift (2026-08-17):** tabel di atas adalah desain bucket. Bucket yang
+> **terdaftar di `BUCKET_POLICIES` aktual** (`storage/storage.constants.ts:292-301`)
+> hanya 8: `branding`, `avatars`, `landing`, `materials`, `submissions`,
+> `ppdb-documents`, `ppdb-consents`, `exports`. Bucket `payment-proofs`, `permits`,
+> `counseling-attachments`, `official-letters` pada tabel desain **belum** ada di
+> `BUCKET_POLICIES` (drift; `permits` hanya disebut di `attendance/dto/create-permit.dto.ts:28`
+> sebagai konvensi path, tanpa enforcement policy) — selaraskan saat modul
+> pemilik (finance/attendance/communication) memakai upload terkelola.
 
 ### 8.2 Alur Upload (langsung ke API, multipart — tanpa S3)
 
@@ -524,6 +600,23 @@ di bawah adalah desain target PWA:
 >   `finance/services/payment.service.ts:122,166,203` + spec); `RolloverProcessor`
 >   cek terminal state + cocokkan `idempotency_key` sebelum eksekusi
 >   (`jobs/processors/rollover.processor.ts:38-56`).
+>
+> **Keamanan go-live (2026-08-16):**
+>
+> - **Redis wajib password** — production memaksa `REDIS_PASSWORD` terisi
+>   (fail-fast `docker-compose.prod.yml:37`); API memakai `REDIS_URL` berisi
+>   password (`redis://:${REDIS_PASSWORD}@redis:6379`); container redis
+>   `requirepass` sama (`docker-compose.yml:81`).
+> - **Port service prod hanya 127.0.0.1** — postgres/redis/api/web terikat
+>   loopback host (`docker-compose.prod.yml:30-64,111`); port publik HANYA
+>   Nginx :80. Migrasi/akses dari host tetap bisa via `localhost:5432/6379/3000/3001`.
+> - **Gate `DEMO_MODE`** — jalur data demo/fallback hanya aktif saat
+>   `NEXT_PUBLIC_DEMO=1` (`apps/web/src/lib/api-client.ts:13-17`); API menolak
+>   boot di production bila `NEXT_PUBLIC_DEMO=1` (`apps/api/src/main.ts:31`).
+> - **Anti-IDOR tambahan** — jurnal PKL: `assertJournalActor` memaksa aktor
+>   (siswa pemilik/pembimbing/guru dengan scope) sebelum baca/tulis
+>   (`smk/internship.service.ts:199`); cancel booking aset: hanya pemilik
+>   booking atau role sekolah (`asset/services/asset-booking.service.ts:178-185`).
 
 ---
 
@@ -533,10 +626,20 @@ di bawah adalah desain target PWA:
 | ----------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Unit        | Jest                                         | Logika penilaian (auto-grade PG, isian), RBAC guard (matrix role×aksi), late submission, perhitungan tagihan, validasi token QR                                                         |
 | Integration | Jest + Supertest + testcontainers PostgreSQL | Alur ujian E2E (paket → sesi → attempt → autosave → autosubmit → grade), alur QR absensi (generate → scan → sekali pakai), **isolasi scope RBAC (SENDIRI/KELAS/SEKOLAH)**, RLS opsional |
-| E2E         | Playwright                                   | Setup awal sekolah (G19), **login Email/Username + Password (bukan Google mock)**, guru buat tugas → siswa submit → guru nilai, homeroom lihat rapor                                    |
+| E2E         | Playwright                                   | Setup awal sekolah (G19), **login Username (NIS/NIP) + Password (bukan Google mock)**, guru buat tugas → siswa submit → guru nilai, homeroom lihat rapor                                |
 | Load        | k6                                           | Ujian online: ratusan siswa submit dalam 5 menit terakhir; target p95 < 3 s; identifikasi bottleneck autosave                                                                           |
 
-**CI (GitHub Actions)**: `lint → typecheck → unit → integration (service postgres) → build → npm audit` pada tiap PR; E2E pada merge ke main; load test terjadwal sebelum ujian sungguhan (prd02 §7).
+**CI (GitHub Actions)** — implementasi aktual **10 job** (`.github/workflows/ci.yml`, verifikasi 2026-08-17):
+`lint` → `prettier` → `typecheck` → `unit` (Jest, tanpa DB) → `web-test` (Vitest) → `integration` (service postgres; test integration + e2e-spec) → **`web-e2e` (Playwright, 4 test scaffold — SUDAH aktif di CI, service postgres + seed + dev stack)** → `build` → `audit` (npm audit) → `secrets` (gitleaks). Seluruh job berjalan pada tiap push ke `main` dan pull request; load test k6 tetap terjadwal sebelum ujian sungguhan (prd02 §7).
+
+**Skrip test (2026-08-16, selaras CI):** `apps/api/package.json` —
+`test:unit` = jest tanpa path `integration|e2e`, `test:unit:coverage` = unit + `--coverage`
+(gate QA-007, dijalankan job `unit`), `test:integration` = jest HANYA path
+`integration|e2e` (dijalankan job `integration`). Web: `apps/web/package.json`
+`test:unit` = `vitest run`; `apps/web/vitest.config.ts` kini punya blok
+`coverage` (v8 provider, **threshold floor 0** — anti-regresi, bukan target;
+target tetap ≥ 80% roadmap). Catatan: job `web-test` belum menjalankan `--coverage` —
+aktivasi gate coverage web di CI masih terbuka (Rv5-14).
 
 ---
 
@@ -567,7 +670,7 @@ di bawah adalah desain target PWA:
         │ skema      │ │ cache/rate │ │ lokal       │ │ DITUNDA        │
         │ tunggal,   │ │ lock/socket│ │ (STORAGE_   │ │ (WebRTC self-  │
         │ RLS ops.   │ │ adapter    │ │ LOCAL_DIR)  │ │  hosted bila   │
-        │ 90 tables │ │            │ │             │ │  dibangun)     │
+        │ 91 tables │ │            │ │             │ │  dibangun)     │
         └────────────┘ └────────────┘ └─────────────┘ └────────────────┘
 ```
 
@@ -611,7 +714,7 @@ Waktu habis (server-side, tidak bergantung client)
 
 ### ADR-002: Auth in-house vs managed auth / IdP eksternal
 
-**Keputusan:** auth in-house — Email/Username + Password (Argon2id), JWT httpOnly cookie, refresh rotation. **Tanpa ketergantungan pihak ketiga** (prd04 §5.O, §5.P).
+**Keputusan:** auth in-house — Username (NIS/NIP) + Password (Argon2id), JWT httpOnly cookie, refresh rotation. **Tanpa ketergantungan pihak ketiga** (prd04 §5.O, §5.P).
 **Alternatif ditolak:** managed auth / Google OAuth / email SSO (third-party API fitur — dilarang [owner-v4.1]), Keycloak/Zitadel (beban operasional besar untuk tim kecil).
 **Alasan:** prd04 §5.P — satu metode login; hash Argon2id; cookie aman; reset via OPERATOR; keputusan no-third-party [owner-v4.1].
 **Trade-off:** **kehilangan OAuth/SSO diterima** (tidak ada social login); mitigasi: interface `AuthService` + JWT standar → bisa menambah IdP nanti tanpa ubah backend.
@@ -647,7 +750,8 @@ Waktu habis (server-side, tidak bergantung client)
 
 ## 17. Keterkaitan dengan Dokumen Lain
 
-- Skema lengkap **90 model + 62 enum single-school** (`packages/database/prisma/schema.prisma`, verifikasi 2026-08-08) + **11 folder migrasi Prisma** (`packages/database/prisma/migrations/`, verifikasi 2026-08-10 — tambah `20260809000000_audit_fixes` & `20260809010000_exam_attempt_token_dedupe`) + RLS opsional: `03-database-erd.md`.
+- Skema lengkap **92 model + 65 enum single-school** (`packages/database/prisma/schema.prisma`, verifikasi 2026-08-18) + **1 baseline migrasi squashed `20260818000000_init_squashed`** (`packages/database/prisma/migrations/`, verifikasi 2026-08-18) — 17 folder migrasi inkremental sebelumnya disquash menjadi satu baseline **136 index (85 CREATE INDEX + 51 CREATE UNIQUE INDEX) + 133 relasi**; DB development di-reset & seed ulang. RLS opsional: `03-database-erd.md`. _(Riwayat migrasi inkremental `20260816030000_add_pdp_module`, `20260816020000_add_rapor_p5`, `20260816010000_payment_idempotency`, `20260816000000_staff_ter_category`, `20260810000000_parent_link_approval`, `20260809000000_audit_fixes`, `20260808235959_exam_attempt_token_dedupe` tercatat di [CHANGELOG.md](../CHANGELOG.md).)_
+- **Optimasi N+1 (2026-08-18, item 19)** — pola batch di hot path: rollover `buildPlan`/`execute` (createMany/updateMany per entitas, `rollover.service.ts:503-712`), daftar aset tanpa query per baris, payslip batch payroll (`payroll/services/payslip.service.ts`), denda & refresh status finance (`finance/services/late-fee.service.ts:213`, `payment.service.ts:384-400`), anonimisasi PDP `updateMany` (`pdp-anonymize.service.ts:66-110`), impor chunk `$transaction` (`onboarding/import.service.ts:65,221-283`); pagination `skip/take` pada exam/alumni/smk/ppdb; **4 index baru** (PERF-02): `Grade(academic_year)`, `Invoice(status)`, `Enrollment(academic_year_id)`, `Attendance(status)`.
 - Kontrak endpoint, RBAC matrix, contoh payload: `04-api-contract.md`.
 - Urutan implementasi, task breakdown, risk register: `05-implementation-plan.md`.
 - Keputusan single-school & no-third-party: prd04 v4.2 §16.3(g) [owner-v4.2].

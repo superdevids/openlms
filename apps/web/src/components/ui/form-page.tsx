@@ -1,40 +1,25 @@
 import type { JSX, ReactNode } from "react";
 
-import { Alert, AlertDescription, AlertTitle, cn } from "@opensis/ui";
-import { PageHeader } from "./page-header";
+import { Alert, AlertDescription, AlertTitle, Label } from "@opensis/ui";
 
 /**
- * FormPage — halaman form aplikasi v3 (spec D.5).
- * PageHeader + section grouping (FormSection) + sticky footer aksi.
- * presentational: onSubmit/handling form tetap di halaman pemakai.
+ * RequiredLabel — Label dengan tanda `*` merah untuk field wajib (item 15).
+ * Drop-in untuk `<Label htmlFor="...">Teks</Label>` bila field required;
+ * span merah konsisten dengan pola login-form (text-red-500).
  */
-export function FormPage({
-  title,
-  description,
-  sections,
-  footer,
-  backHref,
+export function RequiredLabel({
+  htmlFor,
   children,
   className
 }: {
-  title: string;
-  description?: ReactNode;
-  sections?: ReactNode;
-  footer?: ReactNode;
-  backHref?: string;
-  children?: ReactNode;
+  htmlFor?: string;
+  children: ReactNode;
   className?: string;
 }): JSX.Element {
   return (
-    <div className={cn("space-y-6", className)}>
-      <PageHeader title={title} description={description} backHref={backHref} />
-      {sections ?? children}
-      {footer ? (
-        <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-app-surface/95 px-4 py-4 shadow-app-sticky backdrop-blur md:-mx-6 md:px-6">
-          <div className="flex items-center justify-end gap-2">{footer}</div>
-        </div>
-      ) : null}
-    </div>
+    <Label htmlFor={htmlFor} className={className}>
+      {children} <span className="text-red-500">*</span>
+    </Label>
   );
 }
 

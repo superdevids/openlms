@@ -184,6 +184,9 @@ export class QuizAttemptService {
   /**
    * Auto-submit server-side semua attempt IN_PROGRESS yang waktu habis
    * (scheduler/Cron). Batch `take 100` loop (R-31) + filter `started_at < now`.
+   * Finalisasi dalam SATU `$transaction` per batch (sebelumnya 1 transaksi per
+   * attempt = overhead N×); kegagalan satu attempt di-rollback dan diproses
+   * ulang pada cron berikutnya.
    */
   async autoSubmitExpired(): Promise<{ submitted: number }> {
     const now = new Date();
@@ -199,9 +202,10 @@ export class QuizAttemptService {
       });
       if (attempts.length === 0) break;
       cursor += attempts.length;
-      for (const attempt of attempts) {
-        if (this.isExpired(attempt)) {
-          await prisma.$transaction(async (tx) => {
+      const expired = attempts.filter((a) => this.isExpired(a));
+      if (expired.length > 0) {
+        await prisma.$transaction(async (tx) => {
+          for (const attempt of expired) {
             const updated = await this.finalizeWithinTx(tx, attempt, AttemptStatus.AUTO_SUBMITTED);
             // R-12: force-submit (auto) dicatat ke AuditLog — aktor sistem.
             await writeAudit({
@@ -212,9 +216,9 @@ export class QuizAttemptService {
               before: { status: attempt.status },
               after: { status: AttemptStatus.AUTO_SUBMITTED, score: updated.score }
             });
-          });
-          submitted += 1;
-        }
+          }
+        });
+        submitted += expired.length;
       }
       if (attempts.length < 100) break;
     }

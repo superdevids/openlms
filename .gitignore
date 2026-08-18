@@ -53,5 +53,8 @@ gitleaks-report.json
 apps/api/storage/*
 !apps/api/storage/.gitkeep
 
+# Backup artifacts (deploy/scripts/backup.sh — jangan commit dump DB/storage)
+deploy/backups/
+
 # Scratch / session notes
 note

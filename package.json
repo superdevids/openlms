@@ -2,7 +2,7 @@
   "name": "opensis",
   "version": "0.1.0",
   "private": true,
-  "description": "opensis — LMS+SIS super-app untuk SATU sekolah (SMA/SMK Indonesia). Monorepo Turborepo.",
+  "description": "Opensis — SIS super-app untuk SATU sekolah (SMA/SMK Indonesia). Monorepo Turborepo.",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -24,13 +24,16 @@
     "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@opensis/database",
     "db:seed": "npm run db:seed --workspace=@opensis/database",
     "db:validate": "npm run db:validate --workspace=@opensis/database",
+    "images:landing": "node scripts/generate-landing-images.mjs",
     "audit": "npm audit --audit-level=high"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-import-x": "^4.17.1",
     "prettier": "^3.4.2",
+    "sharp": "^0.35.3",
     "turbo": "^2.10.9",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"

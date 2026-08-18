@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsDecimal,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsNumberString,
@@ -157,4 +158,10 @@ export class PayrollQueryDto {
   @IsOptional()
   @IsString()
   staffId?: string;
+}
+
+/** Kategori TER PPh21 bulanan PMK 168/2023 per pegawai (A/B/C). */
+export class SetStaffTerCategoryDto {
+  @IsIn(["A", "B", "C"], { message: "category harus A, B, atau C" })
+  category!: "A" | "B" | "C";
 }

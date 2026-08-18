@@ -2,7 +2,7 @@
 
 ## Fungsi Folder
 
-Modul autentikasi & otorisasi: login **Email/Username + Password** (Argon2id),
+Modul autentikasi & otorisasi: login **Username (NIS/NIP) + Password** (Argon2id),
 JWT access + refresh di cookie httpOnly (refresh rotation), logout, sesi
 (`/auth/me`), reset password oleh OPERATOR, ubah password sendiri, serta
 undangan pengguna. Modul ini juga memasang guard global
@@ -10,12 +10,18 @@ undangan pengguna. Modul ini juga memasang guard global
 
 ## Daftar Fitur
 
-- Login dengan email atau username; throttle/lockout brute-force.
+- Login dengan username (NIS/NIP); email opsional hanya untuk notifikasi; throttle/lockout brute-force.
+- Undangan: username **wajib** (NIS/NIP — identifier akun), email **opsional** (notifikasi, bukan untuk login).
 - Refresh token rotation (revoke saat dipakai ulang).
 - `GET /auth/me` → profil + roles + scope (classIds, homeroom).
 - Reset password oleh OPERATOR; ganti password sendiri.
 - Undangan (link + role) → `UserRole` ACTIVE saat accept.
 - `PermissionsResolver` (cache TTL 60s) memuat permission role + user override.
+- **Multi-role (2026-08-18, item 18):** user dapat punya **N baris `UserRole`
+  ACTIVE** (rangkap role, mis. KEPSEK + GURU). Backend TIDAK berubah: guard
+  memakai **union seluruh roles** user (`RequestContext.roles[]`). Pemilihan
+  "peran aktif" adalah konsep frontend murni (localStorage `opensis_active_role`)
+  yang hanya mengatur UI/navigasi — lihat `apps/web/src/lib/active-role.ts`.
 
 ## Keamanan
 

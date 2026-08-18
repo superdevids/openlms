@@ -17,19 +17,28 @@ semua peran (siswa, guru, admin, superadmin, wali murid) + halaman publik
 | `src/proxy.ts`                                | Auth redirect UX-level (Next 16 `proxy`)                                     |
 | `src/globals.css` / `layout.tsx` / `page.tsx` | Styling global & root layout/landing                                         |
 
-## lib/ (src/lib)
+## lib/ (src/lib) — 19 file (verifikasi glob, 2026-08-16)
 
-| File                                         | Isi                                                                                   |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `api-client.ts`                              | HTTP client `/api/v1` (cookie httpOnly, ApiError standar, idempotency-key, save-data) |
-| `use-api.ts`                                 | Hook React untuk pemanggilan API (`useApi`/`useAsyncData`)                            |
-| `use-socket.ts`                              | Client Socket.IO `/ws` (singleton, reconnect; URL dari `NEXT_PUBLIC_SOCKET_URL`)      |
-| `session.ts`                                 | Helper session/cookie                                                                 |
-| `feature-flags.ts` + `feature-flags-hook.ts` | Baca & hook feature flags                                                             |
-| `idempotency.ts`                             | Generator/helper Idempotency-Key                                                      |
-| `roles.ts`                                   | Mapping role → route/permission                                                       |
-| `format.ts` / `utils.ts`                     | Format angka/tanggal, util umum                                                       |
-| `demo.ts`                                    | Data demo (`NEXT_PUBLIC_DEMO=1`)                                                      |
+| File                    | Isi                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `api-client.ts`         | HTTP client `/api/v1` (cookie httpOnly, ApiError standar, idempotency-key, save-data) |
+| `use-api.ts`            | Hook React untuk pemanggilan API (`useApi`/`useAsyncData`)                            |
+| `storage.ts`            | Helper storage key (prefix `opensis_`)                                                |
+| `idempotency.ts`        | Generator/helper Idempotency-Key                                                      |
+| `use-socket.ts`         | Client Socket.IO `/ws` (singleton, reconnect; URL dari `NEXT_PUBLIC_SOCKET_URL`)      |
+| `session.ts`            | Helper session/cookie                                                                 |
+| `roles.ts`              | Mapping role → route/permission                                                       |
+| `constants.ts`          | Konstanta bersama (app name, dsb.)                                                    |
+| `demo.ts`               | Data demo (`NEXT_PUBLIC_DEMO=1`)                                                      |
+| `dashboard.ts`          | Helper dashboard/statistik                                                            |
+| `feature-flags.ts`      | Baca feature flags                                                                    |
+| `feature-flags-hook.ts` | Hook React feature flags                                                              |
+| `format.ts`             | Format angka/tanggal                                                                  |
+| `safe-url.ts`           | Sanitasi URL / redirect aman                                                          |
+| `schedule.ts`           | Helper jadwal (kelas/kalender)                                                        |
+| `landing-pages.ts`      | Registrasi halaman landing (content per halaman)                                      |
+| `font.ts` / `fonts.ts`  | Konfigurasi font (Next font)                                                          |
+| `use-focus-trap.ts`     | Hook focus trap (aksesibilitas)                                                       |
 
 ## Catatan
 

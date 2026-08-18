@@ -55,7 +55,7 @@ export class BrandingController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<BrandingView> {
-    return this.brandingService.updateBranding(dto, user.id, req.ip);
+    return this.brandingService.updateBranding(dto, user.id, req.ip, user.roles);
   }
 
   @Post("logo")
@@ -99,6 +99,6 @@ export class BrandingController {
     if (!file) {
       throw new BadRequestException("File tidak ditemukan di field 'file'.");
     }
-    return this.brandingService.setAsset(field, file, user.id, req.ip);
+    return this.brandingService.setAsset(field, file, user.id, req.ip, user.roles);
   }
 }

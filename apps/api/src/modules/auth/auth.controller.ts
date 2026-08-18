@@ -23,7 +23,7 @@ import {
 
 /**
  * AuthController — F1-T1/T6/T8.
- * Login "Email atau Username" + password; JWT access+refresh di cookie httpOnly
+ * Login username (NIS/NIP) + password; JWT access+refresh di cookie httpOnly
  * (Secure + SameSite=Lax); me, logout, reset password OPERATOR, undangan.
  */
 @Controller("auth")

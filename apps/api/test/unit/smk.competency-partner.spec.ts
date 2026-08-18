@@ -137,6 +137,7 @@ describe("CompetencyTestService — UKK grading", () => {
     mockFn(db, "competencyTest", "update").mockImplementation(
       async ({ data }: { data: Record<string, unknown> }) => ({ id: "ct-1", ...data })
     );
+    // M-02: grade memakai $transaction — mock-db default meneruskan callback.
 
     const test = await service.grade(
       "ct-1",

@@ -122,9 +122,19 @@ describe("seed-data ROLE_PERMISSIONS — invariants per role", () => {
     }
   });
 
-  it("SUPERADMIN TIDAK diberi kode berakhiran :self", () => {
+  it("SUPERADMIN TIDAK diberi kode berakhiran :self (kecuali pdp:self eksplisit)", () => {
+    // Pengecualian sah (modul PDP, UU PDP): blok SUPERADMIN mem-filter semua
+    // kode :self, lalu grant eksplisit 3 permission pdp:self agar SUPERADMIN
+    // tetap bisa memakai fitur PDP self (data/ekspor/permintaan hapus).
+    const PDP_SELF_EXCEPTIONS = new Set([
+      "pdp:data:self",
+      "pdp:export:self",
+      "pdp:delete-request:self"
+    ]);
     for (const g of grantsOf("SUPERADMIN")) {
-      expect(g.code.endsWith(":self")).toBe(false);
+      if (g.code.endsWith(":self")) {
+        expect(PDP_SELF_EXCEPTIONS.has(g.code)).toBe(true);
+      }
     }
   });
 

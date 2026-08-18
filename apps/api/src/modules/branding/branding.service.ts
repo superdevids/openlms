@@ -5,6 +5,7 @@ import { PrismaClient } from "@opensis/database";
 import { RealtimeGateway } from "../realtime/realtime.gateway";
 import { BRANDING_CHANGED_EVENT } from "../notifications/notification-events";
 import { LocalStorageProvider, UploadedFile } from "../storage/local-storage.provider";
+import { resolveActorRole } from "../lms/lms-audit";
 import { UpdateBrandingDto } from "./dto/update-branding.dto";
 import type { BrandingView } from "./branding.types";
 import { readCacheTtlMs } from "../../common/cache.util";
@@ -14,8 +15,8 @@ const CACHE_TTL_MS = readCacheTtlMs(60_000);
 
 /** Branding fallback bila tidak ada row di DB. */
 const DEFAULT_BRANDING: BrandingView = {
-  appName: "opensis",
-  tagline: "LMS & SIS Sekolah",
+  appName: "Opensis",
+  tagline: "Platform Digital Terpadu Sekolah",
   logoUrl: null,
   faviconUrl: null,
   colors: {
@@ -62,7 +63,8 @@ export class BrandingService {
   async updateBranding(
     dto: UpdateBrandingDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<BrandingView> {
     const current = await this.findOrCreate();
     const before = this.toView(current);
@@ -85,6 +87,7 @@ export class BrandingService {
     await this.db.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.UPDATE,
         entity: "branding_config",
         entity_id: updated.id,
@@ -116,7 +119,8 @@ export class BrandingService {
     field: "logo" | "favicon",
     file: UploadedFile,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<BrandingView> {
     const path = await this.storage.save("branding", file);
     const current = await this.findOrCreate();
@@ -141,6 +145,7 @@ export class BrandingService {
     await this.db.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.UPDATE,
         entity: "branding_config",
         entity_id: updated.id,

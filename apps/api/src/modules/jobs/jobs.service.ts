@@ -7,6 +7,7 @@ import { ReportProcessor } from "./processors/report.processor";
 import { SppProcessor } from "./processors/spp.processor";
 import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor";
 import { ImportProcessor } from "./processors/import.processor";
+import type { ReportGeneratePayload } from "./processors/report.processor";
 
 /**
  * JobsService — registrasi handler job + helper enqueue bertipe.
@@ -66,7 +67,7 @@ export class JobsService implements OnModuleInit {
     });
   }
 
-  async generateReport(payload: { exportLogId: string }): Promise<void> {
+  async generateReport(payload: ReportGeneratePayload): Promise<void> {
     await this.queue.enqueue(JOB_NAMES.REPORT_GENERATE, payload);
   }
 

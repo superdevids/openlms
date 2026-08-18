@@ -3,6 +3,7 @@ import { AuditAction, PermissionEffect, PermissionScope, Role } from "@prisma/cl
 import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
 import { PermissionsResolver } from "../auth/permissions-resolver";
+import { resolveActorRole } from "../lms/lms-audit";
 import { UpdateRolePermissionDto } from "./dto/update-role-permission.dto";
 import { UpsertUserOverrideDto } from "./dto/upsert-user-override.dto";
 
@@ -99,7 +100,8 @@ export class RbacAdminService {
     permissionId: string,
     dto: UpdateRolePermissionDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<RolePermissionView> {
     this.assertRole(role);
     const permission = await this.prisma.permission.findUnique({ where: { id: permissionId } });
@@ -125,6 +127,7 @@ export class RbacAdminService {
     await this.prisma.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: before ? AuditAction.UPDATE : AuditAction.CREATE,
         entity: "role_permission",
         entity_id: after.id,
@@ -180,7 +183,8 @@ export class RbacAdminService {
     userId: string,
     dto: UpsertUserOverrideDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<UserOverrideView> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -216,6 +220,7 @@ export class RbacAdminService {
     await this.prisma.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: before ? AuditAction.UPDATE : AuditAction.CREATE,
         entity: "user_permission_override",
         entity_id: after.id,

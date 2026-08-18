@@ -25,7 +25,13 @@ import {
   IconUser
 } from "@opensis/ui";
 
-import { PageHeader, DataTable, StatusBadge, type DataTableColumn } from "@/components/ui";
+import {
+  PageHeader,
+  DataTable,
+  StatusBadge,
+  RequiredLabel,
+  type DataTableColumn
+} from "@/components/ui";
 
 interface Applicant {
   id: string;
@@ -451,7 +457,7 @@ export default function AdminOperatorPage(): JSX.Element {
       >
         <form onSubmit={(e) => void invite(e)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="inv-username">Username (atau NISN)</Label>
+            <RequiredLabel htmlFor="inv-username">Username (atau NISN)</RequiredLabel>
             <Input
               id="inv-username"
               value={inviteUsername}

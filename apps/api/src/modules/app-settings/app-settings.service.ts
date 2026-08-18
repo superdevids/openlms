@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
 import { FONT_FAMILY_VALUES, FONT_SCALE_VALUES } from "@opensis/types";
 import { readCacheTtlMs } from "../../common/cache.util";
+import { resolveActorRole } from "../lms/lms-audit";
 import { UpdateAppSettingsDto } from "./dto/update-app-settings.dto";
 
 export interface SchoolSettings {
@@ -89,7 +90,8 @@ export class AppSettingsService {
   async updateSettings(
     dto: UpdateAppSettingsDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<AppSettingsView> {
     const school = await this.prisma.schoolProfile.findFirst();
     if (!school) {
@@ -123,6 +125,7 @@ export class AppSettingsService {
     await this.prisma.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.UPDATE,
         entity: "school_profile",
         entity_id: school.id,

@@ -10,9 +10,10 @@
     "dev": "cross-env PORT=3001 nest start --watch",
     "lint": "eslint src test --ext .ts",
     "typecheck": "tsc --noEmit",
-    "test": "jest --testPathPattern=\"^(?!.*integration)\" --runInBand",
-    "test:unit": "jest --testPathPattern=\"^(?!.*integration)\" --runInBand",
-    "test:integration": "jest --testPathPattern=\"^.*integration.*\" --runInBand"
+    "test": "jest --testPathPattern=\"^(?!.*(integration|e2e))\" --runInBand",
+    "test:unit": "jest --testPathPattern=\"^(?!.*(integration|e2e))\" --runInBand",
+    "test:unit:coverage": "jest --testPathPattern=\"^(?!.*(integration|e2e))\" --runInBand --coverage",
+    "test:integration": "jest --testPathPattern=\"^.*(integration|e2e).*\" --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.28",

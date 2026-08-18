@@ -95,6 +95,47 @@ describe("ScopeResolver (fallback in-memory)", () => {
     await resolver.resolve("u2");
     expect(prisma.classSubject.findMany).toHaveBeenCalledTimes(4);
   });
+
+  it("resolve menggabungkan kelas diajar + diikuti (dedupe) + homeroom", async () => {
+    const prisma = makePrisma();
+    (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([
+      { class_id: "c2" },
+      { class_id: "c3" }
+    ]);
+    (prisma.class.findFirst as jest.Mock).mockResolvedValue({ id: "c9" });
+    const resolver = new ScopeResolver(prisma as unknown as PrismaClient);
+
+    const scope = await resolver.resolve("u1");
+
+    expect(scope.classIds.sort()).toEqual(["c1", "c2", "c3"]);
+    expect(scope.homeroomClassId).toBe("c9");
+  });
+
+  it("resolve tanpa homeroom → null", async () => {
+    const prisma = makePrisma();
+    (prisma.classSubject.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.class.findFirst as jest.Mock).mockResolvedValue(null);
+    const resolver = new ScopeResolver(prisma as unknown as PrismaClient);
+
+    const scope = await resolver.resolve("u1");
+
+    expect(scope.classIds).toEqual([]);
+    expect(scope.homeroomClassId).toBeNull();
+  });
+
+  it("enrollment hanya difilter status ACTIVE", async () => {
+    const prisma = makePrisma();
+    (prisma.classSubject.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.class.findFirst as jest.Mock).mockResolvedValue(null);
+    const resolver = new ScopeResolver(prisma as unknown as PrismaClient);
+
+    await resolver.resolve("u1");
+
+    expect(prisma.enrollment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { student_id: "u1", status: "ACTIVE" } })
+    );
+  });
 });
 
 describe("ScopeResolver (Redis mode)", () => {

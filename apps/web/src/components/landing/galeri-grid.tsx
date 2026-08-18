@@ -10,11 +10,12 @@ import type { GalleryImage } from "@/lib/landing-pages";
 /**
  * Grid galeri + filter kategori (klien) untuk halaman /galeri mandiri.
  * Gambar dari CMS (/storage/...) bisa 404 — LandingImage menukar ke
- * placeholder lokal agar tidak ada gambar rusak (broken image).
+ * foto placeholder sekolah (item 16) agar tidak ada gambar rusak.
  * Tile memakai pola ImageTile (D.6): rounded-2xl, ring, hover zoom, caption.
+ * Shadow memakai token landing v2 (--shadow-soft/--shadow-lift).
  */
 
-const SHADOW_SOFT = "shadow-[0_8px_30px_rgba(67,56,202,0.1)]";
+const SHADOW_SOFT = "shadow-[var(--shadow-soft)]";
 
 function formatTanggal(value: string | null): string {
   if (!value) return "";
@@ -101,6 +102,8 @@ export function GaleriGrid({ images }: { images: GalleryImage[] }): JSX.Element 
                   <LandingImage
                     src={item.src}
                     alt={item.title}
+                    width={640}
+                    height={480}
                     className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pt-10">

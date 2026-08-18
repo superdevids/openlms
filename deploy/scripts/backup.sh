@@ -10,7 +10,8 @@
 #   Variabel env (opsional; default diambil dari .env root proyek):
 #     DATABASE_URL       URL koneksi PostgreSQL (default: dari .env)
 #     BACKUP_DIR         Direktori tujuan backup (default: deploy/backups)
-#     STORAGE_LOCAL_DIR  Direktori storage lokal (default: ./storage dari .env)
+#     STORAGE_LOCAL_DIR  Direktori storage lokal (default: ./storage dari .env;
+#                        fallback dev: apps/api/storage bila yang dikonfigurasi kosong)
 #     BACKUP_KEEP_DAYS   Hapus backup lebih lama dari N hari (default: 14; 0 = nonaktif)
 #
 #   Hasil (di BACKUP_DIR):
@@ -99,6 +100,18 @@ case "${STORAGE_LOCAL_DIR}" in
   *) STORAGE_LOCAL_DIR="${PROJECT_ROOT}/${STORAGE_LOCAL_DIR}" ;;
 esac
 
+# Fallback DEV: aplikasi dev (npm run dev) menyimpan upload di apps/api/storage
+# (bukan ./storage di root proyek — lihat apps/api/src/modules/storage/
+# storage.constants.ts; cwd apps/api). Bila direktori yang dikonfigurasi
+# tidak ada ATAU kosong, pakai apps/api/storage bila berisi — agar backup dev
+# menangkap upload runtime.
+if [ ! -d "${STORAGE_LOCAL_DIR}" ] || [ -z "$(ls -A "${STORAGE_LOCAL_DIR}" 2>/dev/null)" ]; then
+  if [ -d "${PROJECT_ROOT}/apps/api/storage" ] && [ -n "$(ls -A "${PROJECT_ROOT}/apps/api/storage" 2>/dev/null)" ]; then
+    echo "[backup] STORAGE_LOCAL_DIR (${STORAGE_LOCAL_DIR}) tidak ada/kosong; fallback ke ${PROJECT_ROOT}/apps/api/storage"
+    STORAGE_LOCAL_DIR="${PROJECT_ROOT}/apps/api/storage"
+  fi
+fi
+
 BACKUP_DIR="${BACKUP_DIR:-${PROJECT_ROOT}/deploy/backups}"
 BACKUP_KEEP_DAYS="${BACKUP_KEEP_DAYS:-14}"
 
@@ -138,6 +151,27 @@ else
 fi
 # Rename hanya setelah pg_dump sukses → tidak ada dump parsial yang "jadi".
 mv "${DB_DUMP_TMP}" "${DB_DUMP}"
+
+# --- Smoke check dump -------------------------------------------------------
+# Pastikan dump VALID (format custom terbaca pg_restore) SEBELUM dianggap
+# backup sukses — gagal verifikasi = backup dianggap gagal (exit non-zero).
+if command -v pg_restore >/dev/null 2>&1; then
+  echo "[backup] Verifikasi dump: pg_restore --list"
+  pg_restore --list "${DB_DUMP}" >/dev/null 2>&1 || {
+    echo "ERROR: dump tidak valid (pg_restore --list gagal): ${DB_DUMP}" >&2
+    exit 1
+  }
+else
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    echo "[backup] Verifikasi dump: pg_restore --list via docker compose exec"
+    docker compose exec -T postgres pg_restore --list - < "${DB_DUMP}" >/dev/null 2>&1 || {
+      echo "ERROR: dump tidak valid (pg_restore --list via docker gagal): ${DB_DUMP}" >&2
+      exit 1
+    }
+  else
+    echo "[backup] WARN: pg_restore maupun docker tidak tersedia; verifikasi dump dilewati." >&2
+  fi
+fi
 
 # --- 2) Storage lokal -------------------------------------------------------
 STORAGE_TAR=""

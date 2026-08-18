@@ -8,6 +8,7 @@ import {
 import { AuditAction, Prisma } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
 import { readCacheTtlMs, pruneExpiredCache } from "../../common/cache.util";
+import { resolveActorRole } from "../lms/lms-audit";
 import { CreateNewsDto } from "./dto/create-news.dto";
 import { UpdateNewsDto } from "./dto/update-news.dto";
 import { UpsertLandingContentDto } from "./dto/upsert-landing-content.dto";
@@ -226,7 +227,8 @@ export class LandingService {
     slug: string,
     dto: UpsertLandingContentDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<LandingContentView> {
     this.assertSafeLinks(dto);
     const existing = await this.db.landingContent.findUnique({ where: { slug } });
@@ -258,7 +260,8 @@ export class LandingService {
         updated.id,
         { before, after: this.toLandingPublic(updated) },
         actorId,
-        ip
+        ip,
+        roles
       );
       this.invalidatePublic();
       return this.toLandingView(updated);
@@ -285,13 +288,19 @@ export class LandingService {
       created.id,
       { before: null, after: this.toLandingPublic(created) },
       actorId,
-      ip
+      ip,
+      roles
     );
     this.invalidatePublic();
     return this.toLandingView(created);
   }
 
-  async createNews(dto: CreateNewsDto, actorId: string, ip?: string): Promise<NewsArticleView> {
+  async createNews(
+    dto: CreateNewsDto,
+    actorId: string,
+    ip?: string,
+    roles: string[] = []
+  ): Promise<NewsArticleView> {
     const slug = await this.uniqueSlug(dto.slug ? slugify(dto.slug) : slugify(dto.title));
     const publishedAt = dto.publishedAt
       ? new Date(dto.publishedAt)
@@ -318,7 +327,8 @@ export class LandingService {
       created.id,
       { before: null, after: this.toNewsView(created) },
       actorId,
-      ip
+      ip,
+      roles
     );
     this.invalidatePublic();
     return this.toNewsView(created);
@@ -328,7 +338,8 @@ export class LandingService {
     id: string,
     dto: UpdateNewsDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<NewsArticleView> {
     const existing = await this.db.newsArticle.findUnique({ where: { id } });
     if (!existing) {
@@ -364,20 +375,29 @@ export class LandingService {
       updated.id,
       { before, after: this.toNewsView(updated) },
       actorId,
-      ip
+      ip,
+      roles
     );
     this.invalidatePublic();
     return this.toNewsView(updated);
   }
 
-  async deleteNews(id: string, actorId: string, ip?: string): Promise<void> {
+  async deleteNews(id: string, actorId: string, ip?: string, roles: string[] = []): Promise<void> {
     const existing = await this.db.newsArticle.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException("Berita tidak ditemukan.");
     }
     const before = this.toNewsView(existing);
     await this.db.newsArticle.delete({ where: { id } });
-    await this.audit(AuditAction.DELETE, "news_article", id, { before, after: null }, actorId, ip);
+    await this.audit(
+      AuditAction.DELETE,
+      "news_article",
+      id,
+      { before, after: null },
+      actorId,
+      ip,
+      roles
+    );
     this.invalidatePublic();
   }
 
@@ -431,12 +451,14 @@ export class LandingService {
     entityId: string,
     data: { before: unknown; after: unknown },
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<void> {
     try {
       await this.db.auditLog.create({
         data: {
           actor_id: actorId,
+          actor_role: resolveActorRole(roles) ?? undefined,
           action,
           entity,
           entity_id: entityId,

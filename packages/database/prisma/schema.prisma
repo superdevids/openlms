@@ -285,6 +285,20 @@ enum ExportType {
   ANBK
   RAPOR
   NILAI
+  PERSONAL
+}
+
+// PDP — kepatuhan UU PDP (permintaan penghapusan/ekspor data pribadi)
+enum PdpRequestType {
+  DELETE
+  EXPORT
+}
+
+enum PdpRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXECUTED
 }
 
 enum RetentionAction {
@@ -456,6 +470,8 @@ model User {
   attendances                 Attendance[]                  @relation("AttendanceStudent")
   attendances_recorded        Attendance[]                  @relation("AttendanceRecordedBy")
   grades                      Grade[]                       @relation("GradeStudent")
+  rapor_p5                    RaporP5[]                     @relation("RaporP5Student")
+  rapor_p5_created            RaporP5[]                     @relation("RaporP5CreatedBy")
   invoices                    Invoice[]                     @relation("InvoiceStudent")
   invoices_created            Invoice[]                     @relation("InvoiceCreatedBy")
   payments_verified           Payment[]                     @relation("PaymentVerifiedBy")
@@ -488,6 +504,8 @@ model User {
   competency_examinations     CompetencyTest[]              @relation("CompetencyExaminer")
   data_exports                DataExportLog[]               @relation("ExportRequestedBy")
   parental_consents           ParentalConsent[]             @relation("ConsentStudent")
+  pdp_requests                PdpRequest[]                  @relation("PdpRequests")
+  pdp_requests_processed      PdpRequest[]                  @relation("PdpRequestsProcessed")
   import_batches              ImportBatch[]                 @relation("ImportImportedBy")
   audit_logs                  AuditLog[]                    @relation("AuditActor")
   feature_flag_settings       AppFeatureSetting[]           @relation("FeatureSettingUpdatedBy")
@@ -659,6 +677,7 @@ model Enrollment {
   @@unique([student_id, class_id, academic_year_id])
   @@index([class_id, academic_year_id]) // daftar siswa per kelas
   @@index([student_id, academic_year_id])
+  @@index([academic_year_id, status]) // PERF-02: filter enrollment per tahun+status (rollover/precheck)
   @@map("enrollment")
 }
 
@@ -840,6 +859,7 @@ model Attendance {
 
   @@unique([student_id, class_subject_id, date]) // rekap per siswa+mapel+hari
   @@index([student_id, date]) // rekap bulanan
+  @@index([status, date]) // PERF-02: filter absensi per status+rentang (rekap/rollover)
   @@map("attendance")
 }
 
@@ -867,7 +887,33 @@ model Grade {
   @@unique([student_id, class_subject_id, semester, type, source_id])
   @@index([student_id, class_subject_id, semester]) // rekap nilai & rapor
   @@index([class_subject_id, semester]) // rekap nilai per kelas-mapel (recapByClassSubject)
+  @@index([academic_year, student_id]) // PERF-02: batch nilai per tahun+siswa (rollover buildPlan/precheck)
   @@map("grade")
+}
+
+// ============================================================
+// §2.17 RaporP5 — proyek penguatan profil pelajar Pancasila (manual)
+// ============================================================
+
+model RaporP5 {
+  id            String   @id @default(cuid())
+  student_id    String
+  semester      String // "GANJIL"/"GENAP"
+  academic_year String // denormalisasi "2026/2027"
+  project_name  String
+  theme         String?
+  score         Int?
+  deskripsi     String
+  created_by    String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  student         User @relation("RaporP5Student", fields: [student_id], references: [id], onDelete: Cascade)
+  created_by_user User @relation("RaporP5CreatedBy", fields: [created_by], references: [id])
+
+  @@unique([student_id, semester, academic_year, project_name])
+  @@index([student_id, semester, academic_year])
+  @@map("rapor_p5")
 }
 
 // ============================================================
@@ -901,6 +947,7 @@ model Invoice {
   @@unique([invoice_no])
   @@unique([student_id, type, period]) // REL-003: anti double-fire tagihan (SPP per periode)
   @@index([student_id, status, due_date]) // tagihan per siswa + jatuh tempo
+  @@index([status, due_date]) // PERF-02: job denda/overdue (refreshOverdueStatuses, runDailyDenda)
   @@index([academic_year])
   @@map("invoice")
 }
@@ -910,18 +957,20 @@ model Invoice {
 // ============================================================
 
 model Payment {
-  id          String         @id @default(cuid())
-  invoice_id  String
-  amount      Decimal        @db.Decimal(12, 2)
-  method      PaymentMethod
-  proof_url   String? // bucket `payment-proofs`
-  note        String?
-  paid_at     DateTime?
-  verified_by String?
-  verified_at DateTime?
-  status      PaymentStatus  @default(PENDING)
-  created_at  DateTime       @default(now())
-  updated_at  DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  invoice_id      String
+  amount          Decimal        @db.Decimal(12, 2)
+  method          PaymentMethod
+  proof_url       String? // bucket `payment-proofs`
+  note            String?
+  paid_at         DateTime?
+  verified_by     String?
+  verified_at     DateTime?
+  status          PaymentStatus  @default(PENDING)
+  idempotency_key String?        @unique
+  allocations     Json? // hasil alokasi lintas invoice (recordAllocated)
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
 
   invoice         Invoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
   verified_by_user User?   @relation("PaymentVerifiedBy", fields: [verified_by], references: [id])
@@ -1301,6 +1350,7 @@ model Staff {
   certification String?
   hire_date     DateTime?
   status        StaffStatus @default(ACTIVE)
+  ter_category  String      @default("A") // TER PPh21 bulanan PMK 168/2023: A / B / C
   created_at    DateTime    @default(now())
   updated_at    DateTime    @updatedAt
 
@@ -1734,6 +1784,29 @@ model ParentalConsent {
   consented_applicant PpdbApplicant? @relation("ApplicantConsent")
 
   @@map("parental_consent")
+}
+
+// ============================================================
+// §4.9b PdpRequest — permintaan PDP (UU PDP): hapus/ekspor data pribadi
+// ============================================================
+
+model PdpRequest {
+  id             String           @id @default(cuid())
+  user_id        String
+  type           PdpRequestType
+  status         PdpRequestStatus @default(PENDING)
+  reason         String?
+  requested_at   DateTime         @default(now())
+  processed_by   String?
+  processed_at   DateTime?
+  processed_note String?
+
+  user             User  @relation("PdpRequests", fields: [user_id], references: [id], onDelete: Cascade)
+  processed_by_user User? @relation("PdpRequestsProcessed", fields: [processed_by], references: [id])
+
+  @@index([user_id, status])
+  @@index([status])
+  @@map("pdp_request")
 }
 
 // ============================================================

@@ -14,6 +14,12 @@ title = "opensis gitleaks config"
 useDefault = true
 
 [allowlist]
+# CATATAN (go-live): `docs/` dan `*.md` SENGAJA dikecualikan dari scan —
+# dokumentasi sering memuat contoh secret/URL internal yang memicu false
+# positive. Konsekuensinya secret yang HANYA muncul di .md/docs TIDAK
+# terdeteksi gitleaks → WAJIB dicek manual saat review/commit dokumen
+# (mis. grep pola secret + eyeball diff). Jangan hapus pengecualian ini
+# tanpa menyediakan pengganti pemeriksaan manual.
 description = "Path yang dikecualikan dari scan — .env sengaja TIDAK dimasukkan"
 paths = [
   "docs/",

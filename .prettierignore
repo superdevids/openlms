@@ -1,0 +1,24 @@
+# Build artifacts / generated (jangan diformat)
+node_modules/
+dist/
+.next/
+coverage/
+.turbo/
+*.tsbuildinfo
+package-lock.json
+
+# Prisma generated client
+packages/database/prisma/generated/
+
+# Dokumen historis/PRD yang sudah lama tidak mengikuti format Prettier —
+# di luar scope edit (menghindari noise diff pada dokumen).
+docs/01-master-prd.md
+docs/05-implementation-plan.md
+docs/06-research-validations.md
+docs/prd/prd03.md
+docs/prd/prd04.md
+apps/api/src/modules/exam/README.registration.md
+apps/api/src/modules/lms/README.registration.md
+
+# Modul yang sedang dikerjakan coder lain (batas kerja) — jangan diformat
+apps/api/src/modules/smk/**

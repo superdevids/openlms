@@ -1,5 +1,13 @@
 # Registrasi Modul — SMK (PKL, UKK, DUDI)
 
+> ## STATUS: IMPLEMENTED — catatan historis (2026-08-16)
+>
+> Dokumen ini adalah **catatan historis** saat modul masih berbentuk registrasi
+> awal. Implementasi aktual: RBAC global aktif — seluruh route memakai
+> `@RequirePermission` (`internship:*`, `competency:grade:*`,
+> `partner:write:school`); scope SENDIRI (mentor/penguji) di-enforce service.
+> Klaim "TODO RBAC" di bawah sudah usang.
+
 **Status:** Sudah terdaftar di `app.module.ts` (imports: `SmkModule`).
 
 ## Registrasi
@@ -20,4 +28,7 @@ import { SmkModule } from "./modules/smk/smk.module";
 ## Catatan
 
 - TODO RBAC: PKL (GURU/OPERATOR + PEMBIMBING_INDUSTRI), UKK (GURU + PENGUJI_EKSTERNAL), DUDI (OPERATOR/WAKEPSEK).
+  > **Pembaruan 2026-08-16:** RBAC global aktif — seluruh route memakai
+  > `@RequirePermission` (`internship:*`, `competency:grade:*`, `partner:write:school`
+  > — `smk.controller.ts:44-225`); scope SENDIRI (mentor/penguji) di-enforce service.
 - Unit test: `test/unit/internship.service.spec.ts`.

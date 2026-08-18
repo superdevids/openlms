@@ -18,8 +18,9 @@ import {
   type IconProps
 } from "@opensis/ui";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
+import { LandingImage } from "@/components/landing/landing-image";
 import { getFacilities, type FacilityItem } from "@/lib/landing-pages";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, LANDING_SCHOOL_IMAGES } from "@/lib/constants";
 
 /**
  * Fasilitas — GET /public/facilities (publik, per-halaman) via helper
@@ -196,12 +197,14 @@ export default async function FasilitasPage(): Promise<JSX.Element> {
           </FadeInUp>
           <FadeInUp delay={0.15}>
             <div className="relative">
-              <img
-                src="/landing/playful/play-facility.svg"
-                alt="Ilustrasi fasilitas sekolah: gedung, lapangan, dan lingkungan hijau"
-                role="img"
-                className="mx-auto w-full max-w-md"
+              <LandingImage
+                src={LANDING_SCHOOL_IMAGES.facility}
+                alt="Laboratorium dan fasilitas belajar sekolah"
+                width={640}
+                height={480}
                 loading="eager"
+                className="mx-auto w-full max-w-md rounded-[1.5rem] object-cover shadow-[var(--shadow-lift)]"
+                fallbackText="Fasilitas"
               />
               <img
                 src="/landing/playful/play-star.svg"
@@ -473,12 +476,13 @@ export default async function FasilitasPage(): Promise<JSX.Element> {
                 </div>
               </div>
               <div className="hidden lg:block">
-                <img
-                  src="/landing/playful/play-facility.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="mx-auto w-full max-w-sm"
-                  loading="lazy"
+                <LandingImage
+                  src={LANDING_SCHOOL_IMAGES.facility}
+                  alt="Fasilitas belajar sekolah"
+                  width={640}
+                  height={480}
+                  className="mx-auto w-full max-w-sm rounded-[1.5rem] border border-white/20 object-cover shadow-[var(--shadow-soft)]"
+                  fallbackText="Fasilitas"
                 />
               </div>
             </div>

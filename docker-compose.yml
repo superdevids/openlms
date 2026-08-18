@@ -68,14 +68,32 @@ services:
     restart: unless-stopped
     init: true
     stop_grace_period: 30s
-    # AOF aktif — antrean BullMQ tidak boleh hilang saat restart
-    command: ["redis-server", "--appendonly", "yes"]
+    # AOF aktif — antrean BullMQ tidak boleh hilang saat restart.
+    # Auth wajib: requirepass = ${REDIS_PASSWORD} (default dev redis-dev-password).
+    # Nilai harus SAMA dengan REDIS_URL (redis://:<password>@...) yang dipakai
+    # aplikasi (lihat .env.example — REDIS_PASSWORD + REDIS_URL).
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD:-redis-dev-password}"
+      ]
+    environment:
+      # Diekspos ke container agar healthcheck ($${...} = eval shell di dalam
+      # container) memakai password yang sama dengan --requirepass.
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis-dev-password}
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD-SHELL",
+          'redis-cli -a "$${REDIS_PASSWORD:-redis-dev-password}" --no-auth-warning ping | grep -q PONG'
+        ]
       interval: 10s
       timeout: 3s
       retries: 5

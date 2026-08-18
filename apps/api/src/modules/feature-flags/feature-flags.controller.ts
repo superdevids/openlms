@@ -31,6 +31,6 @@ export class FeatureFlagsController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ) {
-    return this.featureFlagsService.update(key, dto, user.id, req.ip);
+    return this.featureFlagsService.update(key, dto, user.id, req.ip, user.roles);
   }
 }

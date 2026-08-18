@@ -43,17 +43,30 @@ export class ExamService {
     });
   }
 
-  async findAll(query: { subject_id?: string; status?: AssessmentStatus; q?: string }) {
+  async findAll(query: {
+    subject_id?: string;
+    status?: AssessmentStatus;
+    q?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
     const where: Prisma.ExamWhereInput = {};
     if (query.subject_id) where.subject_id = query.subject_id;
     if (query.status) where.status = query.status;
     if (query.q) where.title = { contains: query.q, mode: "insensitive" };
-    const items = await prisma.exam.findMany({
-      where,
-      include: { _count: { select: { packages: true, sessions: true } } },
-      orderBy: { created_at: "desc" }
-    });
-    return { items, total: items.length };
+    const [items, total] = await Promise.all([
+      prisma.exam.findMany({
+        where,
+        include: { _count: { select: { packages: true, sessions: true } } },
+        orderBy: { created_at: "desc" },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      prisma.exam.count({ where })
+    ]);
+    return { items, total, page, limit };
   }
 
   async findOne(id: string) {

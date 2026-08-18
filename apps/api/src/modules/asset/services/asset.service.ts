@@ -138,12 +138,25 @@ export class AssetService {
       },
       orderBy: { code: "asc" }
     });
-    const result: Array<{ asset: Asset; extension: AssetExtensionRecord | null }> = [];
-    for (const a of assets) {
-      const ext = await this.store.getExtension(a.id);
-      result.push({ asset: a, extension: ext });
-    }
-    return result;
+    // Extension = kolom pada tabel asset yang sama (merk, tahun_perolehan, dst.)
+    // → diproyeksikan langsung dari hasil findMany awal (SEBELUMNYA getExtension
+    // per aset = N+1). Perilaku identik dengan PrismaAssetStore.toExtension.
+    return assets.map((a) => ({ asset: a, extension: this.toExtension(a) }));
+  }
+
+  /** Proyeksi kolom perluasan aset -> AssetExtensionRecord (1:1 ke PrismaAssetStore). */
+  private toExtension(asset: Asset): AssetExtensionRecord {
+    return {
+      assetId: asset.id,
+      merk: asset.merk,
+      tahunPerolehan: asset.tahun_perolehan,
+      hargaPerolehan: asset.harga_perolehan,
+      masaManfaatBulan: asset.masa_manfaat_bulan,
+      penanggungJawab: asset.penanggung_jawab_id,
+      sumberDana: asset.sumber_dana,
+      createdAt: asset.created_at,
+      updatedAt: asset.updated_at
+    };
   }
 
   /** Umur manfaat efektif: dari extension, fallback default per kategori. */

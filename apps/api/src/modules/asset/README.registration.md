@@ -1,5 +1,19 @@
 # REGISTRATION — Modul Asset (Gelombang 2, prd04 §5.G)
 
+> ## STATUS: IMPLEMENTED (2026-08-16)
+>
+> Seluruh bagian di bawah (termasuk §4 "Field/entitas yang BELUM ada…") adalah
+> **catatan historis**. Implementasi aktual:
+>
+> - **Semua field/entitas sudah ada di `schema.prisma`**: `Asset` dengan
+>   `merk`, `tahun_perolehan`, `harga_perolehan`, `masa_manfaat_bulan`,
+>   `penanggung_jawab_id`, `sumber_dana` (baris 1381-1386); enum
+>   `AssetCategory` `KENDARAAN`/`PERALATAN_IT` (baris 219-220, migrasi
+>   `20260807010000_integrate_w2`); `AssetMaintenance` (baris 2454),
+>   `AssetAudit` (2472).
+> - Modul terintegrasi di `app.module.ts` (`AssetModule`, import baris 21 —
+>   terdaftar baris 103) memakai `PrismaAssetStore`.
+
 Status: **SIAP DIIMPLEMENTASI / PERSISTENCE W2 MENYUSUL** (lih. ISSUES).
 
 ## 1. Tujuan

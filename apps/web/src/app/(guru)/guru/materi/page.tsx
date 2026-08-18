@@ -18,7 +18,7 @@ import {
 } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
-import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
+import { PageHeader, DataTable, StatusBadge, RequiredLabel } from "@/components/ui";
 
 interface Material {
   id: string;
@@ -154,7 +154,7 @@ export default function GuruMateriPage(): JSX.Element {
       >
         <form onSubmit={(e) => void create(e)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="mat-title">Judul Materi</Label>
+            <RequiredLabel htmlFor="mat-title">Judul Materi</RequiredLabel>
             <Input
               id="mat-title"
               value={title}

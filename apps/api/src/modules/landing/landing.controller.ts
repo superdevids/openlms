@@ -67,7 +67,7 @@ export class LandingController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<LandingContentView> {
-    return this.landingService.upsertLandingContent(slug, dto, user.id, req.ip);
+    return this.landingService.upsertLandingContent(slug, dto, user.id, req.ip, user.roles);
   }
 
   @Post("admin/landing/berita")
@@ -77,7 +77,7 @@ export class LandingController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<NewsArticleView> {
-    return this.landingService.createNews(dto, user.id, req.ip);
+    return this.landingService.createNews(dto, user.id, req.ip, user.roles);
   }
 
   @Patch("admin/landing/berita/:id")
@@ -88,7 +88,7 @@ export class LandingController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<NewsArticleView> {
-    return this.landingService.updateNews(id, dto, user.id, req.ip);
+    return this.landingService.updateNews(id, dto, user.id, req.ip, user.roles);
   }
 
   @Delete("admin/landing/berita/:id")
@@ -98,6 +98,6 @@ export class LandingController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<void> {
-    return this.landingService.deleteNews(id, user.id, req.ip);
+    return this.landingService.deleteNews(id, user.id, req.ip, user.roles);
   }
 }

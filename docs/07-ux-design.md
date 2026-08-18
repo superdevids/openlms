@@ -202,7 +202,7 @@ Format: `Tujuan → Aktor → Langkah (dengan keputusan) → State`. Setiap flow
 
 1. TU membuka [Undangan] → (Undang) → pilih tipe (Guru / Siswa), isi nama + email (guru) atau nama + NISN (siswa; email opsional).
 2. Sistem membuat link undangan unik ber-role; mengirim email (guru) atau link via WhatsApp/print (siswa).
-3. Penerima buka link → login dengan Email/Username + Password (auth in-house; tanpa Google/SSO) [prd04 §5.O].
+3. Penerima buka link → login dengan Username (NIS/NIP) + Password (auth in-house; tanpa Google/SSO) [prd04 §5.O].
 4. `[?]` Email/username sudah terdaftar? → tolak: 'Akun sudah terdaftar' (username/email unik aplikasi — single-school).
 5. **State:** undangan = terkirim → terpakai → kedaluwarsa (7 hari). TU melihat status di tabel; bisa kirim ulang.
 
@@ -291,7 +291,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 | | Masuk ke opensis                         | |
 | | Masuk dengan akun sekolah Anda          | |
 | |                                          | |
-| | Email atau Username      [............] | |
+| | Username (NIS/NIP)      [............] | |
 | | Kata sandi               [............]  | |
 | | Lupa kata sandi? Hubungi OPERATOR/SUPERADMIN | |
 | |               (reset in-app)                | |
@@ -305,7 +305,7 @@ Konvensi ASCII: `[Tombol]` tombol, `(Tab)` tab, `[x]` checkbox, `....` input/tek
 
 - State: error inline `role="alert"`; loading = spinner di tombol + disabled.
 - Aksesibel: label eksplisit, `aria-required`, fokus ring pada kedua input, tombol ≥44px.
-- Satu metode login: 'Email atau Username' + Password (Argon2id) [prd04 §5.P]; reset password oleh OPERATOR/SUPERADMIN (in-app, tanpa email/SMS) [prd04 §13 Q25]; tanpa tombol Google/SSO (no third-party) [prd04 §5.O].
+- Satu metode login: 'Username' (NIS/NIP) + Password (Argon2id) [prd04 §5.P]; reset password oleh OPERATOR/SUPERADMIN (in-app, tanpa email/SMS) [prd04 §13 Q25]; tanpa tombol Google/SSO (no third-party) [prd04 §5.O].
 
 ### 5.2 Dashboard Siswa (mobile)
 
@@ -852,7 +852,7 @@ Sekolah inklusi ada di SMA/SMK reguler; standar aksesibilitas menyeluruh (bukan 
 | **Target sentuh**      | ≥44×44px; jarak ≥8px.                                                                                                                                                               |
 | **Gambar/ikon**        | `alt` deskriptif; ikon dekoratif `aria-hidden`; ikon fungsional punya label teks (nama aksesibel).                                                                                  |
 | **Bahasa**             | `lang="id"` di root; teks UI Bahasa Indonesia.                                                                                                                                      |
-| **Multi-device**       | Satu metode login untuk semua perangkat: 'Email atau Username' + Password (Argon2id); tanpa SSO eksternal (no third-party) [prd04 §5.O].                                            |
+| **Multi-device**       | Satu metode login untuk semua perangkat: 'Username' (NIS/NIP) + Password (Argon2id); tanpa SSO eksternal (no third-party) [prd04 §5.O].                                             |
 
 Kasus khusus siswa disabilitas:
 
@@ -904,7 +904,7 @@ Prioritas mengikuti prd04 §10 (roadmap): **fondasi + LMS inti + absensi/ujian +
 
 | Fase                       | Fokus                                                                                           | Desain yang wajib tuntas                                                                                                                                                                                                                                                                                     | Desain yang boleh minimal                                                                      |
 | -------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| **0-2 (MVP inti)**         | Auth, onboarding, kelas, materi, tugas, submission, grading, notifikasi dasar                   | Login (Email/Username + Password); wizard onboarding (profil+impor+undang); kelas CRUD; detail kelas (materi/tugas); form tugas; submission siswa; queue & grading guru (side-by-side); rekap nilai dasar; design system inti; aksesibilitas dasar (semua halaman); data-saver dasar; notifikasi             | Dashboard kepsek/waka; PPDB; keuangan; analitik                                                |
+| **0-2 (MVP inti)**         | Auth, onboarding, kelas, materi, tugas, submission, grading, notifikasi dasar                   | Login (Username NIS/NIP + Password); wizard onboarding (profil+impor+undang); kelas CRUD; detail kelas (materi/tugas); form tugas; submission siswa; queue & grading guru (side-by-side); rekap nilai dasar; design system inti; aksesibilitas dasar (semua halaman); data-saver dasar; notifikasi           | Dashboard kepsek/waka; PPDB; keuangan; analitik                                                |
 | **3-4**                    | Kuis & penilaian; absensi online QR; ujian online; e-Rapor; portal orang tua                    | Bank soal & kuis; absensi QR (generate/scan/validasi); ujian online (token, timer, autosave, auto-submit, log kecurangan, hasil); rekap nilai lanjut; izin/sakit + verifikasi wali kelas; dashboard wali kelas; **portal orang tua read-only (dashboard nilai/absensi/tagihan anak)**                        | Dashboard superadmin                                                                           |
 | **5 (Gelombang 2 — W2)**   | Keuangan SPP; payroll; aset & depresiasi; konsol admin; kalender terpadu; rollover tahun ajaran | Keuangan (tagihan/verifikasi/laporan) [W2-PAYMENT]; payroll (slip, PPh 21 TER/BPJS) [W2-PAYROLL]; aset (inventaris/depresiasi/opname) [W2-ASSET]; konsol admin sistem sekolah (pengaturan, feature flags, audit) [W2-ADMIN]; kalender terpadu lintas modul [W2-KALENDER]; rollover tahun ajaran [M-ROLLOVER] | PPDB; komunikasi; kesiswaan; perpustakaan; alumni                                              |
 | **6 (Gelombang 3 — W3)**   | PPDB; notifikasi penuh; akademik lanjut; kesiswaan; komunikasi                                  | PPDB wizard 4 langkah + verifikasi TU + pengumuman; portal cek status; notifikasi penuh                                                                                                                                                                                                                      | Modul pendukung (BK, sarpras, perpustakaan, alumni, komunikasi) sesuai kebutuhan sekolah pilot |

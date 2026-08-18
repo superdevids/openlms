@@ -1,6 +1,6 @@
 /**
  * Katalog permission RBAC — prd04 §4.2 (13 kategori) + role mapping.
- * ~120 permission; scope default per role (SENDIRI/KELAS/SEKOLAH).
+ * 141 permission (13 kategori); scope default per role (SENDIRI/KELAS/SEKOLAH).
  * Sumber mapping: prd04 §16.1 Lampiran A + 04-api-contract §4 RBAC Matrix.
  */
 
@@ -75,6 +75,26 @@ export const PERMISSIONS: PermissionSeed[] = [
     category: "IDENTITAS",
     description: "Reset password user lain (OPERATOR)"
   },
+  {
+    code: "pdp:data:self",
+    category: "IDENTITAS",
+    description: "Akses data pribadi sendiri (UU PDP)"
+  },
+  {
+    code: "pdp:export:self",
+    category: "IDENTITAS",
+    description: "Ekspor data pribadi sendiri (UU PDP)"
+  },
+  {
+    code: "pdp:delete-request:self",
+    category: "IDENTITAS",
+    description: "Ajukan permintaan penghapusan data pribadi (UU PDP)"
+  },
+  {
+    code: "pdp:review:school",
+    category: "IDENTITAS",
+    description: "Review permintaan PDP (hapus/ekspor data pribadi)"
+  },
 
   // 2. Pengaturan & data induk
   { code: "app:read:school", category: "PENGATURAN", description: "Baca pengaturan aplikasi" },
@@ -131,6 +151,26 @@ export const PERMISSIONS: PermissionSeed[] = [
   { code: "report:read:school", category: "AKADEMIK", description: "Lihat rapor seluruh sekolah" },
   { code: "report:export:class", category: "AKADEMIK", description: "Ekspor rapor per kelas" },
   { code: "report:export:school", category: "AKADEMIK", description: "Ekspor rapor sekolah" },
+  {
+    code: "report:export:self",
+    category: "AKADEMIK",
+    description: "Ekspor rapor sendiri/anak (PDF)"
+  },
+  {
+    code: "rapor:p5:write:class",
+    category: "AKADEMIK",
+    description: "Rekam/ubah proyek P5 rapor (scope kelas)"
+  },
+  {
+    code: "rapor:p5:write:school",
+    category: "AKADEMIK",
+    description: "Rekam/ubah proyek P5 rapor seluruh sekolah"
+  },
+  {
+    code: "rapor:write:school",
+    category: "AKADEMIK",
+    description: "Kelola pengaturan rapor (bobot tipe nilai)"
+  },
 
   // 4. LMS
   { code: "material:read:class", category: "LMS", description: "Baca materi kelas" },
@@ -373,10 +413,16 @@ const s = (scope: PermissionScope, ...codes: string[]): RolePermissionSeed[] =>
   codes.map((code) => ({ code, scope }));
 
 export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
-  SUPERADMIN: PERMISSIONS.filter((p) => !p.code.endsWith(":self")).map((p) => ({
-    code: p.code,
-    scope: "SEKOLAH"
-  })),
+  SUPERADMIN: [
+    ...PERMISSIONS.filter((p) => !p.code.endsWith(":self")).map((p) => ({
+      code: p.code,
+      scope: "SEKOLAH" as const
+    })),
+    // PDP self: filter :self di atas mengecualikan pdp:data:self dkk; grant
+    // eksplisit dibutuhkan agar SUPERADMIN tetap bisa memakai fitur PDP self
+    // (pola grant eksplisit permission :self untuk role dengan akses penuh).
+    ...s("SENDIRI", "pdp:data:self", "pdp:export:self", "pdp:delete-request:self")
+  ],
 
   KEPSEK: [
     ...BASIC_SELF,
@@ -390,6 +436,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ),
     ...s("SEKOLAH", "report:read:school", "report:export:school", "report:export:class"),
     ...s("KELAS", "report:read:class"),
+    ...s("SEKOLAH", "rapor:p5:write:school", "rapor:write:school"),
     ...s("KELAS", "material:read:class", "assignment:read:class"),
     ...s(
       "SEKOLAH",
@@ -468,6 +515,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "enrollment:manage:school"),
     ...s("SEKOLAH", "report:read:school", "report:export:school", "report:export:class"),
     ...s("KELAS", "report:read:class"),
+    ...s("SEKOLAH", "rapor:p5:write:school", "rapor:write:school"),
     ...s("KELAS", "material:read:class", "material:write:class", "assignment:read:class"),
     ...s(
       "KELAS",
@@ -542,6 +590,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "landing:write:school"),
     ...s("SEKOLAH", "import:run:school", "import:preview:school", "invitation:send:school"),
     ...s("SEKOLAH", "retention:configure:school", "retention:run:school"),
+    ...s("SEKOLAH", "pdp:review:school"),
     ...s(
       "SEKOLAH",
       "user:read:school",
@@ -560,6 +609,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SEKOLAH", "academic:prodi:write", "academic:prodi:read"),
     ...s("SEKOLAH", "enrollment:manage:school"),
     ...s("SEKOLAH", "report:read:school", "report:export:school", "report:export:class"),
+    ...s("SEKOLAH", "rapor:p5:write:school", "rapor:write:school"),
     ...s("KELAS", "material:read:class", "material:write:class", "assignment:read:class"),
     ...s(
       "SEKOLAH",
@@ -653,6 +703,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("KELAS", "permit:verify:class"),
     ...s("KELAS", "discipline:record:class"),
     ...s("KELAS", "report:read:class", "report:export:class"),
+    ...s("KELAS", "rapor:p5:write:class"),
     ...s("SEKOLAH", "extracurricular:read:school", "extracurricular:write:school"),
     ...s("SENDIRI", "asset:book:self"),
     ...s("SEKOLAH", "library:read:school"),
@@ -668,6 +719,7 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...BASIC_SELF,
     ...s("SEKOLAH", "class:read:school"),
     ...s("SEKOLAH", "academic:prodi:read"),
+    ...s("SEKOLAH", "rapor:p5:write:school"),
     ...s("SEKOLAH", "attendance:rekap:class", "attendance:rekap:school"),
     ...s("SENDIRI", "permit:request:self"),
     ...s("KELAS", "permit:verify:class"),
@@ -695,8 +747,16 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s("SENDIRI", "quiz:attempt:self", "exam:attempt:self"),
     ...s("SENDIRI", "academic:prodi:read"),
     ...s("SENDIRI", "attendance:scan:self", "attendance:rekap:self", "permit:request:self"),
-    ...s("SENDIRI", "invoice:read:self", "report:read:self"),
-    ...s("SENDIRI", "extracurricular:join:self", "library:borrow:self", "asset:book:self"),
+    ...s("SENDIRI", "invoice:read:self", "report:read:self", "report:export:self"),
+    ...s(
+      "SENDIRI",
+      "pdp:data:self",
+      "pdp:export:self",
+      "pdp:delete-request:self",
+      "extracurricular:join:self",
+      "library:borrow:self",
+      "asset:book:self"
+    ),
     ...s("SEKOLAH", "announcement:read", "library:read:school"),
     ...s("SENDIRI", "letter:request:self", "internship:journal:self")
   ],
@@ -706,9 +766,13 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
     ...s(
       "SENDIRI",
       "report:read:self",
+      "report:export:self",
       "invoice:read:self",
       "attendance:rekap:self",
-      "permit:request:self"
+      "permit:request:self",
+      "pdp:data:self",
+      "pdp:export:self",
+      "pdp:delete-request:self"
     ),
     ...s("KELAS", "class:read:class"),
     ...s("SEKOLAH", "announcement:read"),
@@ -719,18 +783,26 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissionSeed[]> = {
   CALON_SISWA: [
     ...BASIC_SELF,
     ...s("SENDIRI", "ppdb:register:public", "ppdb:read:self"),
-    ...s("SENDIRI", "academic:prodi:read")
+    ...s(
+      "SENDIRI",
+      "academic:prodi:read",
+      "pdp:data:self",
+      "pdp:export:self",
+      "pdp:delete-request:self"
+    )
   ],
 
   PEMBIMBING_INDUSTRI: [
     ...BASIC_SELF,
     ...s("SENDIRI", "internship:journal:self", "internship:grade:self"),
+    ...s("SENDIRI", "pdp:data:self", "pdp:export:self", "pdp:delete-request:self"),
     ...s("SEKOLAH", "announcement:read")
   ],
 
   PENGUJI_EKSTERNAL: [
     ...BASIC_SELF,
     ...s("SENDIRI", "competency:grade:self"),
+    ...s("SENDIRI", "pdp:data:self", "pdp:export:self", "pdp:delete-request:self"),
     ...s("SEKOLAH", "announcement:read")
   ]
 };

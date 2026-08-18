@@ -77,35 +77,52 @@
 
 ### 2.1 Auth & Pengaturan Aplikasi
 
-| Method | Path                               | Deskripsi                                                           | Role                   |
-| ------ | ---------------------------------- | ------------------------------------------------------------------- | ---------------------- |
-| GET    | `/auth/me`                         | Profil + role aktif                                                 | *                      |
-| POST   | `/auth/login`                      | Login (Public): Email/Username + Password → set JWT httpOnly cookie | P                      |
-| POST   | `/auth/logout`                     | Logout (revoke refresh token in-house)                              | *                      |
-| GET    | `/auth/invitations`                | Daftar undangan masuk                                               | *                      |
-| POST   | `/auth/invitations/:id/accept`     | Terima undangan → UserRole ACTIVE                                   | *                      |
-| POST   | `/auth/password/reset`             | Reset password (in-app, tanpa email/SMS)                            | OPR, SA                |
-| GET    | `/app/settings`                    | Pengaturan aplikasi (profil sekolah, tahun ajaran, ambang alpa)     | OPR, WPS, KPS, SA      |
-| PATCH  | `/app/settings`                    | Update pengaturan aplikasi                                          | SA, OPR                |
-| GET    | `/app/feature-flags`               | Daftar saklar fitur (FeatureFlag/AppFeatureSetting)                 | SA                     |
-| PATCH  | `/app/feature-flags/:key`          | Ubah on/off/lock fitur (AuditLog)                                   | SA                     |
-| POST   | `/app/import`                      | Mulai impor data (Excel) → ImportBatch                              | OPR, SA                |
-| GET    | `/app/import/:batchId`             | Status impor + ringkasan error                                      | OPR, SA                |
-| POST   | `/app/invitations`                 | Kirim undangan guru/siswa (in-app; tanpa email/SMS)                 | OPR, WPS, KPS, SA      |
-| POST   | `/app/rollover`                    | Jalankan rollover tahun ajaran (preview → run → rollback)           | KPS, SA                |
-| POST   | `/app/rollover/drafts`             | Buat draft rollover + hasil preview (dry-run, tanpa tulis)          | KPS, SA; OPR (preview) |
-| POST   | `/app/rollover/drafts/:id/execute` | Eksekusi draft → RolloverRun RUNNING (idempoten)                    | KPS, SA                |
-| POST   | `/app/rollover/runs/:id/rollback`  | Rollback dalam window 7 hari → ROLLED_BACK                          | KPS, SA                |
-| GET    | `/app/rollover/history`            | Riwayat run rollover (RolloverRun + status)                         | OPR, WPS, KPS, SA      |
+| Method | Path                               | Deskripsi                                                               | Role                   |
+| ------ | ---------------------------------- | ----------------------------------------------------------------------- | ---------------------- |
+| GET    | `/auth/me`                         | Profil + role aktif                                                     | *                      |
+| POST   | `/auth/login`                      | Login (Public): Username (NIS/NIP) + Password → set JWT httpOnly cookie | P                      |
+| POST   | `/auth/logout`                     | Logout (revoke refresh token in-house)                                  | *                      |
+| GET    | `/auth/invitations`                | Daftar undangan masuk                                                   | *                      |
+| POST   | `/auth/invitations/accept`         | Terima undangan (token) → UserRole ACTIVE                               | P                      |
+| POST   | `/auth/password/reset`             | Reset password (in-app, tanpa email/SMS)                                | OPR, SA                |
+| GET    | `/app/settings`                    | Pengaturan aplikasi (profil sekolah, tahun ajaran, ambang alpa)         | OPR, WPS, KPS, SA      |
+| PATCH  | `/app/settings`                    | Update pengaturan aplikasi                                              | SA, OPR                |
+| GET    | `/app/feature-flags`               | Daftar saklar fitur (FeatureFlag/AppFeatureSetting)                     | SA                     |
+| PATCH  | `/app/feature-flags/:key`          | Ubah on/off/lock fitur (AuditLog)                                       | SA                     |
+| POST   | `/app/import`                      | Mulai impor data (Excel) → ImportBatch                                  | OPR, SA                |
+| GET    | `/app/import/:batchId`             | Status impor + ringkasan error                                          | OPR, SA                |
+| POST   | `/auth/invitations`                | Kirim undangan guru/siswa (in-app; username wajib, email opsional)      | OPR, WPS, KPS, SA      |
+| POST   | `/app/rollover`                    | Jalankan rollover tahun ajaran (preview → run → rollback)               | KPS, SA                |
+| POST   | `/app/rollover/drafts`             | Buat draft rollover + hasil preview (dry-run, tanpa tulis)              | KPS, SA; OPR (preview) |
+| POST   | `/app/rollover/drafts/:id/execute` | Eksekusi draft → RolloverRun RUNNING (idempoten)                        | KPS, SA                |
+| POST   | `/app/rollover/runs/:id/rollback`  | Rollback dalam window 7 hari → ROLLED_BACK                              | KPS, SA                |
+| GET    | `/app/rollover/history`            | Riwayat run rollover (RolloverRun + status)                             | OPR, WPS, KPS, SA      |
 
-**Contoh create invitation (POST /app/invitations):**
+**Contoh login (POST /auth/login):**
 
 ```json
 // REQ
-{ "username": "guru.2026", "role": "GURU", "classIds": ["cls_1"] }
+{ "username": "siswa.2026", "password": "rahasia" }
+// RES 200
+{ "user": { "id": "usr_01H...", "username": "siswa.2026", "email": null, "fullName": "Siswa 2026", "roles": ["SISWA"] }, "mustChangePassword": true }
+```
+
+> Login hanya memakai `username` (NIS untuk siswa / NIP untuk guru); email tidak dipakai
+> untuk login — hanya opsional untuk notifikasi. Sumber: `apps/api/src/modules/auth/dto/login.dto.ts`,
+> `auth.service.ts` (lookup `User.username`).
+
+**Contoh create invitation (POST /auth/invitations):**
+
+```json
+// REQ
+{ "username": "guru.2026", "email": "guru@sekolah.id", "fullName": "Guru 2026", "role": "GURU" }
 // RES 201
 { "id": "usr_01H...", "status": "INVITED", "inviteLink": "https://app.opensis.id/invite/tok_..." }
 ```
+
+> Undangan: `username` **wajib** (NIS/NIP — identifier akun); `email` **opsional** (hanya
+> notifikasi, bukan untuk login); `fullName` dan `role` wajib. Sumber:
+> `apps/api/src/modules/auth/dto/invitation.dto.ts`.
 
 **Contoh ubah feature flag (PATCH /app/feature-flags/LMS_EXAM):**
 
@@ -297,6 +314,21 @@
 | GET    | `/reports/class/:id`        | Rekap nilai & absensi per kelas        | G(homeroom), OPR, WPS, KPS, SA                   |
 | POST   | `/reports/class/:id/export` | Ekspor rapor PDF/Excel → DataExportLog | G(homeroom), OPR, SA                             |
 
+> **Pembaruan 2026-08-17: path aktual.** Tiga baris di atas adalah path desain
+> awal (dipertahankan sebagai riwayat). Implementasi aktual modul `rapor`
+> (e-Rapor v2, lihat `apps/api/src/modules/rapor/README.rapor.md`):
+
+| Method | Path                           | Deskripsi                                                            | Permission                                                            |
+| ------ | ------------------------------ | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| GET    | `/rapor/:studentId`            | Rapor lengkap satu siswa (query `semester`, `academicYear` opsional) | `report:read:self` / `report:read:class` / `report:read:school`       |
+| GET    | `/rapor/class/:classId`        | Rapor ringkas per kelas                                              | `report:read:class` / `report:read:school`                            |
+| GET    | `/rapor/students`              | Daftar siswa per kelas (query `classId`)                             | `report:read:class` / `report:read:school`                            |
+| GET    | `/rapor/settings`              | Baca bobot rapor (`raporWeights`)                                    | `report:read:school`                                                  |
+| PUT    | `/rapor/settings`              | Simpan bobot rapor                                                   | `rapor:write:school`                                                  |
+| POST   | `/rapor/p5`                    | Upsert proyek P5 manual                                              | `rapor:p5:write:class` / `rapor:p5:write:school`                      |
+| DELETE | `/rapor/p5/:id`                | Hapus proyek P5                                                      | `rapor:p5:write:class` / `rapor:p5:write:school`                      |
+| POST   | `/rapor/:studentId/export-pdf` | Ekspor PDF rapor per siswa (job async, footer "Draft Sistem")        | `report:export:self` / `report:export:class` / `report:export:school` |
+
 ### 2.7 Keuangan
 
 | Method | Path                      | Deskripsi                                  | Role                                   |
@@ -366,28 +398,60 @@
 
 ### 2.10 Modul Fase 2/3 (utama)
 
-| Method   | Path                                                     | Deskripsi                                          | Role                                                 |
-| -------- | -------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
-| GET/POST | `/counseling/notes`                                      | Catatan BK (field-level: hanya BK/WAKEPSEK/KEPSEK) | BK, WPS, KPS, SA, AUD (baca)                         |
-| GET/POST | `/discipline/points`                                     | Katalog poin pelanggaran                           | OPR, WPS, SA                                         |
-| POST     | `/discipline/records`                                    | Catat pelanggaran siswa                            | G, G(homeroom), BK, OPR, WPS, KPS, SA (KP/AUD: baca) |
-| GET/POST | `/extracurriculars` (+ `/enrollments`)                   | Ekskul & pendaftaran                               | S, G, BK, OPR, WPS, KPS, SA (KP/AUD: baca)           |
-| GET/POST | `/achievements`                                          | Prestasi siswa                                     | G, OPR, SA                                           |
-| GET/POST | `/staff`                                                 | Data induk staf                                    | OPR, WPS, KPS, SA                                    |
-| GET/POST | `/staff-attendance`                                      | Absensi staf                                       | OPR, SA                                              |
-| GET/POST | `/assets` (+ `/bookings`)                                | Inventaris & peminjaman                            | OPR, WPS, SA (booking: * )                           |
-| GET/POST | `/library/books` (+ `/loans`)                            | Katalog & peminjaman                               | S, G, BK, OPR, WPS, KPS, SA, KP, AUD (baca)          |
-| GET/POST | `/announcements`                                         | Pengumuman sekolah                                 | * (buat: OPR, WPS, KPS, SA)                          |
-| GET/POST | `/letters` (+ `/approve`)                                | Surat resmi & approval                             | S, G, BK, OPR, K, WPS, KPS, SA, AUD (baca)           |
-| GET      | `/parent/students`                                       | Anak terhubung (portal wali murid)                 | WM                                                   |
-| GET      | `/parent/students/:id/grades` , `/absences`, `/invoices` | Pantauan read-only anak                            | WM                                                   |
-| GET/POST | `/internships` (+ `/journals`)                           | PKL & jurnal harian                                | S, PI, G(mentor), KP, WPS, SA                        |
-| GET/POST | `/internship-partners` (+ `/mentors`)                    | Mitra DUDI & pembimbing industri                   | WPS, SA                                              |
-| GET/POST | `/competency-tests` (+ rubric)                           | UKK & penilaian rubrik                             | PE, G, KP, WPS, SA                                   |
-| POST     | `/exports/dapodik`                                       | Buat ekspor Dapodik (file) → DataExportLog         | OPR, WPS, KPS, SA                                    |
-| GET      | `/exports/:id/download`                                  | Unduh hasil ekspor                                 | OPR, WPS, KPS, SA                                    |
-| GET      | `/audit-logs`                                            | Riwayat audit (filter entity)                      | AUD, WPS, KPS, SA                                    |
-| POST     | `/retention/run`                                         | Jalankan job retensi manual (G12)                  | SA                                                   |
+| Method   | Path                                                     | Deskripsi                                            | Role                                                 |
+| -------- | -------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| GET/POST | `/counseling/notes`                                      | Catatan BK (field-level: hanya BK/WAKEPSEK/KEPSEK)   | BK, WPS, KPS, SA, AUD (baca)                         |
+| GET/POST | `/discipline/points`                                     | Katalog poin pelanggaran                             | OPR, WPS, SA                                         |
+| POST     | `/discipline/records`                                    | Catat pelanggaran siswa                              | G, G(homeroom), BK, OPR, WPS, KPS, SA (KP/AUD: baca) |
+| GET/POST | `/extracurriculars` (+ `/enrollments`)                   | Ekskul & pendaftaran                                 | S, G, BK, OPR, WPS, KPS, SA (KP/AUD: baca)           |
+| GET/POST | `/achievements`                                          | Prestasi siswa                                       | G, OPR, SA                                           |
+| GET/POST | `/staff`                                                 | Data induk staf                                      | OPR, WPS, KPS, SA                                    |
+| GET/POST | `/staff-attendance`                                      | Absensi staf                                         | OPR, SA                                              |
+| GET/POST | `/assets` (+ `/bookings`)                                | Inventaris & peminjaman                              | OPR, WPS, SA (booking: * )                           |
+| GET/POST | `/library/books` (+ `/loans`)                            | Katalog & peminjaman                                 | S, G, BK, OPR, WPS, KPS, SA, KP, AUD (baca)          |
+| GET/POST | `/announcements`                                         | Pengumuman sekolah                                   | * (buat: OPR, WPS, KPS, SA)                          |
+| GET/POST | `/letters` (+ `/approve`)                                | Surat resmi & approval                               | S, G, BK, OPR, K, WPS, KPS, SA, AUD (baca)           |
+| GET      | `/parent/students`                                       | Anak terhubung (portal wali murid)                   | WM                                                   |
+| GET      | `/parent/students/:id/grades` , `/absences`, `/invoices` | Pantauan read-only anak                              | WM                                                   |
+| GET/POST | `/internships` (+ `/journals`)                           | PKL & jurnal harian                                  | S, PI, G(mentor), KP, WPS, SA                        |
+| GET/POST | `/internship-partners` (+ `/mentors`)                    | Mitra DUDI & pembimbing industri                     | WPS, SA                                              |
+| GET/POST | `/competency-tests` (+ rubric)                           | UKK & penilaian rubrik                               | PE, G, KP, WPS, SA                                   |
+| POST     | `/dapodik/export`                                        | Buat ekspor Dapodik (3 CSV via job) → DataExportLog  | OPR, WPS, KPS, SA                                    |
+| GET      | `/exports/:id`                                           | Metadata log ekspor (status, file_url, record_count) | pemilik log / OPR, WPS, KPS, SA                      |
+| GET      | `/exports/:id/download`                                  | Unduh hasil ekspor (log multi-file: `?file=<nama>`)  | pemilik log / OPR, WPS, KPS, SA                      |
+| GET      | `/audit-logs`                                            | Riwayat audit (filter entity)                        | AUD, WPS, KPS, SA                                    |
+| POST     | `/retention/run`                                         | Jalankan job retensi manual (G12)                    | SA                                                   |
+
+> **Pembaruan 2026-08-17: path aktual.** Baris `POST /exports/dapodik` (desain
+> awal) kini **`POST /dapodik/export`** (`export:run:school`,
+> `dapodik.controller.ts`); `GET /exports/:id` (metadata) ditambahkan — unduh
+> hasil ekspor memakai `GET /exports/:id/download` (modul `export`, lihat
+> `apps/api/src/modules/export/README.export.md`). Autorisasi aktual: pemilik
+> log ATAU `export:read:school` (row-level, `export.service.ts`).
+
+### 2.11 PDP — Kepatuhan UU PDP (modul `pdp`, 2026-08-17)
+
+Endpoint implementasi aktual (`pdp.controller.ts`); prefix global `/api/v1`.
+Semua scope self memakai `userId` dari RequestContext (anti-impersonation).
+
+| Method | Path                           | Permission                          | Deskripsi                                                            |
+| ------ | ------------------------------ | ----------------------------------- | -------------------------------------------------------------------- |
+| GET    | `/pdp/me/data`                 | `pdp:data:self`                     | Kumpulkan data pribadi sendiri (profil, role, kelas, consent, audit) |
+| PUT    | `/pdp/me`                      | `pdp:data:self` + `user:write:self` | Perbaiki profil (allowlist ketat; email/username DITOLAK)            |
+| POST   | `/pdp/me/export`               | `pdp:export:self`                   | Ekspor data pribadi → `DataExportLog` `ExportType.PERSONAL`          |
+| GET    | `/pdp/me/exports`              | `pdp:export:self`                   | Daftar ekspor data pribadi (hanya milik sendiri)                     |
+| GET    | `/pdp/me/exports/:id/download` | `pdp:export:self`                   | Unduh hasil ekspor (hanya milik sendiri; user lain → 403)            |
+| POST   | `/pdp/me/delete-request`       | `pdp:delete-request:self`           | Ajukan permintaan hapus data (dedupe 1 PENDING/user → 409)           |
+| GET    | `/pdp/me/requests`             | `pdp:delete-request:self`           | Daftar permintaan sendiri                                            |
+| GET    | `/pdp/consents`                | `pdp:data:self`                     | Daftar consent data anak (`ParentalConsent`)                         |
+| GET    | `/pdp/requests`                | `pdp:review:school`                 | Daftar permintaan admin (query `status` opsional)                    |
+| POST   | `/pdp/requests/:id/approve`    | `pdp:review:school`                 | Approve → eksekusi anonimisasi/ekspor → `EXECUTED`                   |
+| POST   | `/pdp/requests/:id/reject`     | `pdp:review:school`                 | Tolak permintaan                                                     |
+| GET    | `/pdp/retention`               | `retention:configure:school`        | Daftar kebijakan retensi (`DataRetentionPolicy`)                     |
+| PUT    | `/pdp/retention/:entity`       | `retention:configure:school`        | Upsert kebijakan retensi (entity dari path param)                    |
+| POST   | `/pdp/retention/run`           | `retention:run:school`              | Jalankan job retensi manual                                          |
+
+Detail: [README.pdp.md](../apps/api/src/modules/pdp/README.pdp.md).
 
 ---
 

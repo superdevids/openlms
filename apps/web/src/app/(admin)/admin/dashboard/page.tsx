@@ -24,6 +24,7 @@ import {
 } from "@opensis/ui";
 
 import { roleLabel } from "@/lib/roles";
+import { useActiveRole } from "@/lib/active-role";
 import { DEMO_INVOICES } from "@/lib/demo";
 import { formatRupiah } from "@/lib/format";
 import { DashboardCards } from "@/components/dashboard/dashboard-cards";
@@ -32,7 +33,7 @@ import { PageHeader, StatCard, StatGrid, EmptyStateV3 } from "@/components/ui";
 
 export default function AdminDashboardPage(): JSX.Element {
   const { user } = useAuth();
-  const role = user?.primaryRole ?? user?.roles[0];
+  const { activeRole } = useActiveRole(user);
   const invoices = useApi<{ amount: number; paid: number; status: string }[]>(
     async () => {
       const res = await api.get<{
@@ -59,7 +60,7 @@ export default function AdminDashboardPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Beranda Admin"
-        description={role ? `Peran aktif: ${roleLabel(role)}` : undefined}
+        description={activeRole ? `Peran aktif: ${roleLabel(activeRole)}` : undefined}
       />
 
       <DashboardCards

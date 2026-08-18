@@ -18,6 +18,21 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+  prettier:
+    name: Prettier check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # GATE 2 — format wajib (CONTRIBUTING.md §Standar Kode). Cakupan sama
+      # dengan perintah lokal `npx prettier --check .`; node_modules/dist/.next/
+      # coverage dikecualikan via .prettierignore.
+      - run: npx prettier --check .
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -69,10 +84,24 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Web unit tests
-        # QA-007: web tidak pernah dijalankan di CI sebelumnya; vitest (jsdom)
-        # tidak butuh DB/Prisma client, cukup npm ci + test workspace.
-        run: npm run test --workspace=@opensis/web
+      - name: Web unit tests + coverage gate
+        # QA-007 — coverage gate web (GATE 1). Threshold di
+        # apps/web/vitest.config.ts adalah FLOOR anti-regresi (0), BUKAN
+        # target (roadmap: naik bertahap ke 80% mengikuti pola
+        # apps/api/jest.config.js). vitest (jsdom) tidak butuh DB/Prisma
+        # client, cukup npm ci + test workspace. Tanpa --coverage, threshold
+        # tidak pernah dievaluasi. Reporter (text + json-summary) sudah
+        # didefinisikan di apps/web/vitest.config.ts (vitest tidak mengenal
+        # flag --coverageReporters ala Jest).
+        working-directory: apps/web
+        run: npx vitest run --coverage
+      - name: Upload coverage artifact (web)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-web
+          path: apps/web/coverage
+          retention-days: 14
 
   integration:
     name: Integration + e2e tests (PostgreSQL)

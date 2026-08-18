@@ -13,7 +13,6 @@ import {
   CardTitle,
   Button,
   Input,
-  Label,
   Alert,
   toast,
   IconCheck,
@@ -22,7 +21,14 @@ import {
   IconAcademic
 } from "@opensis/ui";
 import { NewsItem } from "@/lib/constants";
-import { PageHeader, StatCard, StatGrid, StatusBadge, EmptyStateV3 } from "@/components/ui";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  StatusBadge,
+  EmptyStateV3,
+  RequiredLabel
+} from "@/components/ui";
 
 type TrackStatus = "SUBMITTED" | "VERIFIED" | "SELECTED" | "ENROLLED" | "WAITLIST" | "REJECTED";
 
@@ -145,7 +151,7 @@ export default function CalonSiswaDashboardPage(): JSX.Element {
           <CardContent className="space-y-4">
             <form onSubmit={(e) => void check(e)} className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="cs-regno">No. Pendaftaran</Label>
+                <RequiredLabel htmlFor="cs-regno">No. Pendaftaran</RequiredLabel>
                 <Input
                   id="cs-regno"
                   value={regNo}

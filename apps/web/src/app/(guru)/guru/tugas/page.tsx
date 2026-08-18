@@ -18,7 +18,7 @@ import {
 import { formatRelative } from "@/lib/format";
 
 import { DEMO_TASKS } from "@/lib/demo";
-import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
+import { PageHeader, DataTable, StatusBadge, RequiredLabel } from "@/components/ui";
 
 interface Task {
   id: string;
@@ -149,7 +149,7 @@ export default function GuruTugasPage(): JSX.Element {
       >
         <form onSubmit={(e) => void create(e)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="asg-title">Judul Tugas</Label>
+            <RequiredLabel htmlFor="asg-title">Judul Tugas</RequiredLabel>
             <Input
               id="asg-title"
               value={title}
@@ -169,7 +169,7 @@ export default function GuruTugasPage(): JSX.Element {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="asg-due">Tenggat Waktu</Label>
+            <RequiredLabel htmlFor="asg-due">Tenggat Waktu</RequiredLabel>
             <Input
               id="asg-due"
               type="datetime-local"

@@ -7,16 +7,17 @@ import { MaintenanceGate } from "@/components/maintenance/maintenance-gate";
 import { FontSizeProvider } from "@/components/theme/font-size-provider";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { fetchBrandingServer, type BrandingView } from "@/lib/api-client";
-import { APP_NAME, FALLBACK_BRANDING } from "@/lib/constants";
+import { APP_NAME, APP_URL, appAssetUrl, FALLBACK_BRANDING } from "@/lib/constants";
 import { plusJakartaSans } from "@/lib/fonts";
 import { STORAGE_KEYS } from "@/lib/storage";
 
 /**
  * No-FOUC dark mode: terapkan class .dark + colorScheme sebelum React
- * hydrasi (baca pilihan dari localStorage; fallback preferensi OS).
+ * hydrasi (baca pilihan dari localStorage; default LIGHT — item 8).
+ * Dark hanya aktif bila user eksplisit memilih "dark" (atau "system" + OS dark).
  * Key sama dengan storage.ts (opensis_theme) agar konsisten.
  */
-const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var t=localStorage.getItem("${STORAGE_KEYS.theme}");var d=t==="dark"||((!t||t==="system")&&window.matchMedia("(prefers-color-scheme: dark)").matches);var root=document.documentElement;if(d){root.classList.add("dark");root.style.colorScheme="dark";}else{root.classList.remove("dark");root.style.colorScheme="light";}}catch(e){}})();`;
+const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var t=localStorage.getItem("${STORAGE_KEYS.theme}");var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);var root=document.documentElement;if(d){root.classList.add("dark");root.style.colorScheme="dark";}else{root.classList.remove("dark");root.style.colorScheme="light";}}catch(e){}})();`;
 
 /**
  * No-FOUC skala teks: terapkan class .font-scale-* sebelum React hydrasi
@@ -47,11 +48,29 @@ function cssVars(b: BrandingView): string {
 
 export async function generateMetadata(): Promise<Metadata> {
   const b = await getBranding();
-  const title = `${b.appName ?? APP_NAME} — LMS & SIS Sekolah`;
+  const title = `${b.appName ?? APP_NAME} — Platform Digital Terpadu Sekolah`;
+  const description = b.tagline ?? "Platform Digital Terpadu Sekolah";
+  const ogImage = appAssetUrl("/landing/school/hero.jpg");
   return {
+    metadataBase: new URL(APP_URL),
     title,
-    description: b.tagline ?? "LMS & SIS Sekolah",
-    icons: b.faviconUrl ? { icon: b.faviconUrl, shortcut: b.faviconUrl } : undefined
+    description,
+    icons: b.faviconUrl ? { icon: b.faviconUrl, shortcut: b.faviconUrl } : undefined,
+    // OG image + Twitter card (item 12) — foto asli hero sekolah.
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      locale: "id_ID",
+      siteName: b.appName ?? APP_NAME,
+      images: [{ url: ogImage, width: 1600, height: 900, alt: title }]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage]
+    }
   };
 }
 

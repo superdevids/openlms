@@ -21,6 +21,7 @@ dan analisis butir soal. Hot path saat ujian berlangsung (target peak
 | ------ | ------------------------------------------------- | ----------------------------------------------- | ------------------------------ |
 | POST   | `/exam`                                           | `exam:write:school`                             | Buat ujian                     |
 | GET    | `/exam`                                           | `exam:attempt:self`/`exam:read:school`          | Daftar ujian                   |
+| GET    | `/exam/list-for-student`                          | `exam:attempt:self`/`exam:read:school`          | Daftar ujian siswa (G-02)      |
 | GET    | `/exam/:examId`                                   | `exam:attempt:self`/`exam:read:school`          | Detail ujian                   |
 | PATCH  | `/exam/:examId`                                   | `exam:write:school`                             | Update ujian                   |
 | POST   | `/exam/:examId/publish` / `close`                 | `exam:write:school`                             | Publish/close                  |

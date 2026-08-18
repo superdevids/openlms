@@ -37,7 +37,7 @@ const FAQ = [
 
 export default function SupportPage(): JSX.Element {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="landing-light min-h-screen bg-background">
       <PageContainer className="max-w-3xl">
         <header className="mb-8">
           <p className="text-lg font-bold text-primary">{APP_NAME}</p>

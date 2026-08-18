@@ -14,8 +14,33 @@ import type { BadgeVariant } from "@opensis/ui";
  *   (lihat .env.example; diurus agent lain, dokumentasikan di sini).
  *   Hanya NEXT_PUBLIC_* yang bisa dibaca di client components.
  */
-export const DEFAULT_APP_NAME = "opensis";
+export const DEFAULT_APP_NAME = "Opensis";
 export const APP_NAME: string = process.env.NEXT_PUBLIC_APP_NAME ?? DEFAULT_APP_NAME;
+
+/**
+ * URL absolut aplikasi (untuk metadataBase / OG image / JSON-LD).
+ * Override via NEXT_PUBLIC_APP_URL; fallback dev localhost:3000.
+ */
+export const APP_URL: string = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+/** URL absolut aset di public/ (landing) untuk OG/JSON-LD. Absolute URL diteruskan apa adanya. */
+export function appAssetUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${APP_URL.replace(/\/+$/, "")}${clean}`;
+}
+
+/**
+ * Foto asli landing sekolah (item 16) — dihasilkan scripts/generate-landing-images.mjs
+ * ke apps/web/public/landing/school/*.jpg (hero 1600x900, lainnya 800x600).
+ */
+export const LANDING_SCHOOL_IMAGES = {
+  hero: "/landing/school/hero.jpg",
+  facility: "/landing/school/facility.jpg",
+  activity: "/landing/school/activity.jpg",
+  library: "/landing/school/library.jpg",
+  classroom: "/landing/school/classroom.jpg"
+} as const;
 
 /** Default & timeout API publik (ms). */
 export const API_BASE_FALLBACK = "http://localhost:3001";
@@ -27,7 +52,7 @@ export const API_TIMEOUT_MS = 3000;
 
 export const FALLBACK_BRANDING: BrandingView = {
   appName: DEFAULT_APP_NAME,
-  tagline: "LMS & SIS Sekolah",
+  tagline: "Platform Digital Terpadu Sekolah",
   logoUrl: null,
   faviconUrl: null,
   colors: { primary: "#2563eb", secondary: "#1d4ed8", accent: "#0ea5e9" },

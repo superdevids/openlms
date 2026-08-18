@@ -9,6 +9,8 @@ import { ExamModule } from "../exam/exam.module";
 import { QuizModule } from "../quiz/quiz.module";
 import { StorageModule } from "../storage/storage.module";
 import { OnboardingModule } from "../onboarding/onboarding.module";
+import { PdpModule } from "../pdp/pdp.module";
+import { ExportModule } from "../export/export.module";
 import { JobsService } from "./jobs.service";
 import { NotificationsProcessor } from "./processors/notifications.processor";
 import { PayrollProcessor } from "./processors/payroll.processor";
@@ -18,6 +20,7 @@ import { SppProcessor } from "./processors/spp.processor";
 import { ExamAutoSubmitProcessor } from "./processors/exam-autosubmit.processor";
 import { StorageCleanupProcessor } from "./processors/storage-cleanup.processor";
 import { ImportProcessor } from "./processors/import.processor";
+import { PdpRetentionProcessor } from "./processors/pdp-retention.processor";
 
 /**
  * JobsModule — antrean job + cron (@nestjs/schedule).
@@ -39,7 +42,9 @@ import { ImportProcessor } from "./processors/import.processor";
     ExamModule,
     QuizModule,
     StorageModule,
-    OnboardingModule
+    OnboardingModule,
+    PdpModule,
+    ExportModule // generator ekspor (RAPOR PDF + DAPODIK CSV) untuk ReportProcessor
   ],
   providers: [
     JobsService,
@@ -50,7 +55,8 @@ import { ImportProcessor } from "./processors/import.processor";
     SppProcessor,
     ExamAutoSubmitProcessor,
     StorageCleanupProcessor,
-    ImportProcessor
+    ImportProcessor,
+    PdpRetentionProcessor
   ],
   exports: [JobsService]
 })

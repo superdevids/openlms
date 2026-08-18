@@ -29,7 +29,7 @@ const FEATURES = [
 
 export default function LoginPage(): JSX.Element {
   return (
-    <main id="main" className="grid min-h-screen bg-app-bg lg:grid-cols-2">
+    <main id="main" className="landing-light grid min-h-screen bg-app-bg lg:grid-cols-2">
       {/* Panel kiri — branding (desktop only, per E.7) */}
       <aside
         aria-hidden="true"
@@ -66,7 +66,7 @@ export default function LoginPage(): JSX.Element {
         </div>
 
         <p className="text-xs text-white/60">
-          © {new Date().getFullYear()} {APP_NAME} — Portal Guru &amp; Staf Sekolah
+          © {new Date().getFullYear()} {APP_NAME} — Platform Digital Terpadu Sekolah
         </p>
       </aside>
 

@@ -60,7 +60,7 @@ export interface MeResult {
 
 /**
  * AuthService — F1-T1/T8/T9, prd04 §5.P.
- * - Login "Email atau Username" + password (Argon2id; fallback scrypt lihat password.util).
+ * - Login username (NIS/NIP) + password (Argon2id; fallback scrypt lihat password.util).
  * - JWT access httpOnly cookie + refresh cookie (rotasi + revoke berbasis DB).
  * - Throttle: 5 gagal → lockout 15 menit (kolom User.locked_until).
  * - Reset password oleh OPERATOR/SUPERADMIN (password sementara, must_change_password).
@@ -98,15 +98,15 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, meta: LoginMeta): Promise<LoginResult> {
-    const identifier = dto.emailOrUsername.trim();
+    const identifier = dto.username.trim();
     if (!identifier) {
-      throw new UnauthorizedException("Email/Username atau password salah");
+      throw new UnauthorizedException("Username atau password salah");
     }
 
     const user = await this.prisma.user.findFirst({
       where: {
         is_active: true,
-        OR: [{ email: { equals: identifier, mode: "insensitive" } }, { username: identifier }]
+        username: identifier
       },
       include: { roles: { where: { status: MembershipStatus.ACTIVE } } }
     });
@@ -123,7 +123,7 @@ export class AuthService {
         { reason: "LOGIN_FAILED_UNKNOWN" },
         meta.ip
       );
-      throw new UnauthorizedException("Email/Username atau password salah");
+      throw new UnauthorizedException("Username atau password salah");
     }
 
     this.assertNotLocked(user);
@@ -168,7 +168,7 @@ export class AuthService {
         { reason: "INVALID_CREDENTIALS" },
         meta.ip
       );
-      throw new UnauthorizedException("Email/Username atau password salah");
+      throw new UnauthorizedException("Username atau password salah");
     }
 
     await this.prisma.user.update({

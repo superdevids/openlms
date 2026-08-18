@@ -493,28 +493,32 @@ export class RolloverService {
             )
           ];
           for (const targetClassId of targetClassIds) {
-            for (const cs of classSubjects) {
-              await this.db.classSubject.create({
-                data: {
-                  class_id: targetClassId,
-                  subject_id: cs.subject_id,
-                  teacher_id: cs.teacher_id,
-                  semester: cs.semester
-                }
+            const classSubjectRows = classSubjects.map((cs) => ({
+              class_id: targetClassId,
+              subject_id: cs.subject_id,
+              teacher_id: cs.teacher_id,
+              semester: cs.semester
+            }));
+            if (classSubjectRows.length > 0) {
+              await this.db.classSubject.createMany({
+                data: classSubjectRows,
+                skipDuplicates: true
               });
             }
-            for (const s of schedules) {
-              await this.db.scheduleEntry.create({
-                data: {
-                  class_id: targetClassId,
-                  subject_id: s.subject_id,
-                  teacher_id: s.teacher_id,
-                  day_of_week: s.day_of_week,
-                  start_period: s.start_period,
-                  end_period: s.end_period,
-                  room: s.room,
-                  academic_year: target.code
-                }
+            const scheduleRows = schedules.map((s) => ({
+              class_id: targetClassId,
+              subject_id: s.subject_id,
+              teacher_id: s.teacher_id,
+              day_of_week: s.day_of_week,
+              start_period: s.start_period,
+              end_period: s.end_period,
+              room: s.room,
+              academic_year: target.code
+            }));
+            if (scheduleRows.length > 0) {
+              await this.db.scheduleEntry.createMany({
+                data: scheduleRows,
+                skipDuplicates: true
               });
             }
           }
@@ -527,27 +531,49 @@ export class RolloverService {
       currentStep = "graduate";
       if (!steps["graduate"]) {
         const graduates = plan.decisions.filter((d) => d.action === "GRADUATED");
-        for (const g of graduates) {
-          const alumni = await this.db.alumni.create({
-            data: {
+        if (graduates.length > 0) {
+          // Batch: alumni.createMany + enrollment updateMany (1 lookup lama).
+          await this.db.alumni.createMany({
+            data: graduates.map((g) => ({
               student_id: g.studentId,
               graduation_academic_year_id: target.id,
               graduation_date: new Date()
+            })),
+            skipDuplicates: true
+          });
+          const createdAlumni = await this.db.alumni.findMany({
+            where: {
+              student_id: { in: graduates.map((g) => g.studentId) },
+              graduation_academic_year_id: target.id
+            },
+            select: { id: true }
+          });
+          created.alumniIds.push(...createdAlumni.map((a) => a.id));
+
+          const oldEnrollments = await this.db.enrollment.findMany({
+            where: {
+              student_id: { in: graduates.map((g) => g.studentId) },
+              academic_year_id: source.id
             }
           });
-          created.alumniIds.push(alumni.id);
-          const old = await this.db.enrollment.findFirst({
-            where: { student_id: g.studentId, academic_year_id: source.id }
-          });
-          if (old) {
-            created.previousEnrollmentStatus[old.id] = old.status;
-            await this.db.enrollment.update({
-              where: { id: old.id },
+          const oldByStudent = new Map<string, (typeof oldEnrollments)[number]>();
+          for (const old of oldEnrollments) {
+            if (!oldByStudent.has(old.student_id)) oldByStudent.set(old.student_id, old);
+          }
+          const oldIds: string[] = [];
+          for (const g of graduates) {
+            const old = oldByStudent.get(g.studentId);
+            if (old) {
+              created.previousEnrollmentStatus[old.id] = old.status;
+              oldIds.push(old.id);
+            }
+          }
+          if (oldIds.length > 0) {
+            await this.db.enrollment.updateMany({
+              where: { id: { in: oldIds } },
               data: { status: "GRADUATED" }
             });
           }
-        }
-        if (graduates.length > 0) {
           await this.db.dataExportLog.create({
             data: {
               export_type: "RAPOR",
@@ -567,24 +593,60 @@ export class RolloverService {
         const promoted = plan.decisions.filter(
           (d) => d.action === "PROMOTED" || d.action === "REPEATED"
         );
-        for (const p of promoted) {
-          const classId = p.targetClassKey ? created.classIdByKey[p.targetClassKey] : undefined;
-          if (!classId) throw new Error(`Kelas tujuan tidak ditemukan untuk ${p.studentId}`);
-          const enrollment = await this.db.enrollment.create({
-            data: {
+        if (promoted.length > 0) {
+          const classIdByStudent = new Map<string, string>();
+          for (const p of promoted) {
+            const classId = p.targetClassKey ? created.classIdByKey[p.targetClassKey] : undefined;
+            if (!classId) throw new Error(`Kelas tujuan tidak ditemukan untuk ${p.studentId}`);
+            classIdByStudent.set(p.studentId, classId);
+          }
+          // Batch: enrollment.createMany (skipDuplicates = resume aman) + lookup id
+          // + enrollment.updateMany lama per status.
+          await this.db.enrollment.createMany({
+            data: promoted.map((p) => ({
               student_id: p.studentId,
-              class_id: classId,
+              class_id: classIdByStudent.get(p.studentId) as string,
               academic_year_id: target.id,
               status: p.action
+            })),
+            skipDuplicates: true
+          });
+          const createdEnrollments = await this.db.enrollment.findMany({
+            where: {
+              student_id: { in: promoted.map((p) => p.studentId) },
+              academic_year_id: target.id
+            },
+            select: { id: true }
+          });
+          created.enrollmentIds.push(...createdEnrollments.map((e) => e.id));
+
+          const oldEnrollments = await this.db.enrollment.findMany({
+            where: {
+              student_id: { in: promoted.map((p) => p.studentId) },
+              academic_year_id: source.id
             }
           });
-          created.enrollmentIds.push(enrollment.id);
-          const old = await this.db.enrollment.findFirst({
-            where: { student_id: p.studentId, academic_year_id: source.id }
-          });
-          if (old) {
-            created.previousEnrollmentStatus[old.id] = old.status;
-            await this.db.enrollment.update({ where: { id: old.id }, data: { status: p.action } });
+          const oldByStudent = new Map<string, (typeof oldEnrollments)[number]>();
+          for (const old of oldEnrollments) {
+            if (!oldByStudent.has(old.student_id)) oldByStudent.set(old.student_id, old);
+          }
+          const oldIdsByStatus = new Map<string, string[]>();
+          for (const p of promoted) {
+            const old = oldByStudent.get(p.studentId);
+            if (old) {
+              created.previousEnrollmentStatus[old.id] = old.status;
+              const ids = oldIdsByStatus.get(p.action) ?? [];
+              ids.push(old.id);
+              oldIdsByStatus.set(p.action, ids);
+            }
+          }
+          for (const [status, ids] of oldIdsByStatus) {
+            if (ids.length > 0) {
+              await this.db.enrollment.updateMany({
+                where: { id: { in: ids } },
+                data: { status: status as EnrollmentStatus }
+              });
+            }
           }
         }
         steps["promote"] = "DONE";
@@ -599,28 +661,47 @@ export class RolloverService {
           const applicants = await this.db.ppdbApplicant.findMany({
             where: { status: "SELECTED" }
           });
-          for (const a of applicants) {
-            if (!a.user_id) continue;
-            const existingRole = await this.db.userRole.findFirst({
-              where: { user_id: a.user_id, role: "SISWA" }
+          const withUser = applicants.filter((a) => a.user_id);
+          if (withUser.length > 0) {
+            const userIds = withUser.map((a) => a.user_id as string);
+            // Batch: lookup role SISWA SEKALI + createMany (skipDuplicates aman).
+            const existingRoles = await this.db.userRole.findMany({
+              where: { user_id: { in: userIds }, role: "SISWA" },
+              select: { user_id: true }
             });
-            if (!existingRole) {
-              await this.db.userRole.create({
-                data: { user_id: a.user_id, role: "SISWA", status: "ACTIVE" }
-              });
+            const existingRoleUserIds = new Set(existingRoles.map((r) => r.user_id));
+            const rolesToCreate: Array<{
+              user_id: string;
+              role: "SISWA";
+              status: "ACTIVE";
+            }> = withUser
+              .filter((a) => !existingRoleUserIds.has(a.user_id as string))
+              .map((a) => ({
+                user_id: a.user_id as string,
+                role: "SISWA",
+                status: "ACTIVE"
+              }));
+            if (rolesToCreate.length > 0) {
+              await this.db.userRole.createMany({ data: rolesToCreate, skipDuplicates: true });
             }
-            const enrollment = await this.db.enrollment.create({
-              data: {
-                student_id: a.user_id,
+
+            await this.db.enrollment.createMany({
+              data: withUser.map((a) => ({
+                student_id: a.user_id as string,
                 class_id: targetClassId,
                 academic_year_id: target.id,
                 status: "ACTIVE"
-              }
+              })),
+              skipDuplicates: true
             });
-            created.enrollmentIds.push(enrollment.id);
-            created.ppdbEnrolledIds.push(a.id);
-            await this.db.ppdbApplicant.update({
-              where: { id: a.id },
+            const createdEnrollments = await this.db.enrollment.findMany({
+              where: { student_id: { in: userIds }, academic_year_id: target.id },
+              select: { id: true }
+            });
+            created.enrollmentIds.push(...createdEnrollments.map((e) => e.id));
+            created.ppdbEnrolledIds.push(...withUser.map((a) => a.id));
+            await this.db.ppdbApplicant.updateMany({
+              where: { id: { in: withUser.map((a) => a.id) } },
               data: { status: "ENROLLED" }
             });
           }
@@ -779,22 +860,36 @@ export class RolloverService {
       include: { class: true }
     });
 
+    // Batch grade + attendance dalam 2 query (hindari N+1 per enrollment),
+    // menyalin pola precheck() baris 216-235.
+    const studentIds = enrollments.map((e) => e.student_id);
+    const grades = await this.db.grade.findMany({
+      where: { student_id: { in: studentIds }, academic_year: source.code }
+    });
+    const attendanceRows = await this.db.attendance.groupBy({
+      by: ["student_id"],
+      where: {
+        student_id: { in: studentIds },
+        date: { gte: source.start_date, lte: source.end_date }
+      },
+      _count: true
+    });
+
+    const gradesByStudent = new Map<string, Array<(typeof grades)[number]>>();
+    for (const g of grades) {
+      const list = gradesByStudent.get(g.student_id) ?? [];
+      list.push(g);
+      gradesByStudent.set(g.student_id, list);
+    }
+    const attendanceCountByStudent = new Map(attendanceRows.map((r) => [r.student_id, r._count]));
+
     const students: StudentEvaluation[] = [];
     for (const enrollment of enrollments) {
-      const grades = await this.db.grade.findMany({
-        where: { student_id: enrollment.student_id, academic_year: source.code }
-      });
       const finalScores: Record<string, number> = {};
-      for (const g of grades) {
+      for (const g of gradesByStudent.get(enrollment.student_id) ?? []) {
         const prev = finalScores[g.class_subject_id];
         finalScores[g.class_subject_id] = prev === undefined ? g.score : Math.max(prev, g.score);
       }
-      const attendanceCount = await this.db.attendance.count({
-        where: {
-          student_id: enrollment.student_id,
-          date: { gte: source.start_date, lte: source.end_date }
-        }
-      });
       students.push({
         studentId: enrollment.student_id,
         sourceClassId: enrollment.class_id,
@@ -802,7 +897,10 @@ export class RolloverService {
         gradeLevel: enrollment.class?.grade_level ?? 10,
         currentStatus: enrollment.status,
         finalScores,
-        attendanceRate: Math.min(1, attendanceCount / expectedDays)
+        attendanceRate: Math.min(
+          1,
+          (attendanceCountByStudent.get(enrollment.student_id) ?? 0) / expectedDays
+        )
       });
     }
 

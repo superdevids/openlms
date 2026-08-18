@@ -43,6 +43,10 @@ berfungsi tanpa menyentuh `main.ts`.
    (`lms-context.ts`) — semuanya bertanda `TODO RBAC(F1-T4)`.
    Integration: ganti header parsing dengan guard/auth guard resmi, header
    `Idempotency-Key` tetap dibaca dari request.
+   > **Pembaruan 2026-08-16:** sudah diganti — `AuthGuard` global (auth module)
+   > mengisi `@CurrentUser`; seluruh controller LMS memakai `@RequirePermission`
+   > (`material:*`, `assignment:*`, `grade:*`, dsb). Header dev `x-user-*` sudah
+   > dihapus; marker `TODO RBAC(F1-T4)` usang.
 2. **Auth (F1)** harus mengisi header/konteks di atas; tanpa itu, role default
    kosong → endpoint tulis menolak (Forbidden), list dikembalikan kosong
    (default-secure).

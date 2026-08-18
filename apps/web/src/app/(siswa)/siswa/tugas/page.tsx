@@ -4,7 +4,7 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Button, Textarea, Label, Dialog, toast } from "@opensis/ui";
+import { DataView, Button, Textarea, Dialog, toast } from "@opensis/ui";
 
 import { formatRelative } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
@@ -16,7 +16,8 @@ import {
   DataTable,
   type DataTableColumn,
   StatusBadge,
-  type StatusTone
+  type StatusTone,
+  RequiredLabel
 } from "@/components/ui";
 
 interface Task {
@@ -135,7 +136,7 @@ export default function SiswaTugasPage(): JSX.Element {
       >
         <form onSubmit={(e) => void submit(e)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="task-content">Jawaban</Label>
+            <RequiredLabel htmlFor="task-content">Jawaban</RequiredLabel>
             <Textarea
               id="task-content"
               rows={6}

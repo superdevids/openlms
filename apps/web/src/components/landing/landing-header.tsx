@@ -19,32 +19,32 @@ export function LandingHeader({ branding }: { branding: BrandingView }): JSX.Ele
         </Link>
         <nav aria-label="Navigasi landing" className="hidden items-center gap-5 md:flex">
           <Link
-            href="/#sambutan"
-            className="text-sm font-medium text-foreground hover:text-brand-primary"
+            href="/tentang"
+            className="rounded text-sm font-medium text-foreground transition-colors duration-200 hover:text-brand-primary focus-visible:text-brand-primary"
           >
             Tentang
           </Link>
           <Link
-            href="/#visi-misi"
-            className="text-sm font-medium text-foreground hover:text-brand-primary"
+            href="/tentang#visi-misi"
+            className="rounded text-sm font-medium text-foreground transition-colors duration-200 hover:text-brand-primary focus-visible:text-brand-primary"
           >
             Visi &amp; Misi
           </Link>
           <Link
-            href="/#program-keahlian"
-            className="text-sm font-medium text-foreground hover:text-brand-primary"
+            href="/program-keahlian"
+            className="rounded text-sm font-medium text-foreground transition-colors duration-200 hover:text-brand-primary focus-visible:text-brand-primary"
           >
             Program Keahlian
           </Link>
           <Link
             href="/berita"
-            className="text-sm font-medium text-foreground hover:text-brand-primary"
+            className="rounded text-sm font-medium text-foreground transition-colors duration-200 hover:text-brand-primary focus-visible:text-brand-primary"
           >
             Berita
           </Link>
           <Link
-            href="/#kontak"
-            className="text-sm font-medium text-foreground hover:text-brand-primary"
+            href="/kontak"
+            className="rounded text-sm font-medium text-foreground transition-colors duration-200 hover:text-brand-primary focus-visible:text-brand-primary"
           >
             Kontak
           </Link>

@@ -105,7 +105,19 @@ export class StorageCleanupProcessor {
     }
     for (const l of landing) add(l.image_path);
     for (const n of news) add(n.cover_image_path);
-    for (const e of exports) add(e.file_url);
+    // M-01: file_url ekspor bisa comma-separated multi-file (Dapodik 3 CSV).
+    // Tiap URL didaftarkan terpisah — kalau tidak, ketiganya dianggap orphan
+    // setelah 7 hari dan dihapus → download 404.
+    for (const e of exports) {
+      if (e.file_url) {
+        for (const url of e.file_url.split(",")) {
+          const trimmed = url.trim();
+          if (trimmed.length > 0) {
+            refs.add(this.normalizeRef(trimmed));
+          }
+        }
+      }
+    }
     for (const c of consents) add(c.document_url);
     return refs;
   }

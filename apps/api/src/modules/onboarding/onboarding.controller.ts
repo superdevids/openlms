@@ -34,13 +34,13 @@ export class OnboardingController {
   @Patch("step-2")
   @RequirePermission("app:write:school")
   step2(@Body() dto: OnboardingStep2Dto, @CurrentUser() user: AuthUser) {
-    return this.onboardingService.updateStep2(dto, user.id);
+    return this.onboardingService.updateStep2(dto, user.id, user.roles);
   }
 
   @Post("step-3")
   @RequirePermission("import:run:school")
   step3(@Body() dto: ImportRowsDto, @CurrentUser() user: AuthUser, @Req() req: Request) {
-    return this.onboardingService.runStep3(dto, user.id, req.ip);
+    return this.onboardingService.runStep3(dto, user.id, req.ip, user.roles);
   }
 
   @Post("step-4")
@@ -52,6 +52,6 @@ export class OnboardingController {
   @Post("step-5")
   @RequirePermission("app:write:school")
   step5(@CurrentUser() user: AuthUser) {
-    return this.onboardingService.completeStep5(user.id);
+    return this.onboardingService.completeStep5(user.id, user.roles);
   }
 }

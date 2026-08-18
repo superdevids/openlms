@@ -5,10 +5,7 @@ import { type HTMLAttributes, type JSX } from "react";
 import { cn } from "../lib/utils";
 
 /** Skeleton sesuai bentuk layout — hindari layout shift (07-ux §6.5 Loading). */
-export function Skeleton({
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>): JSX.Element {
+export function Skeleton({ className, ...props }: HTMLAttributes<HTMLDivElement>): JSX.Element {
   return <div className={cn("animate-pulse rounded-md bg-muted", className)} {...props} />;
 }
 

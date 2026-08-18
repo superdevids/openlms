@@ -63,6 +63,11 @@ abcdefghjkmnpqrstuvwxyz` (tanpa 0/O/1/I plus l/o ambigu), dihasilkan `crypto.ran
   append-only dengan `saved_at` server time; key sama → kembalikan log lama tanpa
   duplikat. Catatan: schema belum punya unique index `(attempt_id, idempotency_key)` —
   lihat ISSUES.
+  > **Pembaruan 2026-08-16:** unique index sudah ada —
+  > `@@unique([attempt_id, idempotency_key])` di `schema.prisma:1123`
+  > (`ExamAnswerLog`), migrasi `20260807010000_integrate_w2`. Catatan lama di atas
+  > sudah usang. RBAC global aktif (`exam:*` permission di controller — lihat
+  > README.exam.md).
 - **Auto-submit** (M-EXAM-T6): server-side; attempt lewat `started_at + duration_min`
   menjadi `AUTO_SUBMITTED`; push `exam:force-submit` ke room `exam:{sessionId}` +
   `exam:tick` (ambang 60/30/10/0) via Socket.IO (R-29).

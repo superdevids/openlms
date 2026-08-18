@@ -54,7 +54,7 @@ describe("BrandingService", () => {
     const service = new BrandingService(prisma, realtime, storage);
 
     const view = await service.getBranding();
-    expect(view.appName).toBe("opensis");
+    expect(view.appName).toBe("Opensis");
     expect(view.colors).toEqual({ primary: "#2563eb", secondary: "#1d4ed8", accent: "#0ea5e9" });
     expect(view.configVersion).toBe(1);
     expect(view.logoUrl).toBeNull();
@@ -206,7 +206,7 @@ describe("BrandingService", () => {
     await service.updateBranding({ appName: "X" }, ACTOR);
     expect(brandingConfig.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ app_name: "opensis", config_version: 1 })
+        data: expect.objectContaining({ app_name: "Opensis", config_version: 1 })
       })
     );
   });

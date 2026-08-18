@@ -27,7 +27,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 
 import { DEMO_EXAMS } from "@/lib/demo";
-import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
+import { PageHeader, DataTable, StatusBadge, RequiredLabel } from "@/components/ui";
 
 interface Exam {
   id: string;
@@ -316,7 +316,7 @@ export default function GuruUjianPage(): JSX.Element {
       >
         <form onSubmit={(e) => void create(e)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="ex-title">Judul Ujian</Label>
+            <RequiredLabel htmlFor="ex-title">Judul Ujian</RequiredLabel>
             <Input
               id="ex-title"
               value={title}
@@ -326,7 +326,7 @@ export default function GuruUjianPage(): JSX.Element {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="ex-subject">Mata Pelajaran</Label>
+            <RequiredLabel htmlFor="ex-subject">Mata Pelajaran</RequiredLabel>
             <Select
               id="ex-subject"
               value={subjectId || classSubjects.data?.[0]?.subject.id || ""}

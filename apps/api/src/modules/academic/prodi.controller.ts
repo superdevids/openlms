@@ -35,7 +35,7 @@ export class ProdiController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<ProdiView> {
-    return this.prodiService.create(dto, user.id, req.ip);
+    return this.prodiService.create(dto, user.id, req.ip, user.roles);
   }
 
   @Patch(":id")
@@ -46,7 +46,7 @@ export class ProdiController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<ProdiView> {
-    return this.prodiService.update(id, dto, user.id, req.ip);
+    return this.prodiService.update(id, dto, user.id, req.ip, user.roles);
   }
 
   @Delete(":id")
@@ -56,6 +56,6 @@ export class ProdiController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<ProdiView> {
-    return this.prodiService.deactivate(id, user.id, req.ip);
+    return this.prodiService.deactivate(id, user.id, req.ip, user.roles);
   }
 }

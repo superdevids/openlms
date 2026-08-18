@@ -32,6 +32,19 @@ export interface AddJournalInput {
   note?: string;
 }
 
+/** Role staf sekolah yang boleh melihat/menulis jurnal PKL (pemegang internship:write:school). */
+const SCHOOL_STAFF_ROLES = [
+  "SUPERADMIN",
+  "KEPSEK",
+  "WAKEPSEK",
+  "KAPRODI",
+  "OPERATOR",
+  "GURU",
+  "BK",
+  "KEUANGAN",
+  "AUDITOR"
+] as const;
+
 @Injectable()
 export class InternshipService {
   constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
@@ -77,6 +90,7 @@ export class InternshipService {
     actor: AuditActorContext
   ): Promise<InternshipJournal> {
     const internship = await this.requireInternship(internshipId);
+    this.assertJournalActor(internship, actor);
     if (internship.status === "COMPLETED" || internship.status === "TERMINATED") {
       throw new ForbiddenException(
         `PKL berstatus ${internship.status}; jurnal tidak dapat ditambah`
@@ -152,29 +166,93 @@ export class InternshipService {
     return updated;
   }
 
-  async listByMentor(mentorUserId: string): Promise<Internship[]> {
-    return this.db.internship.findMany({
-      where: {
-        OR: [{ school_mentor_id: mentorUserId }, { industry_mentor: { user_id: mentorUserId } }]
-      },
-      include: { student: { select: { id: true, full_name: true } } },
-      orderBy: { created_at: "desc" }
-    });
+  async listByMentor(
+    mentorUserId: string,
+    query: { page?: number; limit?: number } = {}
+  ): Promise<{ items: Internship[]; total: number; page: number; limit: number }> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const where = {
+      OR: [{ school_mentor_id: mentorUserId }, { industry_mentor: { user_id: mentorUserId } }]
+    };
+    const [items, total] = await Promise.all([
+      this.db.internship.findMany({
+        where,
+        include: { student: { select: { id: true, full_name: true } } },
+        orderBy: { created_at: "desc" },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      this.db.internship.count({ where })
+    ]);
+    return { items, total, page, limit };
   }
 
-  async listByStudent(studentId: string): Promise<Internship[]> {
-    return this.db.internship.findMany({
-      where: { student_id: studentId },
-      orderBy: { created_at: "desc" }
-    });
+  /**
+   * Daftar PKL per siswa (paged). Anti-IDOR: hanya staf sekolah (pemegang
+   * internship:write:school) yang boleh memfilter bebas per siswa; aktor lain
+   * (SISWA dengan internship:journal:self) DIPAKSA ke dirinya sendiri —
+   * query studentId dari klien tidak dipercaya (media-review M-04).
+   */
+  async listByStudent(
+    studentId: string,
+    actor: AuditActorContext,
+    query: { page?: number; limit?: number } = {}
+  ): Promise<{ items: Internship[]; total: number; page: number; limit: number }> {
+    const isSchoolStaff = actor.roles.some((r) =>
+      (SCHOOL_STAFF_ROLES as readonly string[]).includes(r)
+    );
+    const targetStudentId = isSchoolStaff ? studentId : actor.userId;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const where = { student_id: targetStudentId };
+    const [items, total] = await Promise.all([
+      this.db.internship.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      this.db.internship.count({ where })
+    ]);
+    return { items, total, page, limit };
   }
 
-  async listJournals(internshipId: string): Promise<InternshipJournal[]> {
-    await this.requireInternship(internshipId);
+  async listJournals(internshipId: string, actor: AuditActorContext): Promise<InternshipJournal[]> {
+    const internship = await this.requireInternship(internshipId);
+    this.assertJournalActor(internship, actor);
     return this.db.internshipJournal.findMany({
       where: { internship_id: internshipId },
       orderBy: { entry_date: "asc" }
     });
+  }
+
+  /**
+   * Otorisasi akses jurnal PKL (anti-IDOR): pemilik (siswa), pembimbing
+   * (sekolah/industri), atau role staf sekolah.
+   */
+  private assertJournalActor(
+    internship: {
+      student_id: string;
+      school_mentor_id: string | null;
+      industry_mentor?: { user_id: string | null } | null;
+    },
+    actor: AuditActorContext
+  ): void {
+    const isStudent = actor.userId === internship.student_id;
+    const isSchoolMentor = actor.userId === internship.school_mentor_id;
+    const isIndustryMentor = actor.userId === internship.industry_mentor?.user_id;
+    const isSchoolStaff = actor.roles.some((r) =>
+      (SCHOOL_STAFF_ROLES as readonly string[]).includes(r)
+    );
+    if (!isStudent && !isSchoolMentor && !isIndustryMentor && !isSchoolStaff) {
+      throw new ForbiddenException({
+        error: {
+          code: "FORBIDDEN",
+          message: "Anda tidak berhak mengakses jurnal PKL ini"
+        }
+      });
+    }
   }
 
   private assertMentor(

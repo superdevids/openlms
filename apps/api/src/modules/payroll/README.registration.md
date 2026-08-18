@@ -1,5 +1,21 @@
 # REGISTRATION — Modul Payroll (Gelombang 2, prd04 §5.E)
 
+> ## STATUS: IMPLEMENTED (2026-08-16)
+>
+> Seluruh bagian di bawah (termasuk §4 "Entitas W2 yang BELUM ada…") adalah
+> **catatan historis** saat modul masih pakai store in-memory. Implementasi aktual:
+>
+> - **Semua entitas sudah ada di `schema.prisma`**:
+>   `JobPosition` (baris 2141), `PayrollComponent` (2155), `SalaryStructure`
+>   (2173), `PayrollPeriodConfig` (2187), `PayrollRun` (2205), `PayrollRunItem`
+>   (2228), `Payslip` (2253).
+> - Modul terintegrasi di `app.module.ts` (`PayrollModule`, import baris 20 —
+>   terdaftar baris 102) memakai `PrismaPayrollStore`; kalkulator
+>   `calculator/tax.ts`, `bpjs.ts`, `payroll-calc.ts` tetap aktif.
+> - Fitur tambahan: kategori TER PPh21 bulanan per pegawai (`Staff.ter_category`,
+>   `schema.prisma:1333`, migrasi `20260816000000_staff_ter_category`) + endpoint
+>   `PATCH /payroll/staff/:staffId/ter-category`.
+
 Status: **SIAP DIIMPLEMENTASI / PERSISTENCE W2 MENYUSUL** (lih. ISSUES).
 
 ## 1. Tujuan

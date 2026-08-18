@@ -112,34 +112,63 @@ export class CompetencyTestService {
       throw new ForbiddenException("Anda bukan penguji UKK ini");
     }
     if (items.length === 0) throw new BadRequestException("Rubrik penilaian kosong");
+    if (test.rubric_items.length === 0) {
+      throw new BadRequestException("UKK belum punya rubrik penilaian");
+    }
 
-    let totalPct = 0;
+    // M-02: SEMUA rubrik wajib dinilai — item yang tidak dikirim TIDAK dihitung
+    // 0 (mencegah inflate skor: kirim 1 item skor max → PASSED padahal rubrik
+    // lain kosong). Duplikat item juga ditolak.
+    const rubricById = new Map(test.rubric_items.map((r) => [r.id, r]));
+    const submitted = new Set(items.map((i) => i.rubricItemId));
+    if (submitted.size !== items.length) {
+      throw new BadRequestException("Rubrik duplikat tidak diperbolehkan");
+    }
+    const missing = test.rubric_items.filter((r) => !submitted.has(r.id));
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Semua rubrik wajib dinilai: ${missing.map((r) => r.criterion).join(", ")} belum dinilai`
+      );
+    }
+
+    // Validasi skor SEBELUM menulis apa pun (semua-or-nothing).
     for (const item of items) {
-      const rubric = test.rubric_items.find((r) => r.id === item.rubricItemId);
+      const rubric = rubricById.get(item.rubricItemId);
       if (!rubric) throw new BadRequestException(`Rubrik ${item.rubricItemId} tidak ditemukan`);
       if (item.score < 0 || item.score > rubric.max_score) {
         throw new BadRequestException(`Skor ${item.rubricItemId} harus 0-${rubric.max_score}`);
       }
-      await this.db.competencyRubricItem.update({
-        where: { id: rubric.id },
-        data: { score: item.score }
-      });
-      totalPct += rubric.max_score > 0 ? item.score / rubric.max_score : 0;
     }
-    const finalScore = Math.round((totalPct / items.length) * 100);
-    const status = finalScore >= COMPETENCY_PASSING_SCORE ? "PASSED" : "FAILED";
 
-    const updated = await this.db.competencyTest.update({
-      where: { id: test.id },
-      data: { final_score: finalScore, status }
+    // M-02: semua update item + update test dalam SATU transaksi — tidak ada
+    // kondisi parsial (sebagian item tersimpan, test tidak) saat crash.
+    const updated = await this.db.$transaction(async (tx) => {
+      let totalPct = 0;
+      for (const item of items) {
+        const rubric = rubricById.get(item.rubricItemId) as CompetencyRubricItem;
+        await tx.competencyRubricItem.update({
+          where: { id: rubric.id },
+          data: { score: item.score }
+        });
+        totalPct += rubric.max_score > 0 ? item.score / rubric.max_score : 0;
+      }
+      // Pembagi = JUMLAH rubrik, bukan items.length (sudah dijamin sama karena
+      // kelengkapan diverifikasi di atas).
+      const finalScore = Math.round((totalPct / test.rubric_items.length) * 100);
+      const status = finalScore >= COMPETENCY_PASSING_SCORE ? "PASSED" : "FAILED";
+      return tx.competencyTest.update({
+        where: { id: test.id },
+        data: { final_score: finalScore, status }
+      });
     });
+
     await writeAudit({
       ctx: actor,
       action: "UPDATE",
       entity: "competency_test",
       entityId: test.id,
       before: { status: test.status },
-      after: { final_score: finalScore, status }
+      after: { final_score: updated.final_score, status: updated.status }
     });
     return updated;
   }

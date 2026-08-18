@@ -189,7 +189,11 @@ export class FinanceController {
 
   @Post("payments")
   @RequirePermission("payment:record:school")
-  recordPayment(@Body() dto: RecordPaymentDto, @CurrentUser() user: AuthUser | undefined) {
+  recordPayment(
+    @Body() dto: RecordPaymentDto,
+    @CurrentUser() user: AuthUser | undefined,
+    @Headers(IDEMPOTENCY_HEADER) idempotencyKey?: string
+  ) {
     const userId = this.actorId(user);
     return this.payments.record({
       invoiceId: dto.invoiceId,
@@ -197,14 +201,20 @@ export class FinanceController {
       method: dto.method,
       proofUrl: dto.proofUrl,
       note: dto.note,
-      createdBy: userId
+      createdBy: userId,
+      actorRoles: user?.roles ?? [],
+      idempotencyKey
     });
   }
 
   /** Pembayaran gabungan lintas tagihan (alokasi parsial/cicilan). */
   @Post("payments/allocate")
   @RequirePermission("payment:record:school")
-  allocatePayment(@Body() dto: AllocatePaymentDto, @CurrentUser() user: AuthUser | undefined) {
+  allocatePayment(
+    @Body() dto: AllocatePaymentDto,
+    @CurrentUser() user: AuthUser | undefined,
+    @Headers(IDEMPOTENCY_HEADER) idempotencyKey?: string
+  ) {
     const userId = this.actorId(user);
     return this.payments.recordAllocated({
       invoiceIds: dto.invoiceIds,
@@ -212,7 +222,9 @@ export class FinanceController {
       method: dto.method,
       proofUrl: dto.proofUrl,
       note: dto.note,
-      createdBy: userId
+      createdBy: userId,
+      actorRoles: user?.roles ?? [],
+      idempotencyKey
     });
   }
 
@@ -224,7 +236,7 @@ export class FinanceController {
     @CurrentUser() user: AuthUser | undefined
   ) {
     const userId = this.actorId(user);
-    return this.payments.verify(id, dto.approved, userId, dto.note);
+    return this.payments.verify(id, dto.approved, userId, dto.note, user?.roles ?? []);
   }
 
   @Get("payments/invoice/:invoiceId")

@@ -11,13 +11,12 @@ import {
   CardTitle,
   Button,
   Input,
-  Label,
   toast,
   IconCheck,
   IconAlert
 } from "@opensis/ui";
 import { APP_NAME } from "@/lib/constants";
-import { PageContainer, PageHeader, StatusBadge } from "@/components/ui";
+import { PageContainer, PageHeader, StatusBadge, RequiredLabel } from "@/components/ui";
 
 type Status = {
   ok: true;
@@ -104,7 +103,7 @@ export default function PPDBStatusPage(): JSX.Element {
           <CardContent className="space-y-4">
             <form onSubmit={(e) => void check(e)} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="ppdb-regno">No. Pendaftaran</Label>
+                <RequiredLabel htmlFor="ppdb-regno">No. Pendaftaran</RequiredLabel>
                 <Input
                   id="ppdb-regno"
                   value={regNo}

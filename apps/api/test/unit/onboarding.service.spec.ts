@@ -223,7 +223,8 @@ describe("OnboardingService", () => {
     expect(importSvc.run).toHaveBeenCalledWith(
       { importType: ImportType.STUDENT, rows: [] },
       "sa_1",
-      undefined
+      undefined,
+      []
     );
     expect(result).toEqual({ imported: 1 });
     expect(schoolProfile.findUnique).toHaveBeenCalled();

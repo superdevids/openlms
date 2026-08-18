@@ -27,12 +27,18 @@ tidak terjadi drift antara backend dan frontend.
 | `PaymentStatus`    | PENDING, PAID, PARTIAL, OVERDUE, CANCELLED, REFUNDED, CARRIED_OVER                                                                                                                                             |
 | `InvoiceType`      | SPP, UANG_KEGIATAN, UANG_DAFTAR, UANG_SERAGAM, UANG_OSIS, DENDA, LAINNYA                                                                                                                                       |
 | `GradeType`        | TUGAS, KUIS, UJIAN, PRAKTIK, SIKAP, SUMATIF                                                                                                                                                                    |
-| `ErrorCode`        | VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, FEATURE_DISABLED, ARCHIVED_YEAR, NOT_FOUND, CONFLICT, RATE_LIMITED, INTERNAL (9 nilai, `ERROR_CODE_VALUES`)                                                         |
+| `ErrorCode`        | VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, FEATURE_DISABLED, ARCHIVED_YEAR, SERVICE_DEGRADED, NOT_FOUND, CONFLICT, RATE_LIMITED, INTERNAL (10 nilai, `ERROR_CODE_VALUES` — `src/index.ts:176-187`)             |
 | `RequestContext`   | userId, roles, classIds, homeroomClassId, requestId                                                                                                                                                            |
 | `ApiErrorBody`     | Format error API (`code`, `message`, `details`, `requestId`)                                                                                                                                                   |
 
 ## Catatan
 
-- Skema Prisma tetap sumber kebenaran database; paket ini menyediakan enum/DTO
-  runtime untuk lapisan aplikasi.
-- API error code terpusat (`ErrorCode`) — dipakai `apps/web/src/lib/api-client.ts`.
+- **Skema Prisma adalah sumber resmi enum database.** Paket ini HANYA menyediakan
+  subset **21 dari 65 enum** Prisma (`packages/database/prisma/schema.prisma`,
+  verifikasi 2026-08-16) yang dipakai runtime lapisan aplikasi (api, web) agar
+  tidak drift. Bila enum baru ditambahkan di Prisma, daftar di atas TIDAK otomatis
+  lengkap — lihat `schema.prisma` untuk daftar lengkap 65 enum (termasuk
+  `ParentLinkStatus`, `PdpRequestType`, `PdpRequestStatus`, `PermissionEffect`,
+  `PermissionScope`, dst.).
+- API error code terpusat (`ErrorCode` — 10 nilai, termasuk `SERVICE_DEGRADED`) —
+  dipakai `apps/web/src/lib/api-client.ts`.

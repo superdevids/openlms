@@ -57,6 +57,23 @@ export interface FinanceStore {
     createdBy: string;
   }): Promise<DendaInvoiceRecord>;
 
+  /**
+   * Batch buat denda job harian — menggantikan createDendaInvoice per invoice
+   * (N+1). Implementasi Prisma memakai createMany + skipDuplicates terhadap
+   * unique (original_invoice_id, period); mengembalikan jumlah yang dibuat.
+   */
+  createDendaInvoices(
+    inputs: Array<{
+      invoiceNo: string;
+      originalInvoiceId: string;
+      period: string;
+      amount: Decimal | number | string;
+      dueDate: Date;
+      note: string;
+      createdBy: string;
+    }>
+  ): Promise<number>;
+
   /** Cek idempotensi job: sudah ada denda aktif untuk invoice+periode. */
   findDendaInvoice(originalInvoiceId: string, period: string): Promise<DendaInvoiceRecord | null>;
 
@@ -228,6 +245,48 @@ export class InMemoryFinanceStore implements FinanceStore {
     };
     this.dendaInvoices.set(record.id, record);
     return record;
+  }
+
+  async createDendaInvoices(
+    inputs: Array<{
+      invoiceNo: string;
+      originalInvoiceId: string;
+      period: string;
+      amount: Decimal | number | string;
+      dueDate: Date;
+      note: string;
+      createdBy: string;
+    }>
+  ): Promise<number> {
+    let created = 0;
+    for (const input of inputs) {
+      // skipDuplicates terhadap (original_invoice_id, period) — jangan buat
+      // ulang denda yang sudah ada.
+      const existing = [...this.dendaInvoices.values()].some(
+        (d) => d.originalInvoiceId === input.originalInvoiceId && d.period === input.period
+      );
+      if (existing) {
+        continue;
+      }
+      const record: DendaInvoiceRecord = {
+        id: this.nextId("den"),
+        invoiceNo: input.invoiceNo,
+        originalInvoiceId: input.originalInvoiceId,
+        period: input.period,
+        amount: money(input.amount),
+        dueDate: input.dueDate,
+        status: "PENDING",
+        note: input.note,
+        createdBy: input.createdBy,
+        createdAt: nowIso(),
+        deletedAt: null,
+        deleteReason: null,
+        deletedBy: null
+      };
+      this.dendaInvoices.set(record.id, record);
+      created += 1;
+    }
+    return created;
   }
 
   async findDendaInvoice(

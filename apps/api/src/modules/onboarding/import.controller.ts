@@ -28,7 +28,7 @@ export class ImportController {
   @Post("run")
   @RequirePermission("import:run:school")
   run(@Body() dto: ImportRowsDto, @CurrentUser() user: AuthUser, @Req() req: Request) {
-    return this.importService.run(dto, user.id, req.ip);
+    return this.importService.run(dto, user.id, req.ip, user.roles);
   }
 
   @Get("batches")

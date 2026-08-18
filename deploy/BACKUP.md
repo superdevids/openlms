@@ -7,7 +7,7 @@ opensis menyimpan dua jenis data yang wajib di-backup bersama:
 | Data     | Lokasi (DEV)                                               | Lokasi (PROD)                             | Alat backup               |
 | -------- | ---------------------------------------------------------- | ----------------------------------------- | ------------------------- |
 | Database | PostgreSQL `localhost:5432` (container `opensis-postgres`) | sama (port dipublish)                     | `pg_dump` (format custom) |
-| Storage  | `./storage` (host)                                         | volume `opensis-storage` → `/app/storage` | `tar.gz`                  |
+| Storage  | `apps/api/storage` (host) — BUKAN `./storage`              | volume `opensis-storage` → `/app/storage` | `tar.gz`                  |
 
 Skrip disediakan di `deploy/scripts/`:
 
@@ -36,12 +36,12 @@ opensis-storage-20260809-023000.tar.gz   # arsip storage lokal
 
 Variabel env yang bisa di-override (semua punya default dari `.env` root):
 
-| Env                 | Default                   | Keterangan                                           |
-| ------------------- | ------------------------- | ---------------------------------------------------- |
-| `DATABASE_URL`      | dari `.env`               | URL koneksi PostgreSQL                               |
-| `BACKUP_DIR`        | `deploy/backups`          | Direktori tujuan backup                              |
-| `STORAGE_LOCAL_DIR` | dari `.env` (`./storage`) | Direktori storage lokal                              |
-| `BACKUP_KEEP_DAYS`  | `14`                      | Hapus backup lebih lama dari N hari (`0` = nonaktif) |
+| Env                 | Default                   | Keterangan                                                |
+| ------------------- | ------------------------- | --------------------------------------------------------- |
+| `DATABASE_URL`      | dari `.env`               | URL koneksi PostgreSQL                                    |
+| `BACKUP_DIR`        | `deploy/backups`          | Direktori tujuan backup                                   |
+| `STORAGE_LOCAL_DIR` | dari `.env` (`./storage`) | Direktori storage lokal — DEV nyata di `apps/api/storage` |
+| `BACKUP_KEEP_DAYS`  | `14`                      | Hapus backup lebih lama dari N hari (`0` = nonaktif)      |
 
 Catatan `backup.sh`:
 
@@ -49,8 +49,12 @@ Catatan `backup.sh`:
   `docker compose exec -T postgres pg_dump` (cocok untuk PROD yang app-nya
   berjalan di container; `POSTGRES_USER`/`POSTGRES_DB`/`POSTGRES_PASSWORD`
   diambil dari `.env`, default `postgres`/`opensis`/`postgres`).
+- Setelah `pg_dump`, dump diverifikasi dengan `pg_restore --list` (host atau
+  via `docker compose exec`); gagal verifikasi → backup dianggap gagal.
 - Jika direktori storage tidak ada, bagian storage dilewati dengan peringatan
-  (bukan gagal total).
+  (bukan gagal total). Di DEV, upload runtime berada di `apps/api/storage` —
+  bila `STORAGE_LOCAL_DIR` yang dikonfigurasi tidak ada/kosong, `backup.sh`
+  otomatis memakai `apps/api/storage` (asalkan berisi).
 - Retensi default 14 hari — sesuaikan bila kebijakan arsip mengharuskan lebih
   panjang (mis. `BACKUP_KEEP_DAYS=30`).
 
@@ -130,8 +134,8 @@ Gunakan `tar` langsung (cara ini tidak menyentuh database):
 ```bash
 # PROD: pastikan volume ter-mount lalu ekstrak
 tar -xzf deploy/backups/opensis-storage-20260809-023000.tar.gz -C /app
-# DEV: ekstrak ke induk ./storage
-tar -xzf deploy/backups/opensis-storage-20260809-023000.tar.gz -C ./
+# DEV: ekstrak ke induk apps/api/storage (lokasi storage dev nyata)
+tar -xzf deploy/backups/opensis-storage-20260809-023000.tar.gz -C apps/api
 ```
 
 ---

@@ -315,4 +315,254 @@ tersebut hijau, verdict naik menjadi **APPROVE PRODUKSI (go-live)**.
 
 ---
 
+## Addendum — Sinkronisasi Angka 2026-08-16 (tidak mengubah isi laporan)
+
+> **Catatan:** isi laporan di atas adalah catatan historis per 2026-08-10 dan
+> TIDAK diubah. Angka di bawah adalah pembaruan status yang diverifikasi ulang
+> terhadap source pada 2026-08-16 — untuk pembaca yang memakai laporan ini
+> sebagai acuan terkini:
+>
+> - **Rv5-13 (E2E belum di CI) — TUTUP.** Scaffold Playwright (4 test) SUDAH
+>   berjalan di CI sebagai job **`web-e2e`** (`.github/workflows/ci.yml`:
+>   service postgres, `db:migrate:deploy` + `db:seed`, dev stack manual, upload
+>   artifact playwright-report). Job CI kini **9**: lint, typecheck, unit,
+>   web-test, integration, web-e2e, build, audit, secrets.
+> - **Rv5-15 (migrasi 11) — angkanya kini 12.** Migrasi terakhir
+>   `20260810000000_parent_link_approval` (status `ParentLinkStatus` pada
+>   `parent_student_link`); deploy ke prod tetap terbuka.
+> - **Rv5-17 (allowlist linkChild OPERATOR) — implementasi ada.** `linkChild`
+>   membuat tautan berstatus **PENDING** (`parent-portal.service.ts:109`),
+>   endpoint `POST /parent/links/:linkId/approve|reject` (`parent-portal.controller.ts:33-44`),
+>   akses data anak hanya untuk tautan APPROVED (`:131,253`); test spec menutupi
+>   alur approve/reject/ajukan ulang. (README.parent-portal.md masih menyebut
+>   TODO — perlu pembaruan kontrak.)
+> - **Enum Prisma — kini 63** (tambah `ParentLinkStatus`), bukan 62
+>   (`packages/database/prisma/schema.prisma`).
+> - **Angka test tetap catatan eksekusi** (API 2.140 / web 99 / integration 10 /
+>   public-content 20, 2026-08-10) — regenerasi dari CI masih direkomendasikan
+>   (Rv5-14).
+
+---
+
+## Addendum 2 — Gelombang Implementasi e-Rapor v1 & Go-Live 2026-08-16 (tidak mengubah isi laporan)
+
+> **Catatan:** laporan di atas tetap catatan historis per 2026-08-10; Addendum 1
+> (2026-08-16) tetap berlaku. Blok ini mencatat gelombang implementasi terbaru
+> (e-Rapor v1 + go-live hardening), diverifikasi terhadap source pada 2026-08-16:
+>
+> - **Rv5-13 (E2E di CI) — SUDAH.** Playwright (4 test scaffold) berjalan di CI
+>   job `web-e2e` (tetap 9 job: lint, typecheck, unit, web-test, integration,
+>   web-e2e, build, audit, secrets).
+> - **Rv5-14 (coverage gate) — SEBAGIAN.** Gate coverage **API** aktif di CI
+>   (job `unit` memakai `--coverage`, QA-007); **coverage web vitest ditambahkan**
+>   di `apps/web/vitest.config.ts` (provider v8, **threshold floor 0** —
+>   anti-regresi, bukan target) tetapi job `web-test` belum menjalankan
+>   `--coverage`. Target roadmap tetap **coverage ≥ 80%**.
+> - **Rv5-17 (allowlist linkChild OPERATOR) — SELESAI** (sudah di Addendum 1,
+>   dikonfirmasi tetap): endpoint approve/reject + akses hanya tautan APPROVED;
+>   README.parent-portal.md masih perlu pembaruan kontrak (follow-up).
+> - **Temuan MEDIUM Wave 2 — DITUTUP:** TER B/C payroll (kolom
+>   `Staff.ter_category` + `PATCH /payroll/staff/:staffId/ter-category` —
+>   catatan: nilai bracket PMK 168/2023 perlu review pajak sebelum produksi),
+>   **payment idempotency** (`Idempotency-Key` dipersist di
+>   `Payment.idempotency_key` unique + `allocations` JSONB, replay aman),
+>   **kurikulum persist di DB** (`CurriculumReference`, sebelumnya Map
+>   in-memory), **SMK/asset ownership (anti-IDOR)** jurnal PKL
+>   (`assertJournalActor`) & cancel booking aset.
+> - **Angka skema:** migrasi **12 → 15** (tambah
+>   `20260816000000_staff_ter_category`, `20260816010000_payment_idempotency`,
+>   `20260816020000_add_rapor_p5`; folder token-dedupe di-rename
+>   `20260809010000` → `20260808235959`); **modul API 34 → 35** (tambah
+>   `rapor`); **permission seed 138 → 141** (`rapor:p5:write:class`,
+>   `rapor:p5:write:school`, `rapor:write:school`); **enum tetap 63**; **model
+>   90 → 91** (`RaporP5`); halaman web 64 → **65** (`/siswa/rapor`).
+> - **Keamanan go-live hardening — SELESAI:** Redis wajib password
+>   (`REDIS_PASSWORD` fail-fast prod), port service prod hanya 127.0.0.1
+>   (nginx :80 publik), gate `DEMO_MODE` (data demo tidak bocor; API fail-fast
+>   bila `NEXT_PUBLIC_DEMO=1` di production).
+> - **Test infra:** script test diselaraskan CI (`test:unit` tanpa e2e,
+>   `test:integration` termasuk e2e, `+test:unit:coverage`); **angka test baru
+>   = catatan eksekusi 2026-08-16**: API ±2.228 (101 suite — ±2.203/99 suite
+>   sebelum modul rapor + 25 test rapor), web 99. **Bukan angka final** —
+>   regenerasi dari CI tetap wajib (Rv5-14).
+> - **Sisa prasyarat produksi (Rv5-15/16/18 + Rv5-14 lanjutan):**
+>   **migrate deploy prod** (Rv5-15), **staging live** (Rv5-16), **drill
+>   backup** (Rv5-18), **coverage ≥ 80%** (Rv5-14), **observability alerting**.
+
+---
+
+## Addendum 3 — Gelombang Wave 2 (modul PDP, e-Rapor v2, Dapodik v1) 2026-08-16 (tidak mengubah isi laporan)
+
+> **Catatan:** laporan di atas dan Addendum 1–2 tetap catatan historis dan TIDAK
+> diubah. Blok ini mencatat gelombang Wave 2 (kepatuhan UU PDP + e-Rapor v2 +
+> Dapodik v1 + gate CI), diverifikasi terhadap source pada **2026-08-16**:
+>
+> - **6 temuan lama register putaran 2 — DITUTUP:** R-07 (kualitas
+>   `actor_role` AuditLog + audit login gagal), R-09, R-22, R-41, R-46, R-47 —
+>   register QA putaran 2 kini **9 terbuka → 3 tersisa** (R-10, R-13, R-14;
+>   semua MEDIUM/LOW, non-blocking; lihat docs/08 §7.2).
+> - **Modul PDP (UU PDP, G12/G13) — DIBANGUN:** modul API **`pdp`** — **14
+>   endpoint `/pdp/*`** (data pribadi, perbaikan profil, ekspor personal
+>   `ExportType.PERSONAL`, delete-request + approve/reject, consents, retensi +
+>   `POST /pdp/retention/run`); 4 permission `pdp:*`
+>   (`pdp:data:self`, `pdp:export:self`, `pdp:delete-request:self`,
+>   `pdp:review:school`); model `PdpRequest` + enum
+>   `PdpRequestType`/`PdpRequestStatus`; anonimisasi PII placeholder `[dihapus]`;
+>   cron retensi bulanan `pdp-retention-monthly` (**`0 3 1 * *`**,
+>   `jobs/processors/pdp-retention.processor.ts:17`) + **5 kebijakan retensi
+>   default 60 bulan** (`packages/database/prisma/seed-data/retention-policies.ts`).
+> - **e-Rapor v2 — ekspor PDF selesai:** `POST /rapor/:studentId/export-pdf`
+>   (`report:export:self/class/school`) — PDF hand-rolled `rapor-pdf.ts` (footer
+>   **"Draft Sistem"** `rapor-pdf.ts:160`), unduh `GET /exports/:id` +
+>   `GET /exports/:id/download`; halaman `/guru/rapor` & `/admin/rapor` + tombol
+>   unduh di `/siswa/rapor`; modul rapor kini **8 endpoint**. **Approval KEPSEK =
+>   v2.1 (belum).**
+> - **Dapodik v1 (G-50) — selesai best-effort:** `POST /dapodik/export`
+>   (`export:run:school`) → **3 CSV ber-BOM** (`peserta_didik.csv`,
+>   `pendidik.csv`, `rombongan_belajar.csv`); halaman `/admin/dapodik`.
+>   **GAP v1:** `User`/`Staff` belum punya kolom `nisn`/`nik`/`nuptk` — NISN dari
+>   `PpdbApplicant` (nullable), NUPTK kosong ber-catatan; migrasi **v1.1
+>   dijadwalkan**.
+> - **`ReportProcessor` bukan lagi skeleton:** dispatcher `export_type`
+>   RAPOR/DAPODIK/NILAI (`jobs/processors/report.processor.ts:58-70`, idempoten);
+>   `ExportModule` berisi generator nyata (`rapor-export.service.ts`,
+>   `dapodik-export.service.ts`).
+> - **3 gate CI aktif:** **prettier** (`ci.yml` job `prettier`),
+>   **web coverage** (vitest `--coverage`, floor 0 — job `web-test`),
+>   **import-no-restricted-paths** (ESLint `eslint.config.mjs:53`, job `lint`).
+> - **Angka skema terverifikasi 2026-08-16:** modul API **35 → 37** (tambah
+>   `pdp`, `export`); migrasi **15 → 16** (tambah `20260816030000_add_pdp_module`);
+>   **permission seed 141 → 146** (tambah `pdp:data:self`, `pdp:export:self`,
+>   `pdp:delete-request:self`, `pdp:review:school`, `report:export:self`);
+>   **model 91 → 92** (`PdpRequest`); **enum 63 → 65** (`PdpRequestType`,
+>   `PdpRequestStatus`); halaman web 65 → **68** (`/guru/rapor`, `/admin/rapor`,
+>   `/admin/dapodik`).
+> - **Angka test catatan eksekusi 2026-08-16 (Wave 2):** API **2.353 (111
+>   suite)**, web **99**, integration **10** — **bukan angka final**, regenerasi
+>   dari CI tetap wajib (Rv5-14).
+> - **Sisa prasyarat produksi:** **migrate deploy prod** (Rv5-15), **staging
+>   live** (Rv5-16), **drill backup** (Rv5-18), **review pajak TER** (nilai
+>   bracket PMK 168/2023 sebelum produksi), **coverage ≥ 80%** (Rv5-14),
+>   **observability alerting**.
+
+---
+
+## Addendum 4 — Audit Putaran 2 (Dokumentasi & PDP) 2026-08-17 (tidak mengubah isi laporan)
+
+> **Catatan:** laporan di atas dan Addendum 1–3 tetap catatan historis dan TIDAK
+> diubah. Blok ini mencatat hasil **audit putaran 2** (verifikasi terhadap
+> source pada **2026-08-17**):
+>
+> - **3 temuan HIGH baru — modul PDP (UU PDP):**
+>   1. **Anonimisasi** — `PdpAnonymizeService.anonymizeUser`
+>      (`apps/api/src/modules/pdp/pdp-anonymize.service.ts`) mengganti PII
+>      dengan placeholder `[dihapus]` dan menonaktifkan user, tetapi **tidak
+>      ada mekanisme verifikasi/uji** bahwa seluruh jejak PII di tabel turunan
+>      (mis. log, riwayat chat, lampiran) ikut dianonimkan — perlu inventaris
+>      field PII per model + test anonimisasi menyeluruh.
+>   2. **Legal hold** — `DataRetentionPolicy` (`retention-policies.ts`) belum
+>      punya konsep **legal hold / freeze** untuk data yang sedang dalam proses
+>      hukum atau permintaan otoritas; retensi DELETE dapat menghapus data yang
+>      seharusnya ditahan.
+>   3. **Data anak** — alur consent `ParentalConsent` (PPDB/`GET /pdp/consents`)
+>      belum mengikat kuat ekspor/permintaan PDP untuk data anak (Pasal 22/24
+>      UU PDP) — perlu pemisahan alur WALI_MURID vs SISWA dan verifikasi
+>      keabsahan wali.
+> - **Gap dokumentasi (16 gap) — ditutup 2026-08-17:** README modul `pdp`
+>   & `export` dibuat; `README.jobs.md` diperbarui (7 JOB_NAMES, processor
+>   aktual, trigger REPORT_GENERATE); `docs/04` path aktual + section `/pdp/*`;
+>   hitungan CI 9 → **10 job**; model/enum 92/65 diselaraskan; banner
+>   STATUS: IMPLEMENTED di 6 README.registration; drift bucket storage &
+>   nama rule ESLint (`import-x/no-restricted-paths`) diklarifikasi. Rincian di
+>   [CHANGELOG.md](../../CHANGELOG.md) (Unreleased — sinkronisasi dokumentasi
+>   putaran 2).
+> - **Temuan info:** komentar header `permissions.ts:3` masih menulis "141
+>   permission" padahal seed aktual **146** (perlu perbaikan source, bukan
+>   dokumentasi).
+> - **Target berikutnya:** **Dapodik v1.1** (kolom `nisn`/`nik`/`nuptk` pada
+>   `User`/`Staff` — migrasi schema) dan **e-Rapor v2.1** (approval KEPSEK +
+>   integrasi file e-Rapor resmi Kemdikbud); keduanya tetap roadmap.
+
+---
+
+## Addendum 5 — Gelombang 20-item (multi-role, squash migrasi, optimasi N+1, UI v2, dead code) 2026-08-18 (tidak mengubah isi laporan)
+
+> **Catatan:** laporan di atas dan Addendum 1–4 tetap catatan historis dan TIDAK
+> diubah. Blok ini mencatat hasil **gelombang 20-item** (verifikasi terhadap
+> source pada **2026-08-18**):
+>
+> - **Multi-role switcher (item 18) — SELESAI:**
+>   - User non-siswa/non-superadmin dapat **rangkap role** (1 user → N baris
+>     `UserRole` ACTIVE); dropdown **"Ganti peran"** di AppShell
+>     (`apps/web/src/components/layout/app-shell.tsx:390`).
+>   - Peran aktif disimpan di localStorage **`opensis_active_role`**
+>     (`apps/web/src/lib/active-role.ts:16`); peran aktif HANYA mengatur
+>     dashboard/menu (UI/navigasi) — **izin backend tetap union seluruh roles**
+>     (guard `roles[]` di API), sehingga tidak mempersempit otorisasi.
+>   - `switchableRoles`/`resolveActiveRole`/`roleHome` di
+>     `apps/web/src/lib/roles.ts:52-67`; SISWA & SUPERADMIN single-role
+>     (tidak bisa di-switch); test `apps/web/src/lib/__tests__/roles.test.ts`.
+>   - Seed user dev baru **`kepsek1`** (KEPSEK + GURU, keduanya ACTIVE —
+>     `packages/database/prisma/seed.ts:221-255`). Login tetap **username
+>     (NIS/NIP)**; email opsional (tidak berubah dari Addendum 4).
+> - **Squash migrasi (item 17) — SELESAI (dev):**
+>   - 17 folder migrasi Prisma inkremental disquash menjadi **1 baseline
+>     `20260818000000_init_squashed`** (`packages/database/prisma/migrations/`):
+>     **92 tabel + 65 enum + 85 index + 133 FK**.
+>   - DB development di-reset & seed ulang (idempotent).
+>   - ⚠️ **BLOCKER go-live:** baseline belum di-apply ke environment
+>     production; env prod yang punya data historis butuh strategi bootstrap
+>     (`prisma migrate resolve` / rebuild) — lihat [analisa-production-ready.md](../../analisa-production-ready.md).
+> - **Optimasi N+1 (item 19) — SELESAI:**
+>   - Rollover `buildPlan`/`execute` batch — `createMany`/`updateMany` per
+>     entitas (`apps/api/src/modules/rollover/rollover.service.ts:503-712`).
+>   - Daftar aset tanpa query per baris; payslip batch payroll; finance
+>     late-fee/refresh batch (`late-fee.service.ts:213`,
+>     `payment.service.ts:384-400`); PDP anonimisasi `updateMany`
+>     (`pdp-anonymize.service.ts:66-110`); impor chunk `$transaction`
+>     (`onboarding/import.service.ts:65,221-283`).
+>   - Pagination `skip/take` pada exam/alumni/smk/ppdb; **4 index baru**
+>     (PERF-02): `Grade(academic_year)`, `Invoice(status)`,
+>     `Enrollment(academic_year_id)`, `Attendance(status)`.
+> - **UI v2 + gambar asli (item 12/16/19-UI) — SELESAI:**
+>   - Landing memakai gambar JPG asli (`apps/web/public/landing/school/*.jpg` —
+>     hero, classroom, library, facility, activity) via script **`images:landing`**
+>     (`package.json:27` → `scripts/generate-landing-images.mjs`).
+>   - JSON-LD (`apps/web/src/app/page.tsx:268-296`), OG image
+>     (`layout.tsx:66`), anti-CLS (dimensi eksplisit), tagline default
+>     **"Platform Digital Terpadu Sekolah"**, shadow token `--shadow-app-*`
+>     (`globals.css:334-336,457-459`).
+> - **Dead code (item 20) — SELESAI (sebagian):**
+>   - Dihapus: `galeri-section.tsx` (diganti `galeri-grid.tsx`), `login_*.txt`,
+>     ekspor `FormPage` dari `components/ui/index.ts` (tersisa
+>     `FormSection`/`ValidationAlert`/`RequiredLabel`), seed-data
+>     `finance.ts`/`assets.ts`, deps `cva`/`clsx`/`tailwind-merge` dari
+>     `apps/web/package.json`.
+>   - ⚠️ **Catatan:** `api-dev.log` di root repo MASIH ADA (tidak ikut
+>     terhapus) — perlu dihapus manual + ditambahkan ke `.gitignore`.
+> - **Angka test catatan eksekusi 2026-08-18 (gelombang 20-item):** API
+>   **~2.412 (118 suite)**, web **109** — **bukan angka final**, regenerasi
+>   dari CI tetap wajib (Rv5-14). (Verifikasi tambahan: 124+ file spec API
+>   terdeteksi di `apps/api/src/**/*.spec.ts` + `apps/api/test/**`.)
+> - **Status prasyarat produksi (tetap, dari Addendum 3/4 + baru):**
+>   **migrate deploy prod** (kini makin kritis karena baseline squashed belum
+>   di-apply), **staging live** (Rv5-16), **drill backup** (Rv5-18), **review
+>   pajak TER/BPJS** (nilai bracket PMK 168/2023 sebelum produksi),
+>   **coverage ≥ 80%** (Rv5-14), **observability alerting**, **CSP nonce**
+>   (`script-src 'unsafe-inline'` — roadmap), **RLS opsional** (belum diaktifkan),
+>   **ganti password seed dev** sebelum go-live.
+> - **Koreksi angka index (post-review 2026-08-18):** klaim "85 index" di atas
+>   hanya menghitung `@@index` pada `schema.prisma` (85). Baseline
+>   `20260818000000_init_squashed/migration.sql` sebenarnya memuat **85 CREATE
+>   INDEX + 51 CREATE UNIQUE INDEX = 136 total** (51 unique mencakup inline
+>   `@unique` yang di-generate Prisma). Angka 136 dipakai di
+>   [03-database-erd.md](../03-database-erd.md),
+>   [analisa-production-ready.md](../../analisa-production-ready.md), dan
+>   CHANGELOG.md.
+> - **Koreksi `api-dev.log` (post-review 2026-08-18):** klaim "masih ada" pada
+>   Addendum 5 sudah tidak berlaku — file kosong di root sudah dihapus dan
+>   `*.log` di `.gitignore`.
+
+---
+
 _End of document — Riview 05, opensis, 10 Agustus 2026._

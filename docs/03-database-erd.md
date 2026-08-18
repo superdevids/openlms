@@ -3,12 +3,23 @@
 **Versi:** 1.2
 **Tanggal:** 8 Agustus 2026
 **Status:** Final desain single-school (input: prd04 v4.2 [owner-v4.2] §16.3(g); menggantikan desain multi-tenant v1.0)
-**Cakupan:** desain awal 61 entitas = 56 (v1.0) + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni — **diperbarui 2026-08-08: implementasi aktual 90 model + 62 enum** (lihat Catatan Pembaruan di bawah)
+**Cakupan:** desain awal 61 entitas = 56 (v1.0) + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni — **diperbarui 2026-08-16: implementasi aktual 92 model + 65 enum; diperbarui 2026-08-18: migrasi disquash menjadi 1 baseline** (lihat Catatan Pembaruan di bawah)
 **Referensi konsisten:** `02-technical-architecture.md`, `04-api-contract.md`, `05-implementation-plan.md`
 
 > **Catatan Pembaruan 2026-08-08:** skema implementasi kini berisi **90 model + 62
-> enum** (`packages/database/prisma/schema.prisma`, diverifikasi dengan grep `^model `
-> dan `^enum `). Daftar entitas di bawah merupakan desain awal 61 entitas; model
+> enum** (verifikasi awal grep `^model ` dan `^enum `; **diperbarui 2026-08-16
+> menjadi 63 enum** — tambah `ParentLinkStatus` untuk migrasi
+> `20260810000000_parent_link_approval`). **Diperbarui 2026-08-16 (gelombang
+> e-Rapor): model 90 → 91** — tambah `RaporP5` (§2.20); **enum tetap 63** (tidak
+> ada enum baru di gelombang ini). **Diperbarui 2026-08-16 (Wave 2 — modul PDP):
+> model 91 → 92** — tambah `PdpRequest` (permintaan hapus/ekspor data pribadi,
+> UU PDP; §2.21); **enum 63 → 65** — tambah `PdpRequestType`, `PdpRequestStatus`
+> serta nilai `PERSONAL` pada enum `ExportType` (migrasi
+> `20260816030000_add_pdp_module`). **Diperbarui 2026-08-18 (squash migrasi):
+> seluruh folder migrasi inkremental (17 folder) disquash menjadi 1 baseline
+> `20260818000000_init_squashed`** — isi skema identik (92 model + 65 enum +
+> 136 index = 85 CREATE INDEX + 51 CREATE UNIQUE INDEX + 133 relasi); DB development di-reset & seed ulang. Riwayat migrasi
+> inkremental di bawah (¶Catatan Migrasi) tetap catatan historis. Daftar entitas di bawah merupakan desain awal 61 entitas; model
 > tambahan hasil iterasi mencakup (tidak terbatas): payroll (JobPosition,
 > PayrollComponent, SalaryStructure, PayrollPeriodConfig, PayrollRun, PayrollRunItem,
 > Payslip), branding (`BrandingConfig`), landing (`LandingContent`, `NewsArticle`),
@@ -21,15 +32,53 @@
 > **AUDITOR**, SUPERADMIN, CALON_SISWA, WALI_MURID, PEMBIMBING_INDUSTRI,
 > PENGUJI_EKSTERNAL. Migrasi role dieksekusi via `20260808143817_add_roles_bk_kaprodi_auditor`.
 >
-> **Catatan Migrasi 2026-08-09 — 11 migrasi total** (`packages/database/prisma/migrations/`):
+> **Catatan Migrasi 2026-08-09 — 11 migrasi total** (`packages/database/prisma/migrations/`;
+> **diperbarui 2026-08-16: 16 migrasi** — tambah `20260810000000_parent_link_approval`
+> lalu `20260816000000_staff_ter_category`, `20260816010000_payment_idempotency`,
+> `20260816020000_add_rapor_p5`, **`20260816030000_add_pdp_module`**; folder
+> `20260809010000_exam_attempt_token_dedupe`
+> **di-rename menjadi `20260808235959_exam_attempt_token_dedupe`** agar urutan
+> folder konsisten dengan timestamp migrasi di sekitarnya; **per 2026-08-18
+> seluruh folder di bawah ini sudah disquash ke 1 baseline
+> `20260818000000_init_squashed` — catatan di bawah historis**):
 > `20260809000000_audit_fixes` — REL-003 unique `invoice(student_id, type, period)` + dedupe
 > tagihan ganda (sisanya `CANCELLED`); PERF-01 index hot-path exam
 > (`question[exam_package_id]`, `question[quiz_id]`, `exam_package[exam_id]`); PERF-05 unique
 > `exam_attempt(exam_session_id, token_used)` (token sesi sekali pakai); PERF-04 exclusion
 > constraint anti double-booking aset dikomentari (opsional, di luar Prisma).
-> `20260809010000_exam_attempt_token_dedupe` — pre-dedupe duplikat historis
+> `20260808235959_exam_attempt_token_dedupe` — pre-dedupe duplikat historis
 > `(exam_session_id, token_used)` (keep id terkecil; sisanya `EXPIRED`) agar unique index di
 > `audit_fixes` tidak gagal saat `migrate deploy`; idempotent/no-op bila tak ada duplikat.
+> `20260810000000_parent_link_approval` — kolom `status ParentLinkStatus` pada
+> `parent_student_link` (PENDING/APPROVED/REJECTED, default PENDING) untuk alur
+> persetujuan tautan wali murid-anak oleh OPERATOR (Rv5-17).
+> `20260816000000_staff_ter_category` — kolom `Staff.ter_category` (TEXT, default `'A'`):
+> kategori TER PPh21 bulanan PMK 168/2023 per pegawai (nilai bracket perlu review
+> pajak sebelum produksi).
+> `20260816010000_payment_idempotency` — `Payment.idempotency_key` (TEXT, unique)
+>
+> - `Payment.allocations` (JSONB): idempotensi pencatatan pembayaran (replay
+>   `Idempotency-Key` klien aman; alokasi lintas invoice disimpan utuh).
+>   `20260816020000_add_rapor_p5` — tabel `rapor_p5` (track proyek P5 manual,
+>   G-49 e-Rapor v1): unique `(student_id, semester, academic_year, project_name)`;
+>   komputasi nilai mapel tetap on-the-fly dari `grade` (tanpa snapshot).
+>   `20260816030000_add_pdp_module` — modul PDP (UU PDP): enum
+>   `PdpRequestType` (`DELETE`/`EXPORT`) + `PdpRequestStatus`
+>   (`PENDING`/`APPROVED`/`REJECTED`/`EXECUTED`), nilai `PERSONAL` pada enum
+>   `ExportType`, tabel `pdp_request` (index `(user_id, status)` +
+>   `(status)`; **bukan** unique constraint — dedupe 1 PENDING per user
+>   ditegakkan di service, `pdp.service.ts` → 409).
+>
+> **Catatan Squash Migrasi 2026-08-18 (item 17):** folder migrasi inkremental
+> di atas (dan pendahulunya) digabung menjadi **satu baseline**:
+> `20260818000000_init_squashed` (`packages/database/prisma/migrations/`) — hasil
+> `prisma migrate diff` dari skema final, memuat **92 tabel + 65 enum + 136 index
+> (85 CREATE INDEX + 51 CREATE UNIQUE INDEX) +
+> 133 foreign key**. Konsekuensi operasional: **environment dengan DB lama
+> (berisi migrasi inkremental) tidak bisa otomatis menempuh baseline ini** — untuk
+> environment yang sudah punya data, gunakan `prisma migrate resolve`/bootstrap
+> atau rebuild DB; DB development sudah di-reset & seed ulang. Proses deploy ke
+> produksi belum dilakukan (lihat [docs/analisa-production-ready.md](../analisa-production-ready.md)).
 
 ---
 
@@ -69,7 +118,7 @@
 
 - `id: String @id` — id internal (cuid), BUKAN id penyedia auth eksternal
 - `email: String? @unique`
-- `username: String? @unique` — login "Email atau Username" (prd04 §5.P)
+- `username: String? @unique` — login username (NIS/NIP); email opsional hanya untuk notifikasi
 - `password_hash: String` — Argon2id
 - `must_change_password: Boolean @default(true)` — wajib ganti password saat login pertama
 - `failed_login_attempts: Int @default(0)` — lockout 15 mnt setelah 5 gagal
@@ -240,6 +289,8 @@
 - `proof_url: String?` (bucket `payment-proofs`), `note: String?`
 - `paid_at: DateTime?`, `verified_by: String?` (FK → User), `verified_at: DateTime?`
 - `status: PaymentStatus @default(PENDING)` — PENDING / PAID / PARTIAL / OVERDUE / CANCELLED / REFUNDED / CARRIED_OVER
+- `idempotency_key: String? @unique` — **idempotensi pembayaran (2026-08-16)**: replay `Idempotency-Key` klien mengembalikan Payment yang sama, tidak dobel
+- `allocations: Json?` — hasil alokasi lintas invoice (recordAllocated) disimpan utuh
 - **Relasi:** N-1 Invoice; N-1 User (verified_by).
 
 ### 2.19 PpdbApplicant — tabel `ppdb_applicant` (pendaftar siswa baru)
@@ -255,6 +306,39 @@
 - `user_id: String?` (FK → User) — akun siswa aktif setelah ENROLLED
 - `consent_id: String?` (FK → ParentalConsent)
 - **Relasi:** N-1 SchoolProfile; N-1 User (user_id, setelah lolos).
+
+### 2.20 RaporP5 — tabel `rapor_p5` (track proyek P5 manual, G-49 e-Rapor v1, 2026-08-16)
+
+- `id: String @id` — cuid
+- `student_id: String` (FK → User, onDelete CASCADE)
+- `semester: String` — "GANJIL"/"GENAP"
+- `academic_year: String` — denormalisasi "2026/2027"
+- `project_name: String`, `theme: String?`, `score: Int?` (0–100), `deskripsi: String`
+- `created_by: String` (FK → User, RESTRICT)
+- `created_at: DateTime @default(now())`, `updated_at: DateTime @updatedAt`
+- `@@unique([student_id, semester, academic_year, project_name])` — dasar upsert
+- `@@index([student_id, semester, academic_year])`
+- **Relasi:** N-1 User (siswa); N-1 User (created_by).
+- **Catatan:** komputasi nilai mapel rapor TIDAK disimpan di sini — dihitung
+  on-the-fly dari `Grade` (modul `rapor`, lihat [README.rapor.md](../apps/api/src/modules/rapor/README.rapor.md));
+  tabel ini hanya track P5 manual.
+
+### 2.21 PdpRequest — tabel `pdp_request` (modul PDP, UU PDP G12/G13, 2026-08-16)
+
+- `id: String @id` — cuid
+- `user_id: String` (FK → User, onDelete CASCADE) — subjek data
+- `type: PdpRequestType` — `DELETE` / `EXPORT`
+- `status: PdpRequestStatus @default(PENDING)` — PENDING / APPROVED / REJECTED / EXECUTED
+- `reason: String?`, `requested_at: DateTime @default(now())`
+- `processed_by: String?` (FK → User, onDelete SET NULL)
+- `processed_at: DateTime?`, `processed_note: String?`
+- `@@index([user_id, status])`, `@@index([status])` — indeks NON-unique; dedupe
+  1 PENDING per user ditegakkan di service (`pdp.service.ts` → 409).
+- **Relasi:** N-1 User (user_id = subjek); N-1 User (processed_by = petugas).
+- **Catatan:** approve mengeksekusi anonimisasi PII (`pdp-anonymize.service.ts`,
+  placeholder `[dihapus]`) lalu status `EXECUTED`; jejak di `AuditLog` entity
+  `pdp_request`/`pdp_data_access`/`pdp_data_export`. Kebijakan retensi via
+  `DataRetentionPolicy` (5 entity default 60 bulan, cron `0 3 1 * *`).
 
 ---
 
@@ -389,6 +473,7 @@
 - `user_id: String?` (FK → User) — terhubung akun; null jika belum dibuatkan akun
 - `nip: String?`, `employee_no: String?`
 - `position: String` — GURU / OPERATOR / KEUANGAN / BK / KEPSEK / WAKEPSEK / LAINNYA
+- `ter_category: String @default("A")` — **kategori TER PPh21 bulanan PMK 168/2023 (A/B/C) per pegawai (2026-08-16)**; dipakai kalkulasi payroll run; nilai bracket perlu review pajak sebelum produksi
 - `education: String?`, `certification: String?` (sertifikasi guru)
 - `hire_date: DateTime?`, `status: StaffStatus @default(ACTIVE)`
 - **Relasi:** N-1 User; 1-N `StaffAttendance`.
@@ -676,7 +761,7 @@
 | `LetterStatus`         | DRAFT, SUBMITTED, APPROVED, REJECTED, SIGNED                                                                                                                                                                      |
 | `InternshipStatus`     | PLACED, ONGOING, COMPLETED, TERMINATED                                                                                                                                                                            |
 | `CompetencyTestStatus` | SCHEDULED, ONGOING, GRADED, PASSED, FAILED                                                                                                                                                                        |
-| `ExportType`           | DAPODIK, ANBK, RAPOR, NILAI                                                                                                                                                                                       |
+| `ExportType`           | DAPODIK, ANBK, RAPOR, NILAI, **PERSONAL**                                                                                                                                                                         |
 | `RetentionAction`      | ARCHIVE, DELETE, ANONYMIZE                                                                                                                                                                                        |
 | `ConsentType`          | DATA_CHILD, PUBLICATION, MEDICAL                                                                                                                                                                                  |
 | `ConsentStatus`        | GRANTED, REVOKED, EXPIRED                                                                                                                                                                                         |
@@ -691,35 +776,43 @@
 
 > **Catatan v1.2:** `SchoolStatus` DIHAPUS; enum `Role` mengikuti prd04 §3.1 lalu diperbarui per 2026-08-08 menjadi **14 role** (`GURU_BK` → `BK`, tambah `KAPRODI` & `AUDITOR` — sumber `schema.prisma:29-44`); wali kelas = scope override `Class.homeroom_teacher_id` untuk role GURU.
 >
-> **Catatan kelengkapan:** tabel di atas mencantumkan enum inti desain awal (45). Total enum aktual = **62** (`schema.prisma`); sisanya — PermissionEffect, PermissionScope, PermitType, PermitStatus, CurriculumReferenceType, PayrollRunStatus, PayslipStatus, LateFeeRuleType, RefundStatus, RefundMethod, ReconciliationRowStatus, CashFlowDirection, CashFlowCategory, AssetSourceFund, MaintenanceStatus, AuditType, AuditResultStatus — didefinisikan di `schema.prisma` dan diekspor via `@prisma/client` / `@opensis/types`.
+> **Catatan kelengkapan:** tabel di atas mencantumkan enum inti desain awal (45). Total enum aktual = **65** (`schema.prisma`, verifikasi 2026-08-17); sisanya — PermissionEffect, PermissionScope, PermitType, PermitStatus, CurriculumReferenceType, PayrollRunStatus, PayslipStatus, LateFeeRuleType, RefundStatus, RefundMethod, ReconciliationRowStatus, CashFlowDirection, CashFlowCategory, AssetSourceFund, MaintenanceStatus, AuditType, AuditResultStatus, **ParentLinkStatus**, **PdpRequestType**, **PdpRequestStatus** — didefinisikan di `schema.prisma` dan diekspor via `@prisma/client` / `@opensis/types`. (Pembaruan 2026-08-17: 63 → 65 — tambah `PdpRequestType`, `PdpRequestStatus`; nilai `PERSONAL` ditambahkan ke `ExportType`.)
 
 ---
 
 ## 6. Index Strategis (Query Hotspot)
 
-| Index                                         | Tabel                          | Alasan                                                |
-| --------------------------------------------- | ------------------------------ | ----------------------------------------------------- |
-| `(assignment_id, student_id)` unique          | submission                     | Submission per assignment (hot)                       |
-| `(student_id, class_subject_id, date)` unique | attendance                     | Rekap absensi per siswa+mapel+hari                    |
-| `(attendance_session_id, student_id)` unique  | attendance_record              | Scan per sesi                                         |
-| `(exam_session_id, student_id)` unique        | exam_attempt                   | Satu siswa satu attempt per sesi                      |
-| `(attempt_id, question_id)`                   | exam_answer_log                | Ambil semua jawaban per attempt (grade)               |
-| `(student_id, status, due_date)`              | invoice                        | Tagihan per siswa + jatuh tempo                       |
-| `(invoice_id)`                                | payment                        | Riwayat pembayaran per tagihan                        |
-| `(user_id, read_at, created_at)`              | notification                   | Notifikasi center per user                            |
-| `(type, created_at)`                          | notification                   | Broadcast/rekap per tipe (v1.1)                       |
-| `(class_subject_id, due_at)`                  | assignment                     | Daftar tugas per kelas-mapel                          |
-| `(student_id, class_subject_id, semester)`    | grade                          | Rekap nilai & rapor                                   |
-| `(class_id, academic_year_id)`                | enrollment                     | Daftar siswa per kelas                                |
-| `(student_id, date)`                          | attendance / attendance_record | Rekap bulanan (prd02 §3.2)                            |
-| `(status, created_at)`                        | ppdb_applicant                 | Panel verifikasi OPERATOR (v1.1, tanpa kolom sekolah) |
-| `(user_id, status)`                           | user_role                      | Resolve role per request auth (v1.1)                  |
-| `(entity, entity_id, created_at)`             | audit_log                      | Jejak audit per record                                |
-| `(user_id, status)`                           | failed_login_attempts          | Brute-force lockout (G11)                             |
-| `(entity, retention_months)`                  | data_retention_policy          | Job retensi (G12) (v1.1)                              |
-| `(feature_key)` unique                        | app_feature_setting            | Resolve nilai flag per request (v1.1)                 |
+| Index                                         | Tabel                          | Alasan                                                                        |
+| --------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------- |
+| `(assignment_id, student_id)` unique          | submission                     | Submission per assignment (hot)                                               |
+| `(student_id, class_subject_id, date)` unique | attendance                     | Rekap absensi per siswa+mapel+hari                                            |
+| `(attendance_session_id, student_id)` unique  | attendance_record              | Scan per sesi                                                                 |
+| `(exam_session_id, student_id)` unique        | exam_attempt                   | Satu siswa satu attempt per sesi                                              |
+| `(attempt_id, question_id)`                   | exam_answer_log                | Ambil semua jawaban per attempt (grade)                                       |
+| `(student_id, status, due_date)`              | invoice                        | Tagihan per siswa + jatuh tempo                                               |
+| `(invoice_id)`                                | payment                        | Riwayat pembayaran per tagihan                                                |
+| `(user_id, read_at, created_at)`              | notification                   | Notifikasi center per user                                                    |
+| `(type, created_at)`                          | notification                   | Broadcast/rekap per tipe (v1.1)                                               |
+| `(class_subject_id, due_at)`                  | assignment                     | Daftar tugas per kelas-mapel                                                  |
+| `(student_id, class_subject_id, semester)`    | grade                          | Rekap nilai & rapor                                                           |
+| `(class_id, academic_year_id)`                | enrollment                     | Daftar siswa per kelas                                                        |
+| `(student_id, date)`                          | attendance / attendance_record | Rekap bulanan (prd02 §3.2)                                                    |
+| `(status, created_at)`                        | ppdb_applicant                 | Panel verifikasi OPERATOR (v1.1, tanpa kolom sekolah)                         |
+| `(user_id, status)`                           | user_role                      | Resolve role per request auth (v1.1)                                          |
+| `(entity, entity_id, created_at)`             | audit_log                      | Jejak audit per record                                                        |
+| `(user_id, status)`                           | failed_login_attempts          | Brute-force lockout (G11)                                                     |
+| `(entity, retention_months)`                  | data_retention_policy          | Job retensi (G12) (v1.1)                                                      |
+| `(feature_key)` unique                        | app_feature_setting            | Resolve nilai flag per request (v1.1)                                         |
+| `(academic_year, student_id)`                 | grade                          | PERF-02: batch nilai per tahun+siswa (rollover buildPlan/precheck) 2026-08-18 |
+| `(status, due_date)`                          | invoice                        | PERF-02: job denda/overdue (refreshOverdueStatuses, runDailyDenda) 2026-08-18 |
+| `(academic_year_id, status)`                  | enrollment                     | PERF-02: filter enrollment per tahun+status (rollover/precheck) 2026-08-18    |
+| `(status, date)`                              | attendance                     | PERF-02: filter absensi per status+rentang (rekap/rollover) 2026-08-18        |
 
 Tambahan GIN index untuk `tags` (Question) dan `target_role` (Announcement) bila perlu.
+
+> **Catatan 2026-08-18:** 4 index baru di atas (PERF-02, optimasi N+1 item 19)
+> sudah masuk baseline squashed `20260818000000_init_squashed`; total index di
+> skema aktual = **85** (`schema.prisma`, verifikasi 2026-08-18), relasi = **133**.
 
 ---
 
@@ -792,6 +885,7 @@ Class 1──N ScheduleEntry N──1 Subject
 Enrollment 1──N Grade N──1 ClassSubject
 ClassSubject 1──N Assignment 1──N Submission N──1 User (siswa)
 ClassSubject 1──N Material
+User (siswa) 1──N RaporP5 (track P5 manual; nilai mapel on-the-fly dari Grade)
 FeatureFlag 1──N AppFeatureSetting
 ```
 
@@ -854,6 +948,6 @@ CompetencyTest 1──N CompetencyRubricItem
 - **Decimal** untuk uang (`Decimal(12,2)`) — hindari float.
 - **`school_id` eksplisit DIHAPUS** di semua tabel (single-school, prd04 §16.3(g)); akses data dikontrol permission + scope RBAC (SENDIRI/KELAS/SEKOLAH) di aplikasi.
 - **RLS opsional** tanpa session var tenant (hanya `app.user_id`); lapis utama tetap guard NestJS.
-- **Jumlah entitas: desain awal 61** (56 v1.0 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni); **implementasi aktual 90 model + 62 enum** per 2026-08-08 (lihat Catatan Pembaruan di header).
-- **Migrasi:** 11 migrasi di `packages/database/prisma/migrations/`; terbaru `20260809000000_audit_fixes` (unique `invoice(student_id, type, period)` + index hot-path exam + unique `exam_attempt(exam_session_id, token_used)`) dan `20260809010000_exam_attempt_token_dedupe` (pre-dedupe duplikat token historis).
+- **Jumlah entitas: desain awal 61** (56 v1.0 + FeatureFlag, AppFeatureSetting, AcademicYear, RolloverRun, Alumni); **implementasi aktual 92 model + 65 enum** per 2026-08-16 (lihat Catatan Pembaruan di header).
+- **Migrasi:** per 2026-08-18 folder migrasi disquash menjadi **1 baseline `20260818000000_init_squashed`** (`packages/database/prisma/migrations/` — 92 tabel + 65 enum + 136 index = 85 CREATE INDEX + 51 CREATE UNIQUE INDEX + 133 FK; DB dev di-reset & seed ulang; **belum di-apply ke env produksi** — lihat [analisa-production-ready.md](analisa-production-ready.md)). Riwayat migrasi inkremental (16 folder) yang disquash — `20260816030000_add_pdp_module` (tabel `pdp_request` + enum `PdpRequestType`/`PdpRequestStatus` + `ExportType.PERSONAL`), `20260816020000_add_rapor_p5` (tabel `rapor_p5`), `20260816010000_payment_idempotency` (unique `Payment.idempotency_key` + `allocations` JSONB), `20260816000000_staff_ter_category` (kolom `Staff.ter_category` TER PPh21 PMK 168/2023), `20260810000000_parent_link_approval` (status `ParentLinkStatus` pada `parent_student_link`), `20260809000000_audit_fixes` (unique `invoice(student_id, type, period)` + index hot-path exam + unique `exam_attempt(exam_session_id, token_used)`), dll. — dipertahankan sebagai catatan historis di header & CHANGELOG.
 - **Perubahan skema** memakai Prisma Migrate; file RLS opsional dikelola di `packages/database/prisma/rls/*.sql` dan dijalankan di migrasi (lihat 05-implementation-plan F0-T5).

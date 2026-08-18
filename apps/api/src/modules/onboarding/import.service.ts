@@ -1,9 +1,11 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger } from "@nestjs/common";
 import { AuditAction, ImportType, JobStatus, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@opensis/database";
 import { ImportRowsDto } from "./dto/import.dto";
 import { generateTemporaryPassword, hashPassword } from "../auth/password.util";
+import { resolveActorRole } from "../lms/lms-audit";
 import { JOB_NAMES, QUEUE_TOKEN, type IJobQueue } from "../queue/queue.types";
 
 export interface ImportTemplateColumn {
@@ -53,10 +55,16 @@ export interface ImportCommitPayload {
   rows: (Record<string, unknown> & { _rowNumber: number })[];
   actorId: string;
   ip?: string;
+  /** Role aktor untuk actor_role AuditLog (R-13, deterministik). */
+  actorRoles?: string[];
   totalRows: number;
   /** jumlah error validasi yang sudah ditulis REST (createMany) */
   validationErrorsCount: number;
 }
+
+/** Ukuran chunk createMany per $transaction — impor besar dibagi agar tidak
+ *  melewati batas parameter SQL (mis. 500 baris x ~5 kolom per query). */
+const IMPORT_COMMIT_CHUNK_SIZE = 500;
 
 const IMPORT_TEMPLATES: ImportTemplate[] = [
   {
@@ -188,7 +196,12 @@ export class ImportService {
     };
   }
 
-  async run(dto: ImportRowsDto, actorId: string, ip?: string): Promise<ImportRunResult> {
+  async run(
+    dto: ImportRowsDto,
+    actorId: string,
+    ip?: string,
+    roles: string[] = []
+  ): Promise<ImportRunResult> {
     if (dto.importType === ImportType.ASSIGNMENT) {
       throw new BadRequestException("Impor ASSIGNMENT belum didukung di fase ini.");
     }
@@ -225,6 +238,7 @@ export class ImportService {
       rows: all.valid,
       actorId,
       ip,
+      actorRoles: roles,
       totalRows: all.totalRows,
       validationErrorsCount: all.errors.length
     };
@@ -242,31 +256,27 @@ export class ImportService {
   }
 
   /**
-   * Commit impor (dipanggil ImportProcessor via queue) — loop per baris valid,
-   * error runtime ditulis createMany, batch diselesaikan + AuditLog.
+   * Commit impor (dipanggil ImportProcessor via queue) — batch per tipe:
+   * pre-check duplikat via findMany `in` + createMany user/role/enrollment
+   * (sebelumnya loop per baris = N+1). Error per baris TETAP dikumpulkan
+   * (ImportError) — fungsionalitas tidak berubah.
    */
   async commit(payload: ImportCommitPayload): Promise<ImportRunResult> {
     const school = await this.prisma.schoolProfile.findFirst();
     const academicYearId = school?.current_academic_year_id ?? null;
 
-    let successRows = 0;
-    let failedRows = 0;
     const errors: ImportRowError[] = [];
 
-    for (const row of payload.rows) {
-      const rowNumber = row._rowNumber ?? 0;
-      try {
-        await this.importRow(payload.importType, row, payload.actorId, academicYearId);
-        successRows += 1;
-      } catch (error) {
-        failedRows += 1;
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Gagal menyimpan baris (duplikat atau data tidak valid).";
-        errors.push({ rowNumber, field: null, message });
-      }
+    if (payload.importType === ImportType.STUDENT) {
+      await this.commitStudentRows(payload, academicYearId, errors);
+    } else if (payload.importType === ImportType.TEACHER) {
+      await this.commitTeacherRows(payload, errors);
+    } else if (payload.importType === ImportType.CLASS) {
+      await this.commitClassRows(payload, academicYearId, errors);
     }
+
+    const successRows = payload.rows.length - errors.length;
+    const failedRows = errors.length;
 
     // Error runtime baris ditulis SEKALI (createMany) — bukan create per baris.
     if (errors.length > 0) {
@@ -297,6 +307,7 @@ export class ImportService {
     await this.prisma.auditLog.create({
       data: {
         actor_id: payload.actorId,
+        actor_role: resolveActorRole(payload.actorRoles ?? []) ?? undefined,
         action: AuditAction.CREATE,
         entity: "import_batch",
         entity_id: payload.batchId,
@@ -425,115 +436,301 @@ export class ImportService {
     return errors.length === 0 ? { ok: true } : { ok: false, errors };
   }
 
-  private async importRow(
-    type: ImportType,
-    row: Record<string, unknown>,
-    actorId: string,
-    academicYearId: string | null
+  private text(row: Record<string, unknown>, key: string): string {
+    return row[key] === undefined || row[key] === null ? "" : String(row[key]).trim();
+  }
+
+  /** Pecah array menjadi potongan `size` untuk createMany ter-chunk. */
+  private chunks<T>(rows: T[], size: number): T[][] {
+    const out: T[][] = [];
+    for (let i = 0; i < rows.length; i += size) {
+      out.push(rows.slice(i, i + size));
+    }
+    return out;
+  }
+
+  /**
+   * Commit baris STUDENT dalam batch:
+   * 1) deteksi duplikat NISN intra-file (baris pertama menang);
+   * 2) pre-check duplikat terhadap DB via 1 findMany `in`;
+   * 3) pre-check kelas via 1 findMany `in`;
+   * 4) createMany user (id eksplisit agar bisa dipetakan tanpa fetch ulang),
+   *    userRole SISWA, dan enrollment — dalam satu $transaction ter-chunk.
+   */
+  private async commitStudentRows(
+    payload: ImportCommitPayload,
+    academicYearId: string | null,
+    errors: ImportRowError[]
   ): Promise<void> {
-    const text = (key: string): string =>
-      row[key] === undefined || row[key] === null ? "" : String(row[key]).trim();
+    const fail = (rowNumber: number, field: string, message: string) => {
+      errors.push({ rowNumber, field, message });
+    };
 
-    if (type === ImportType.STUDENT) {
-      const nisn = text("nisn");
-      const existing = await this.prisma.user.findUnique({ where: { username: nisn } });
-      if (existing) {
-        throw new Error("NISN sudah terdaftar (duplikat).");
+    // 1) duplikat intra-file: NISN pertama yang diproses menang.
+    const seenNisn = new Set<string>();
+    const freshRows: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of payload.rows) {
+      const nisn = this.text(row, "nisn");
+      const rowNumber = row._rowNumber ?? 0;
+      if (seenNisn.has(nisn)) {
+        fail(rowNumber, "nisn", "NISN sudah terdaftar (duplikat).");
+        continue;
       }
-      const temporaryPassword = generateTemporaryPassword();
-      const user = await this.prisma.user.create({
-        data: {
-          username: nisn,
-          password_hash: await hashPassword(temporaryPassword),
-          must_change_password: true,
-          full_name: text("nama")
-        }
-      });
-      await this.prisma.userRole.create({
-        data: {
-          user_id: user.id,
-          role: Role.SISWA,
-          status: "ACTIVE",
-          invited_by: actorId,
-          joined_at: new Date()
-        }
-      });
+      seenNisn.add(nisn);
+      freshRows.push(row);
+    }
+    if (freshRows.length === 0) return;
 
-      const className = text("kelas");
-      if (className) {
-        const cls = academicYearId
-          ? await this.prisma.class.findFirst({
-              where: { name: className, academic_year_id: academicYearId }
-            })
-          : null;
-        if (!cls) {
-          throw new Error(`Kelas "${className}" tidak ditemukan pada tahun ajaran berjalan.`);
-        }
-        await this.prisma.enrollment.create({
-          data: {
-            student_id: user.id,
-            class_id: cls.id,
-            academic_year_id: academicYearId as string,
-            status: "ACTIVE"
-          }
+    // 2) pre-check NISN terhadap DB (1 query, bukan findUnique per baris).
+    const nisns = freshRows.map((r) => this.text(r, "nisn"));
+    const existingUsers = await this.prisma.user.findMany({
+      where: { username: { in: nisns } },
+      select: { username: true }
+    });
+    const existingNisn = new Set(existingUsers.map((u) => u.username));
+    const dbFresh: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of freshRows) {
+      const nisn = this.text(row, "nisn");
+      if (existingNisn.has(nisn)) {
+        fail(row._rowNumber ?? 0, "nisn", "NISN sudah terdaftar (duplikat).");
+        continue;
+      }
+      dbFresh.push(row);
+    }
+    if (dbFresh.length === 0) return;
+
+    // 3) pre-check kelas (1 query) — kelas harus ada di tahun ajaran berjalan.
+    const classNames = [...new Set(dbFresh.map((r) => this.text(r, "kelas")))];
+    const classes = academicYearId
+      ? await this.prisma.class.findMany({
+          where: { name: { in: classNames }, academic_year_id: academicYearId }
+        })
+      : [];
+    const classByName = new Map(classes.map((c) => [c.name, c.id]));
+    const withClass: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of dbFresh) {
+      const className = this.text(row, "kelas");
+      if (className && !classByName.has(className)) {
+        fail(
+          row._rowNumber ?? 0,
+          "kelas",
+          `Kelas "${className}" tidak ditemukan pada tahun ajaran berjalan.`
+        );
+        continue;
+      }
+      withClass.push(row);
+    }
+    if (withClass.length === 0) return;
+
+    // 4) createMany user (id eksplisit → petakan tanpa fetch ulang) dalam
+    //    SATU $transaction ter-chunk (hindari N+1 DAN batas parameter SQL
+    //    untuk impor besar); skipDuplicates = resume/idempoten aman.
+    const userIdByNisn = new Map<string, string>();
+    const usersData: Prisma.UserCreateManyInput[] = [];
+    for (const row of withClass) {
+      const id = randomUUID();
+      userIdByNisn.set(this.text(row, "nisn"), id);
+      usersData.push({
+        id,
+        username: this.text(row, "nisn"),
+        password_hash: await hashPassword(generateTemporaryPassword()),
+        must_change_password: true,
+        full_name: this.text(row, "nama")
+      });
+    }
+    const userRoleData: Prisma.UserRoleCreateManyInput[] = withClass.map((row) => ({
+      user_id: userIdByNisn.get(this.text(row, "nisn")) as string,
+      role: Role.SISWA,
+      status: "ACTIVE",
+      invited_by: payload.actorId,
+      joined_at: new Date()
+    }));
+
+    const enrollmentsData: Prisma.EnrollmentCreateManyInput[] = [];
+    for (const row of withClass) {
+      const className = this.text(row, "kelas");
+      const classId = className ? classByName.get(className) : undefined;
+      if (classId && academicYearId) {
+        enrollmentsData.push({
+          student_id: userIdByNisn.get(this.text(row, "nisn")) as string,
+          class_id: classId,
+          academic_year_id: academicYearId,
+          status: "ACTIVE"
         });
       }
+    }
+
+    const studentTxCalls = [
+      ...this.chunks(usersData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.user.createMany({ data: chunk, skipDuplicates: true })
+      ),
+      ...this.chunks(userRoleData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.userRole.createMany({ data: chunk, skipDuplicates: true })
+      ),
+      ...this.chunks(enrollmentsData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.enrollment.createMany({ data: chunk, skipDuplicates: true })
+      )
+    ];
+    if (studentTxCalls.length > 0) {
+      await this.prisma.$transaction(studentTxCalls);
+    }
+  }
+
+  /**
+   * Commit baris TEACHER dalam batch: duplikat NUPTK intra-file + pre-check
+   * staff `in` + createMany user (id eksplisit), userRole GURU, dan staff.
+   */
+  private async commitTeacherRows(
+    payload: ImportCommitPayload,
+    errors: ImportRowError[]
+  ): Promise<void> {
+    const fail = (rowNumber: number, field: string, message: string) => {
+      errors.push({ rowNumber, field, message });
+    };
+
+    const seenNuptk = new Set<string>();
+    const freshRows: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of payload.rows) {
+      const nuptk = this.text(row, "nuptk");
+      const rowNumber = row._rowNumber ?? 0;
+      if (nuptk && seenNuptk.has(nuptk)) {
+        fail(rowNumber, "nuptk", "NUPTK/NIP sudah terdaftar (duplikat).");
+        continue;
+      }
+      if (nuptk) seenNuptk.add(nuptk);
+      freshRows.push(row);
+    }
+    if (freshRows.length === 0) return;
+
+    const nuptks = freshRows.map((r) => this.text(r, "nuptk")).filter(Boolean);
+    const existingStaff = nuptks.length
+      ? await this.prisma.staff.findMany({
+          where: { nip: { in: nuptks } },
+          select: { nip: true, user_id: true }
+        })
+      : [];
+    const existingNip = new Set(existingStaff.map((s) => s.nip));
+    const dbFresh: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of freshRows) {
+      const nuptk = this.text(row, "nuptk");
+      if (nuptk && existingNip.has(nuptk)) {
+        fail(row._rowNumber ?? 0, "nuptk", "NUPTK/NIP sudah terdaftar (duplikat).");
+        continue;
+      }
+      dbFresh.push(row);
+    }
+    if (dbFresh.length === 0) return;
+
+    const userIdByRow = new Map<number, string>();
+    const usersData: Prisma.UserCreateManyInput[] = [];
+    for (const row of dbFresh) {
+      const id = randomUUID();
+      userIdByRow.set(row._rowNumber ?? 0, id);
+      usersData.push({
+        id,
+        username: this.text(row, "nuptk") || undefined,
+        password_hash: await hashPassword(generateTemporaryPassword()),
+        must_change_password: true,
+        full_name: this.text(row, "nama")
+      });
+    }
+
+    // createMany user/role/staff dalam SATU $transaction ter-chunk
+    // (sebelumnya create serial + terpisah = N+1; kini atomik + aman parameter).
+    const userRoleData: Prisma.UserRoleCreateManyInput[] = dbFresh.map((row) => ({
+      user_id: userIdByRow.get(row._rowNumber ?? 0) as string,
+      role: Role.GURU,
+      status: "ACTIVE",
+      invited_by: payload.actorId,
+      joined_at: new Date()
+    }));
+
+    const staffData: Prisma.StaffCreateManyInput[] = dbFresh.map((row) => ({
+      user_id: userIdByRow.get(row._rowNumber ?? 0) as string,
+      nip: this.text(row, "nuptk") || undefined,
+      position: this.text(row, "jabatan") || "GURU",
+      status: "ACTIVE"
+    }));
+
+    await this.prisma.$transaction([
+      ...this.chunks(usersData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.user.createMany({ data: chunk, skipDuplicates: true })
+      ),
+      ...this.chunks(userRoleData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.userRole.createMany({ data: chunk, skipDuplicates: true })
+      ),
+      ...this.chunks(staffData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.staff.createMany({ data: chunk, skipDuplicates: true })
+      )
+    ]);
+  }
+
+  /**
+   * Commit baris CLASS dalam batch: duplikat nama intra-file + pre-check
+   * `in` + createMany kelas.
+   */
+  private async commitClassRows(
+    payload: ImportCommitPayload,
+    academicYearId: string | null,
+    errors: ImportRowError[]
+  ): Promise<void> {
+    const fail = (rowNumber: number, field: string, message: string) => {
+      errors.push({ rowNumber, field, message });
+    };
+
+    if (!academicYearId) {
+      for (const row of payload.rows) {
+        fail(row._rowNumber ?? 0, "kelas", "Tahun ajaran berjalan belum diatur.");
+      }
       return;
     }
 
-    if (type === ImportType.TEACHER) {
-      const nuptk = text("nuptk");
-      const byNuptk = nuptk ? await this.prisma.staff.findUnique({ where: { nip: nuptk } }) : null;
-      if (byNuptk?.user_id) {
-        throw new Error("NUPTK/NIP sudah terdaftar (duplikat).");
+    const seenName = new Set<string>();
+    const freshRows: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of payload.rows) {
+      const name = this.text(row, "nama");
+      const rowNumber = row._rowNumber ?? 0;
+      if (seenName.has(name)) {
+        fail(rowNumber, "nama", `Kelas "${name}" sudah ada pada tahun ajaran ini (duplikat).`);
+        continue;
       }
-      const temporaryPassword = generateTemporaryPassword();
-      const user = await this.prisma.user.create({
-        data: {
-          username: nuptk || undefined,
-          password_hash: await hashPassword(temporaryPassword),
-          must_change_password: true,
-          full_name: text("nama")
-        }
-      });
-      await this.prisma.userRole.create({
-        data: {
-          user_id: user.id,
-          role: Role.GURU,
-          status: "ACTIVE",
-          invited_by: actorId,
-          joined_at: new Date()
-        }
-      });
-      await this.prisma.staff.create({
-        data: {
-          user_id: user.id,
-          nip: nuptk || undefined,
-          position: text("jabatan") || "GURU",
-          status: "ACTIVE"
-        }
-      });
-      return;
+      seenName.add(name);
+      freshRows.push(row);
     }
+    if (freshRows.length === 0) return;
 
-    if (type === ImportType.CLASS) {
-      if (!academicYearId) {
-        throw new NotFoundException("Tahun ajaran berjalan belum diatur.");
+    const names = freshRows.map((r) => this.text(r, "nama"));
+    const existingClasses = await this.prisma.class.findMany({
+      where: { name: { in: names }, academic_year_id: academicYearId },
+      select: { name: true }
+    });
+    const existingNames = new Set(existingClasses.map((c) => c.name));
+    const dbFresh: (Record<string, unknown> & { _rowNumber: number })[] = [];
+    for (const row of freshRows) {
+      const name = this.text(row, "nama");
+      if (existingNames.has(name)) {
+        fail(
+          row._rowNumber ?? 0,
+          "nama",
+          `Kelas "${name}" sudah ada pada tahun ajaran ini (duplikat).`
+        );
+        continue;
       }
-      const name = text("nama");
-      const gradeLevel = Number(row["grade_level"]);
-      const existing = await this.prisma.class.findFirst({
-        where: { name, academic_year_id: academicYearId }
-      });
-      if (existing) {
-        throw new Error(`Kelas "${name}" sudah ada pada tahun ajaran ini (duplikat).`);
-      }
-      await this.prisma.class.create({
-        data: { name, grade_level: gradeLevel, academic_year_id: academicYearId, is_active: true }
-      });
-      return;
+      dbFresh.push(row);
     }
+    if (dbFresh.length === 0) return;
 
-    throw new BadRequestException("Tipe impor tidak didukung.");
+    // createMany kelas dalam $transaction ter-chunk (impor besar aman).
+    const classData: Prisma.ClassCreateManyInput[] = dbFresh.map((row) => ({
+      name: this.text(row, "nama"),
+      grade_level: Number(row["grade_level"]),
+      academic_year_id: academicYearId,
+      is_active: true
+    }));
+    await this.prisma.$transaction(
+      this.chunks(classData, IMPORT_COMMIT_CHUNK_SIZE).map((chunk) =>
+        this.prisma.class.createMany({ data: chunk })
+      )
+    );
   }
 }

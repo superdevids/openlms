@@ -1,12 +1,17 @@
 /**
- * Referensi kurikulum dasar (CP/ATP) — model SEDERHANA dalam memori.
+ * Referensi kurikulum dasar (CP/ATP) — PERSISTEN di Prisma (model
+ * CurriculumReference + Subject, W2). Sebelumnya store Map in-memory; sekarang
+ * data tersimpan di tabel `curriculum_reference` dengan subject_id di-resolve
+ * dari Subject (upsert by code bila belum ada).
  *
- * Schema Prisma belum memiliki entitas CapaianPembelajaran/AlurTujuanPembelajaran
- * (lihat ISSUES). Model ini menyimpan referensi CP/ATP per kode mapel agar
- * modul akademik tetap fungsional; ketika entitas DB tersedia, ganti store
- * dengan repository Prisma tanpa mengubah kontrak service.
+ * Kontrak service TIDAK berubah (curriculum.controller.ts & DTO tetap):
+ *   CurriculumReference { id, subjectCode, subjectName, phase,
+ *   capaianPembelajaran, alurTujuanPembelajaran }.
+ * Seed referensi (curriculum.seed.ts) dijalankan idempoten saat module init.
  */
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { SEED_CURRICULUM_REFERENCES } from "./curriculum.seed";
 
 export interface CurriculumReference {
@@ -33,55 +38,143 @@ export interface CurriculumFilter {
   subjectCode?: string;
 }
 
+type CurriculumReferenceRow = Prisma.CurriculumReferenceGetPayload<{
+  include: { subject: true };
+}>;
+
+interface CurriculumContent {
+  phase?: string;
+  capaianPembelajaran?: string;
+  alurTujuanPembelajaran?: string[];
+}
+
+function toView(row: CurriculumReferenceRow): CurriculumReference {
+  const content = (row.content ?? {}) as CurriculumContent;
+  const alur = Array.isArray(content.alurTujuanPembelajaran) ? content.alurTujuanPembelajaran : [];
+  return {
+    id: row.id,
+    subjectCode: row.subject.code,
+    subjectName: row.subject.name,
+    phase: content.phase ?? "",
+    capaianPembelajaran: content.capaianPembelajaran ?? "",
+    alurTujuanPembelajaran: [...alur]
+  };
+}
+
+/** Kode referensi unik per (subject, type, code) — pola "CP-{mapel}-{fase}". */
+function referenceCode(subjectCode: string, phase: string): string {
+  return `CUR-${subjectCode}-${phase}`;
+}
+
 @Injectable()
-export class CurriculumService {
-  private readonly store = new Map<string, CurriculumReference>();
+export class CurriculumService implements OnModuleInit {
+  private readonly logger = new Logger(CurriculumService.name);
+  private seedPromise: Promise<void> | null = null;
 
-  constructor() {
+  constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.ensureSeeded();
+  }
+
+  // ---------- Seed (idempoten) ----------
+
+  private ensureSeeded(): Promise<void> {
+    if (!this.seedPromise) {
+      this.seedPromise = this.doSeed();
+    }
+    return this.seedPromise;
+  }
+
+  private async doSeed(): Promise<void> {
     for (const ref of SEED_CURRICULUM_REFERENCES) {
-      this.store.set(ref.id, { ...ref, alurTujuanPembelajaran: [...ref.alurTujuanPembelajaran] });
+      await this.upsert({
+        subjectCode: ref.subjectCode,
+        subjectName: ref.subjectName,
+        phase: ref.phase,
+        capaianPembelajaran: ref.capaianPembelajaran,
+        alurTujuanPembelajaran: ref.alurTujuanPembelajaran
+      });
     }
+    this.logger.log(`Seeded ${SEED_CURRICULUM_REFERENCES.length} referensi kurikulum`);
   }
 
-  list(filter: CurriculumFilter = {}): CurriculumReference[] {
-    const result: CurriculumReference[] = [];
-    for (const ref of this.store.values()) {
-      if (filter.phase && ref.phase !== filter.phase) continue;
-      if (filter.subjectCode && ref.subjectCode !== filter.subjectCode) continue;
-      result.push(this.clone(ref));
+  // ---------- Query ----------
+
+  async list(filter: CurriculumFilter = {}): Promise<CurriculumReference[]> {
+    const where: Prisma.CurriculumReferenceWhereInput = {};
+    if (filter.subjectCode) {
+      where.subject = { code: filter.subjectCode };
     }
-    return result.sort((a, b) => a.subjectCode.localeCompare(b.subjectCode));
+    if (filter.phase) {
+      where.content = { path: ["phase"], equals: filter.phase };
+    }
+    const rows = await this.db.curriculumReference.findMany({
+      where,
+      include: { subject: true },
+      orderBy: { subject: { code: "asc" } }
+    });
+    return rows.map(toView);
   }
 
-  getById(id: string): CurriculumReference {
-    const ref = this.store.get(id);
-    if (!ref) throw new NotFoundException(`Referensi kurikulum ${id} tidak ditemukan`);
-    return this.clone(ref);
+  async getById(id: string): Promise<CurriculumReference> {
+    const row = await this.db.curriculumReference.findUnique({
+      where: { id },
+      include: { subject: true }
+    });
+    if (!row) {
+      throw new NotFoundException(`Referensi kurikulum ${id} tidak ditemukan`);
+    }
+    return toView(row);
   }
 
-  findBySubjectCode(subjectCode: string): CurriculumReference[] {
+  async findBySubjectCode(subjectCode: string): Promise<CurriculumReference[]> {
     return this.list({ subjectCode });
   }
 
-  upsert(input: CurriculumInput): CurriculumReference {
-    const id = input.id ?? `cur:${input.subjectCode}:${input.phase}`;
-    const ref: CurriculumReference = {
-      id,
-      subjectCode: input.subjectCode,
-      subjectName: input.subjectName,
+  async upsert(input: CurriculumInput): Promise<CurriculumReference> {
+    // Resolve Subject (upsert by code; category WAJIB untuk referensi kurikulum).
+    const subject = await this.db.subject.upsert({
+      where: { code: input.subjectCode },
+      create: {
+        code: input.subjectCode,
+        name: input.subjectName,
+        category: "WAJIB"
+      },
+      update: { name: input.subjectName }
+    });
+    const code = referenceCode(input.subjectCode, input.phase);
+    const content: Prisma.InputJsonValue = {
       phase: input.phase,
       capaianPembelajaran: input.capaianPembelajaran,
       alurTujuanPembelajaran: [...input.alurTujuanPembelajaran]
     };
-    this.store.set(id, ref);
-    return this.clone(ref);
+    const row = await this.db.curriculumReference.upsert({
+      where: { subject_id_type_code: { subject_id: subject.id, type: "CP", code } },
+      create: {
+        subject_id: subject.id,
+        type: "CP",
+        code,
+        name: input.subjectName,
+        content
+      },
+      update: { name: input.subjectName, content },
+      include: { subject: true }
+    });
+    return toView(row);
   }
 
-  remove(id: string): boolean {
-    return this.store.delete(id);
-  }
-
-  private clone(ref: CurriculumReference): CurriculumReference {
-    return { ...ref, alurTujuanPembelajaran: [...ref.alurTujuanPembelajaran] };
+  /** Hapus baris referensi kurikulum (Subject TIDAK dihapus). */
+  async remove(id: string): Promise<boolean> {
+    try {
+      await this.db.curriculumReference.delete({ where: { id } });
+      return true;
+    } catch (err) {
+      // P2025 = record not found → perilaku sama dengan Map.delete(false).
+      if ((err as { code?: string } | undefined)?.code === "P2025") {
+        return false;
+      }
+      throw err;
+    }
   }
 }

@@ -42,7 +42,14 @@ export class RbacAdminController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<RolePermissionView> {
-    return this.rbacAdminService.setRolePermission(role, permissionId, dto, user.id, req.ip);
+    return this.rbacAdminService.setRolePermission(
+      role,
+      permissionId,
+      dto,
+      user.id,
+      req.ip,
+      user.roles
+    );
   }
 
   @Get("users/:id/overrides")
@@ -59,6 +66,6 @@ export class RbacAdminController {
     @CurrentUser() user: AuthUser,
     @Req() req: Request
   ): Promise<UserOverrideView> {
-    return this.rbacAdminService.setUserOverride(userId, dto, user.id, req.ip);
+    return this.rbacAdminService.setUserOverride(userId, dto, user.id, req.ip, user.roles);
   }
 }

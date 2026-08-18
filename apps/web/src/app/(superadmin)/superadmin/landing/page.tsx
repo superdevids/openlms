@@ -22,7 +22,7 @@ import {
   IconFile
 } from "@opensis/ui";
 
-import { PageHeader, EmptyStateV3, StatusBadge } from "@/components/ui";
+import { PageHeader, EmptyStateV3, StatusBadge, RequiredLabel } from "@/components/ui";
 
 /**
  * Editor Landing Page — SUPERADMIN + OPERATOR (permission landing:write:school).
@@ -543,7 +543,7 @@ function NewsEditorDialog({
         </h2>
         <div className="mt-4 space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="news-title">Judul</Label>
+            <RequiredLabel htmlFor="news-title">Judul</RequiredLabel>
             <Input
               id="news-title"
               value={draft.title}
@@ -597,7 +597,7 @@ function NewsEditorDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="news-body">Isi</Label>
+            <RequiredLabel htmlFor="news-body">Isi</RequiredLabel>
             <Textarea
               id="news-body"
               value={draft.body}

@@ -77,9 +77,9 @@ export class OnboardingStep4Dto {
   @IsEmail({}, { message: "Email tidak valid" })
   email?: string;
 
-  @IsOptional()
   @IsString()
-  username?: string;
+  @IsNotEmpty({ message: "Username wajib diisi" })
+  username!: string;
 
   @IsString()
   @IsNotEmpty({ message: "Nama lengkap wajib diisi" })

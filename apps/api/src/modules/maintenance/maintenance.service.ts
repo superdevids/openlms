@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { AuditAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
+import { resolveActorRole } from "../lms/lms-audit";
 import { UpdateMaintenanceDto } from "./dto/update-maintenance.dto";
 import { MAINTENANCE_CACHE_TTL_MS, SYSTEM_STATUS_ID } from "./maintenance.constants";
 
@@ -87,7 +88,8 @@ export class MaintenanceService {
   async update(
     dto: UpdateMaintenanceDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<MaintenanceStatusView> {
     const before = await this.getStatus();
 
@@ -111,7 +113,7 @@ export class MaintenanceService {
     const status = this.toView(updated);
     // Invalidate cache seketika — perubahan langsung berlaku untuk request berikutnya.
     this.cache = { status, fetchedAt: Date.now() };
-    await this.audit(before, status, actorId, ip);
+    await this.audit(before, status, actorId, ip, roles);
     return status;
   }
 
@@ -158,12 +160,14 @@ export class MaintenanceService {
     before: MaintenanceStatusView,
     after: MaintenanceStatusView,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<void> {
     try {
       await this.prisma.auditLog.create({
         data: {
           actor_id: actorId,
+          actor_role: resolveActorRole(roles) ?? undefined,
           action: AuditAction.UPDATE,
           entity: "system_status",
           entity_id: SYSTEM_STATUS_ID,

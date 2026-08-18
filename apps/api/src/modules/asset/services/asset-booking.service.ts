@@ -1,16 +1,18 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import { AssetBooking } from "@prisma/client";
+import { AssetBooking, Role } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@opensis/database";
 import { AssetStore } from "../asset.store";
 import { ASSET_STORE } from "../asset.constants";
 import { AssetService } from "./asset.service";
+import { resolveActorRole } from "../../lms/lms-audit";
 
 /**
  * AssetBookingService — peminjaman ruang/alat (prd04 §5.G.3, prd02 §4.5).
@@ -73,7 +75,7 @@ export class AssetBookingService {
     return existing.filter((b) => isTimeOverlap(startAt, endAt, b.start_at, b.end_at));
   }
 
-  async book(input: BookAssetInput): Promise<AssetBooking> {
+  async book(input: BookAssetInput, actorRoles: string[] = []): Promise<AssetBooking> {
     const booking = await prisma.$transaction(async (tx) => {
       // PERF-04: lock baris asset (FOR UPDATE) — serialize pemesanan simultan
       // untuk aset yang sama; cek bentrok + insert berada dalam transaksi yang
@@ -115,7 +117,7 @@ export class AssetBookingService {
 
     await this.store.appendAuditLog({
       actorId: input.bookedBy,
-      actorRole: null,
+      actorRole: resolveActorRole(actorRoles) ?? null,
       action: "CREATE",
       entity: "AssetBooking",
       entityId: booking.id,
@@ -138,38 +140,116 @@ export class AssetBookingService {
     if (booking.status !== "PENDING") {
       throw new BadRequestException(`Booking sudah ${booking.status}`);
     }
-    if (!approved) {
-      return prisma.assetBooking.update({
-        where: { id },
-        data: { status: "REJECTED", approved_by: approvedBy }
+
+    // M-04 (race double-approve): SEMUA update approve dijalankan dalam SATU
+    // transaksi:
+    // 1. Row lock asset (SELECT ... FOR UPDATE) — serialize approve pada aset
+    //    yang sama; approve kedua menunggu, lalu melihat booking APPROVED dari
+    //    yang pertama → bentrok.
+    // 2. Cek bentrok DI DALAM transaksi terhadap booking APPROVED lain (PENDING
+    //    lain belum final; jika ia di-approve serentak, ia serialize di lock
+    //    yang sama dan akan menolak dirinya sendiri).
+    // 3. Klaim atomik updateMany where status=PENDING → APPROVED — dua approve
+    //    booking yang SAMA hanya satu yang menang (yang kalah count 0 →
+    //    ConflictException).
+    const updated = await prisma.$transaction(async (tx) => {
+      if (!approved) {
+        const claimedReject = await tx.assetBooking.updateMany({
+          where: { id, status: "PENDING" },
+          data: { status: "REJECTED", approved_by: approvedBy }
+        });
+        if (claimedReject.count === 0) {
+          throw new ConflictException("Booking sudah diproses admin lain");
+        }
+        const rejected = await tx.assetBooking.findUnique({ where: { id } });
+        if (!rejected) throw new NotFoundException("Booking tidak ditemukan");
+        return rejected;
+      }
+
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM asset WHERE id = ${booking.asset_id} FOR UPDATE
+      `;
+      if (locked.length === 0) {
+        throw new NotFoundException("Aset tidak ditemukan");
+      }
+      const existing = await tx.assetBooking.findMany({
+        where: { asset_id: booking.asset_id, id: { not: id }, status: "APPROVED" }
       });
-    }
-    // Konfirmasi ulang bentrok saat approve (jadwal bisa berubah sejak booking).
-    const conflicts = await this.findConflicts(booking.asset_id, booking.start_at, booking.end_at);
-    const conflictIds = conflicts.filter((c) => c.id !== id).map((c) => c.id);
-    if (conflictIds.length > 0) {
-      throw new BadRequestException(
-        `Bentrok jadwal dengan booking lain: ${conflictIds.join(", ")}`
-      );
-    }
-    return prisma.assetBooking.update({
-      where: { id },
-      data: { status: "APPROVED", approved_by: approvedBy }
+      const conflictIds = existing
+        .filter((b) => isTimeOverlap(booking.start_at, booking.end_at, b.start_at, b.end_at))
+        .map((b) => b.id);
+      if (conflictIds.length > 0) {
+        throw new BadRequestException(
+          `Bentrok jadwal dengan booking APPROVED lain: ${conflictIds.join(", ")}`
+        );
+      }
+      const claimed = await tx.assetBooking.updateMany({
+        where: { id, status: "PENDING" },
+        data: { status: "APPROVED", approved_by: approvedBy }
+      });
+      if (claimed.count === 0) {
+        throw new ConflictException("Booking sudah diproses admin lain");
+      }
+      const result = await tx.assetBooking.findUnique({ where: { id } });
+      if (!result) throw new NotFoundException("Booking tidak ditemukan");
+      return result;
     });
+    return updated;
   }
 
-  async cancel(id: string, _cancelledBy: string): Promise<AssetBooking> {
+  /** Role staf sekolah pemegang asset:write:school (seed-data/permissions.ts:505,589). */
+  private static readonly SCHOOL_STAFF_ROLES: Role[] = [
+    "SUPERADMIN",
+    "KEPSEK",
+    "WAKEPSEK",
+    "KAPRODI",
+    "OPERATOR",
+    "GURU",
+    "BK",
+    "KEUANGAN",
+    "AUDITOR"
+  ];
+
+  /**
+   * Batalkan booking — hanya pemilik booking (booked_by) atau staf sekolah
+   * (role pemegang asset:write:school). Siswa lain tidak boleh membatalkan
+   * booking milik orang lain (anti-IDOR).
+   */
+  async cancel(id: string, cancelledBy: string, actorRoles: Role[]): Promise<AssetBooking> {
     const booking = await prisma.assetBooking.findUnique({ where: { id } });
     if (!booking) {
       throw new NotFoundException("Booking tidak ditemukan");
     }
+    const isOwner = booking.booked_by === cancelledBy;
+    const isSchoolStaff = actorRoles.some((r) =>
+      AssetBookingService.SCHOOL_STAFF_ROLES.includes(r)
+    );
+    if (!isOwner && !isSchoolStaff) {
+      throw new ForbiddenException({
+        error: {
+          code: "FORBIDDEN",
+          message: "Anda tidak berhak membatalkan booking ini"
+        }
+      });
+    }
     if (booking.status === "COMPLETED") {
       throw new BadRequestException("Booking sudah selesai");
     }
-    return prisma.assetBooking.update({
+    const updated = await prisma.assetBooking.update({
       where: { id },
       data: { status: "CANCELLED" }
     });
+    await this.store.appendAuditLog({
+      actorId: cancelledBy,
+      actorRole: resolveActorRole(actorRoles) ?? null,
+      action: "UPDATE",
+      entity: "asset_booking",
+      entityId: id,
+      before: { status: booking.status },
+      after: { status: "CANCELLED" },
+      note: "booking dibatalkan"
+    });
+    return updated;
   }
 
   async complete(id: string): Promise<AssetBooking> {

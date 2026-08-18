@@ -20,7 +20,7 @@ import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
 import { DEMO_SUBMISSIONS } from "@/lib/demo";
-import { PageHeader, StatusBadge, EmptyStateV3 } from "@/components/ui";
+import { PageHeader, StatusBadge, EmptyStateV3, RequiredLabel } from "@/components/ui";
 
 interface PenilaianItem {
   id: string;
@@ -217,7 +217,9 @@ export default function GuruPenilaianPage(): JSX.Element {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="grade-score">Skor (0–{current.maxScore ?? 100})</Label>
+                      <RequiredLabel htmlFor="grade-score">
+                        Skor (0–{current.maxScore ?? 100})
+                      </RequiredLabel>
                       <Input
                         id="grade-score"
                         type="number"

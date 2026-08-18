@@ -112,6 +112,35 @@ export class PrismaFinanceStore implements FinanceStore {
     return this.toDendaInvoice(row);
   }
 
+  async createDendaInvoices(
+    inputs: Array<{
+      invoiceNo: string;
+      originalInvoiceId: string;
+      period: string;
+      amount: Decimal | number | string;
+      dueDate: Date;
+      note: string;
+      createdBy: string;
+    }>
+  ): Promise<number> {
+    if (inputs.length === 0) {
+      return 0;
+    }
+    const result = await this.prisma.dendaInvoice.createMany({
+      data: inputs.map((i) => ({
+        invoice_no: i.invoiceNo,
+        original_invoice_id: i.originalInvoiceId,
+        period: i.period,
+        amount: money(i.amount),
+        due_date: i.dueDate,
+        note: i.note,
+        created_by: i.createdBy
+      })),
+      skipDuplicates: true
+    });
+    return result.count;
+  }
+
   async findDendaInvoice(
     originalInvoiceId: string,
     period: string

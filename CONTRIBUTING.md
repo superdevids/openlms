@@ -160,7 +160,7 @@ Setiap perubahan **wajib disertai test** yang relevan:
 
 1. Isi [template pull request](.github/PULL_REQUEST_TEMPLATE.md) dengan lengkap: deskripsi, tipe perubahan, cara test, dan checklist.
 2. Pastikan branch Anda up-to-date dengan `main`.
-3. CI (`.github/workflows/ci.yml`) akan menjalankan **7 gate**: lint → typecheck → unit → integration → build → npm audit → secret scan. **PR hanya bisa digabung bila semua job hijau.**
+3. CI (`.github/workflows/ci.yml`) akan menjalankan **10 job**: lint → prettier → typecheck → unit → web-test → integration → web-e2e (Playwright) → build → npm audit → secret scan. **PR hanya bisa digabung bila semua job hijau.**
 4. Tag reviewer yang relevan; maintainer akan me-review dalam 1–2 hari kerja.
 
 **Tipe PR yang tidak akan diterima:**

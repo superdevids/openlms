@@ -12,7 +12,6 @@ import {
   CardDescription,
   Button,
   Input,
-  Label,
   Dialog,
   toast,
   IconBook,
@@ -20,7 +19,7 @@ import {
 } from "@opensis/ui";
 
 import { DEMO_CLASSES } from "@/lib/demo";
-import { PageHeader, EmptyStateV3 } from "@/components/ui";
+import { PageHeader, EmptyStateV3, RequiredLabel } from "@/components/ui";
 
 interface ClassItem {
   id: string;
@@ -125,7 +124,7 @@ export default function GuruKelasPage(): JSX.Element {
       >
         <form onSubmit={(e) => void create(e)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="cls-name">Nama Kelas</Label>
+            <RequiredLabel htmlFor="cls-name">Nama Kelas</RequiredLabel>
             <Input
               id="cls-name"
               value={name}
@@ -135,7 +134,7 @@ export default function GuruKelasPage(): JSX.Element {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cls-subject">Mata Pelajaran</Label>
+            <RequiredLabel htmlFor="cls-subject">Mata Pelajaran</RequiredLabel>
             <Input
               id="cls-subject"
               value={subject}

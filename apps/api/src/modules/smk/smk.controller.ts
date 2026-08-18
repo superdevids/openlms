@@ -59,14 +59,34 @@ export class SmkController {
 
   @Get("internships/by-mentor")
   @RequirePermission("internship:write:school", "internship:journal:self", "internship:grade:self")
-  internshipsByMentor(@Req() req: AuthenticatedRequest) {
-    return this.internshipService.listByMentor(this.actorId(req));
+  internshipsByMentor(
+    @Req() req: AuthenticatedRequest,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
+  ) {
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+    return this.internshipService.listByMentor(this.actorId(req), {
+      page: Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined,
+      limit: Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined
+    });
   }
 
   @Get("internships/by-student")
   @RequirePermission("internship:write:school", "internship:journal:self")
-  internshipsByStudent(@Query("studentId") studentId: string) {
-    return this.internshipService.listByStudent(studentId);
+  internshipsByStudent(
+    @Query("studentId") studentId: string,
+    @Req() req: AuthenticatedRequest,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
+  ) {
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+    // Anti-IDOR: service memaksa studentId = aktor sendiri bila bukan staf sekolah.
+    return this.internshipService.listByStudent(studentId, this.actorContext(req), {
+      page: Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined,
+      limit: Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined
+    });
   }
 
   @Post("internships/:internshipId/journals")
@@ -85,8 +105,8 @@ export class SmkController {
 
   @Get("internships/:internshipId/journals")
   @RequirePermission("internship:journal:self", "internship:write:school", "internship:grade:self")
-  listJournals(@Param("internshipId") internshipId: string) {
-    return this.internshipService.listJournals(internshipId);
+  listJournals(@Param("internshipId") internshipId: string, @Req() req: AuthenticatedRequest) {
+    return this.internshipService.listJournals(internshipId, this.actorContext(req));
   }
 
   @Patch("journals/:journalId/verify")
@@ -100,7 +120,7 @@ export class SmkController {
   }
 
   @Patch("internships/:internshipId/complete")
-  @RequirePermission("internship:write:school")
+  @RequirePermission("internship:write:school", "internship:grade:self")
   completeInternship(
     @Param("internshipId") internshipId: string,
     @Req() req: AuthenticatedRequest

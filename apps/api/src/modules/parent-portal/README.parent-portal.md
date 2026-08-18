@@ -18,8 +18,9 @@ Identitas user dari `request.requestContext`.
 - **Scope SENDIRI data anak:** overview/consent hanya boleh mengakses siswa yang
   benar-benar terhubung lewat `ParentStudentLink` milik wali aktor (`assertChildAccess`),
   jika tidak → `403`.
-- **TODO:** mekanisme persetujuan resmi (allowlist dibuat OPERATOR) masih
-  mengikuti; saat ini pembatasan berbasis role siswa aktif.
+- **Allowlist persetujuan (Rv5-17):** OPERATOR menyetujui/menolak tautan wali-anak
+  lewat `listPendingLinks` / `approveLink` / `rejectLink`; tautan hanya efektif
+  (bisa diakses wali) setelah status `APPROVED`.
 
 ## Daftar Fitur
 
@@ -29,14 +30,17 @@ Identitas user dari `request.requestContext`.
 
 ## Endpoint (prefix global `/api/v1`)
 
-| Method | Path                                                            | Permission                      | Deskripsi                                                |
-| ------ | --------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------- |
-| POST   | `/parent-portal/me`                                             | `user:write:self` (WALI_MURID)  | Lengkapi profil orang tua                                |
-| GET    | `/parent-portal/me`                                             | `report:read:self` (WALI_MURID) | Ambil profil orang tua sendiri (milik aktor)             |
-| POST   | `/parent-portal/:parentGuardianId/children`                     | `user:write:self` (WALI_MURID)  | Tautkan anak (hanya wali milik aktor; siswa aktif SISWA) |
-| GET    | `/parent-portal/:parentGuardianId/children`                     | `report:read:self` (WALI_MURID) | Daftar anak (hanya wali milik aktor)                     |
-| GET    | `/parent-portal/:parentGuardianId/children/:studentId/overview` | `report:read:self` (WALI_MURID) | Overview anak (hanya anak yang terhubung)                |
-| GET    | `/parent-portal/:parentGuardianId/children/:studentId/consents` | `report:read:self` (WALI_MURID) | Consent anak (hanya anak yang terhubung)                 |
+| Method | Path                                                            | Permission                                         | Deskripsi                                                                     |
+| ------ | --------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| GET    | `/parent-portal/links/pending`                                  | `parent:link:approve:school` (OPERATOR/SUPERADMIN) | Antrian tautan wali-anak status PENDING (allowlist, Rv5-17)                   |
+| POST   | `/parent-portal/links/:linkId/approve`                          | `parent:link:approve:school` (OPERATOR/SUPERADMIN) | Setujui tautan → APPROVED (akses data anak terbuka)                           |
+| POST   | `/parent-portal/links/:linkId/reject`                           | `parent:link:approve:school` (OPERATOR/SUPERADMIN) | Tolak tautan → REJECTED (wali dapat mengajukan ulang)                         |
+| POST   | `/parent-portal/me`                                             | `user:write:self` (WALI_MURID)                     | Lengkapi profil orang tua                                                     |
+| GET    | `/parent-portal/me`                                             | `report:read:self` (WALI_MURID)                    | Ambil profil orang tua sendiri (milik aktor)                                  |
+| POST   | `/parent-portal/:parentGuardianId/children`                     | `user:write:self` (WALI_MURID)                     | Tautkan anak (hanya wali milik aktor; siswa aktif SISWA; status awal PENDING) |
+| GET    | `/parent-portal/:parentGuardianId/children`                     | `report:read:self` (WALI_MURID)                    | Daftar anak (hanya wali milik aktor)                                          |
+| GET    | `/parent-portal/:parentGuardianId/children/:studentId/overview` | `report:read:self` (WALI_MURID)                    | Overview anak (hanya anak yang terhubung)                                     |
+| GET    | `/parent-portal/:parentGuardianId/children/:studentId/consents` | `report:read:self` (WALI_MURID)                    | Consent anak (hanya anak yang terhubung)                                      |
 
 ## Struktur File
 

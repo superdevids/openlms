@@ -1,5 +1,15 @@
 # Registrasi Modul — Rollover (tahun ajaran) — KRITIS (prd04 §5.R)
 
+> ## STATUS: IMPLEMENTED — catatan historis (2026-08-16)
+>
+> Dokumen ini adalah **catatan historis** saat modul masih berbentuk registrasi
+> awal. Implementasi aktual: RBAC global aktif — seluruh route memakai
+> `@RequirePermission` (`rollover:preview:school`, `rollover:execute:school`,
+> `rollover:rollback:school`, `rollover:history:read:school`); `RolloverItem`
+> sudah ada di schema (migrasi `20260816020000_add_rapor_p5` sebelumnya /
+> `schema.prisma:2099`). Klaim "RolloverItem tidak ada di schema" / "TODO RBAC"
+> di bawah sudah usang.
+
 **Status:** Sudah terdaftar di `app.module.ts` (imports: `RolloverModule`).
 
 ## Registrasi
@@ -21,6 +31,13 @@ import { RolloverModule } from "./modules/rollover/rollover.module";
 ## Catatan
 
 - **RolloverItem tidak ada di schema** → status langkah disimpan di `step_state` (Json) — ISSUES.
+  > **Pembaruan 2026-08-16:** `RolloverItem` sudah ada di schema (`schema.prisma:2099`),
+  > dipakai bersama `RolloverRun` (`schema.prisma:1907`); `step_state` tetap dipakai
+  > untuk resume dari FAILED. Catatan lama sudah usang.
 - `precheck_result`, `summary`, `step_state` memakai kolom Json schema.
 - TODO RBAC: seluruh endpoint OPERATOR/WAKEPSEK/SUPERADMIN.
+  > **Pembaruan 2026-08-16:** RBAC global aktif — seluruh route memakai
+  > `@RequirePermission` (`rollover:preview:school`, `rollover:execute:school`,
+  > `rollover:rollback:school`, `rollover:history:read:school` —
+  > `rollover.controller.ts:38-105`).
 - Unit test: `test/unit/rollover.promotion.spec.ts`, `test/unit/rollover.service.spec.ts`.

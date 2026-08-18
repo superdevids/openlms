@@ -21,5 +21,5 @@ export {
   type DataTableProps
 } from "./data-table";
 export { EmptyStateV3 } from "./empty-state-v3";
-export { FormPage, FormSection, ValidationAlert } from "./form-page";
+export { FormSection, ValidationAlert, RequiredLabel } from "./form-page";
 export { CommandPalette, type CommandItem } from "./command-palette";

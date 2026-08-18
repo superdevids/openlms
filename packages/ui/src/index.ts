@@ -92,5 +92,7 @@ export {
   IconLock,
   IconInfo,
   IconSun,
-  IconMoon
+  IconMoon,
+  IconEye,
+  IconEyeOff
 } from "./components/icons";

@@ -12,6 +12,7 @@ import { AppSettingsModule } from "./modules/app-settings/app-settings.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
 import { MaintenanceModule } from "./modules/maintenance/maintenance.module";
 import { LmsModule } from "./modules/lms/lms.module";
+import { RaporModule } from "./modules/rapor/rapor.module";
 import { QuizModule } from "./modules/quiz/quiz.module";
 import { ExamModule } from "./modules/exam/exam.module";
 import { AttendanceModule } from "./modules/attendance/attendance.module";
@@ -38,6 +39,8 @@ import { AuditLogModule } from "./modules/audit/audit-log.module";
 import { AdminStatsModule } from "./modules/admin-stats/admin-stats.module";
 import { DashboardConfigModule } from "./modules/dashboard-config/dashboard-config.module";
 import { UsersAdminModule } from "./modules/users-admin/users-admin.module";
+import { PdpModule } from "./modules/pdp/pdp.module";
+import { ExportModule } from "./modules/export/export.module";
 
 @Module({
   imports: [
@@ -84,6 +87,8 @@ import { UsersAdminModule } from "./modules/users-admin/users-admin.module";
     AdminStatsModule, // statistik dashboard (GET /admin/dashboard/stats)
     DashboardConfigModule, // kartu dashboard per role (GET/PUT /admin/dashboard-config, GET /dashboard/me)
     UsersAdminModule, // daftar user Admin Sistem (GET /admin/users)
+    PdpModule, // kepatuhan UU PDP: akses/ekspor data pribadi, permintaan hapus, retensi
+    ExportModule, // hasil ekspor Dapodik/rapor: baca & unduh (modul paralel)
     // Pengaturan & onboarding
     FeatureFlagsModule,
     AppSettingsModule,
@@ -92,6 +97,7 @@ import { UsersAdminModule } from "./modules/users-admin/users-admin.module";
     // Akademik & LMS
     AcademicModule,
     LmsModule, // menempel APP_PIPE global (ValidationPipe whitelist+transform)
+    RaporModule, // e-Rapor v1: komputasi nilai + track P5 (G-49)
     QuizModule,
     ExamModule,
     AttendanceModule,

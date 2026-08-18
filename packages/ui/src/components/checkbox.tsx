@@ -4,10 +4,7 @@ import { type ComponentProps, type JSX } from "react";
 
 import { cn } from "../lib/utils";
 
-export function Checkbox({
-  className,
-  ...props
-}: ComponentProps<"input">): JSX.Element {
+export function Checkbox({ className, ...props }: ComponentProps<"input">): JSX.Element {
   return (
     <input
       type="checkbox"

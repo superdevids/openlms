@@ -1,5 +1,21 @@
 # REGISTRATION — Modul Finance (Gelombang 2, prd04 §5.F)
 
+> ## STATUS: IMPLEMENTED (2026-08-16)
+>
+> Seluruh bagian di bawah (termasuk §4 "Entitas W2 yang BELUM ada…") adalah
+> **catatan historis**. Implementasi aktual:
+>
+> - **Semua entitas sudah ada di `schema.prisma`**:
+>   `LateFeeRule` (baris 2311), `Refund` (2349), `ReconciliationBatch` (2372),
+>   `ReconciliationItem` (2388), `CashFlowRecord` (2411); enum `InvoiceType`
+>   `UANG_OSIS`/`DENDA` (baris 150-151, migrasi `20260807010000_integrate_w2`).
+> - Modul terintegrasi di `app.module.ts` (`FinanceModule`, import baris 19 —
+>   terdaftar baris 101); job scheduler aktif.
+> - **Idempotensi pembayaran SUDAH diimplementasi**: `Payment.idempotency_key`
+>   (TEXT unique) + `Payment.allocations` JSONB (migrasi
+>   `20260816010000_payment_idempotency`; `payment.service.ts:37-91`) — replay
+>   `Idempotency-Key` klien aman, tidak dobel. TODO F2 di bawah sudah tuntas.
+
 Status: **SIAP DIIMPLEMENTASI / PERSISTENCE W2 MENYUSUL** (lih. ISSUES).
 
 ## 1. Tujuan
@@ -54,7 +70,8 @@ fallback "system"). Header dev `x-user-id` / `x-user-roles` sudah dihapus.
 - **Status tagihan dihitung, bukan disimpan manual**: `computeInvoiceTotals`
   memakai total Payment PAID + jatuh tempo (PENDING/PARTIAL/PAID/OVERDUE/CARRIED_OVER).
 - **Idempotensi job**: SPP (student_id+period), denda (original_invoice_id+period);
-  Idempotency-Key pada pembayaran (TODO F2: simpan key di store).
+  Idempotency-Key pada pembayaran dipersist ke `Payment.idempotency_key`
+  (migrasi `20260816010000_payment_idempotency`) — TODO F2 lama sudah selesai.
 - **Denda = invoice DENDA terpisah** (transparansi), bisa dihapus manual dengan
   alasan (AuditLog).
 - **Approval refund berlapis**: KEUANGAN -> KEPSEK bila nominal >= ambang

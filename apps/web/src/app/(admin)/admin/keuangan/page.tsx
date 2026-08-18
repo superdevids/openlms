@@ -282,7 +282,7 @@ export default function AdminKeuanganPage(): JSX.Element {
                   toast({
                     variant: "info",
                     title: "Form catat pembayaran",
-                    description: "Bukti upload & alokasi ke invoice (demo)"
+                    description: "Bukti upload & alokasi ke invoice"
                   })
                 }
               >
@@ -290,7 +290,7 @@ export default function AdminKeuanganPage(): JSX.Element {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => toast({ variant: "success", title: "Verifikasi pembayaran (demo)" })}
+                onClick={() => toast({ variant: "success", title: "Verifikasi pembayaran" })}
               >
                 Verifikasi (1 pending)
               </Button>
@@ -323,9 +323,7 @@ export default function AdminKeuanganPage(): JSX.Element {
                 <Input id="denda-grace" type="number" defaultValue={7} />
               </div>
             </div>
-            <Button
-              onClick={() => toast({ variant: "success", title: "Aturan denda disimpan (demo)" })}
-            >
+            <Button onClick={() => toast({ variant: "success", title: "Aturan denda disimpan" })}>
               Simpan Aturan
             </Button>
           </CardContent>
@@ -349,43 +347,53 @@ export default function AdminKeuanganPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DataTable
-              columns={[
-                {
-                  key: "bank",
-                  label: "Bank",
-                  render: (r) => <span className="font-medium">{r.bank}</span>
-                },
-                { key: "period", label: "Periode" },
-                {
-                  key: "matched",
-                  label: "Cocok",
-                  className: "tabular-nums",
-                  render: (r) => formatNumber(r.matched)
-                },
-                {
-                  key: "unmatched",
-                  label: "Belum Cocok",
-                  render: (r) => (
-                    <StatusBadge
-                      status={r.unmatched > 0 ? "MENUNGGU" : "COCOK"}
-                      label={r.unmatched > 0 ? `${r.unmatched} belum cocok` : "Semua cocok"}
-                      mapping={{ MENUNGGU: "warning", COCOK: "success" }}
-                    />
-                  )
-                }
-              ]}
-              rows={DEMO_RECON}
-              keyField="id"
-              maxHeight="none"
-            />
-            <Button
-              className="mt-4"
-              variant="outline"
-              onClick={() => toast({ variant: "info", title: "Upload CSV rekonsiliasi (demo)" })}
-            >
-              Upload CSV Bank
-            </Button>
+            {DEMO_MODE ? (
+              <>
+                <DataTable
+                  columns={[
+                    {
+                      key: "bank",
+                      label: "Bank",
+                      render: (r) => <span className="font-medium">{r.bank}</span>
+                    },
+                    { key: "period", label: "Periode" },
+                    {
+                      key: "matched",
+                      label: "Cocok",
+                      className: "tabular-nums",
+                      render: (r) => formatNumber(r.matched)
+                    },
+                    {
+                      key: "unmatched",
+                      label: "Belum Cocok",
+                      render: (r) => (
+                        <StatusBadge
+                          status={r.unmatched > 0 ? "MENUNGGU" : "COCOK"}
+                          label={r.unmatched > 0 ? `${r.unmatched} belum cocok` : "Semua cocok"}
+                          mapping={{ MENUNGGU: "warning", COCOK: "success" }}
+                        />
+                      )
+                    }
+                  ]}
+                  rows={DEMO_RECON}
+                  keyField="id"
+                  maxHeight="none"
+                />
+                <Button
+                  className="mt-4"
+                  variant="outline"
+                  onClick={() => toast({ variant: "info", title: "Upload CSV rekonsiliasi" })}
+                >
+                  Upload CSV Bank
+                </Button>
+              </>
+            ) : (
+              <EmptyStateV3
+                icon={<IconBank className="h-5 w-5" />}
+                title="Belum ada data rekonsiliasi"
+                desc="Upload CSV laporan bank untuk mencocokkan pembayaran tercatat."
+              />
+            )}
           </CardContent>
         </Card>
       </TabPanel>
@@ -397,26 +405,34 @@ export default function AdminKeuanganPage(): JSX.Element {
             <CardDescription>Penerimaan & pengeluaran periode berjalan.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {DEMO_CASHFLOW.map((c) => (
-                <li
-                  key={c.id}
-                  className="flex items-center justify-between rounded-md border border-border px-3 py-2"
-                >
-                  <span className="text-sm text-foreground">{c.label}</span>
-                  <span
-                    className={
-                      c.amount >= 0
-                        ? "font-semibold tabular-nums text-status-success-fg"
-                        : "font-semibold tabular-nums text-status-danger-fg"
-                    }
+            {DEMO_MODE ? (
+              <ul className="space-y-2">
+                {DEMO_CASHFLOW.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2"
                   >
-                    {c.amount >= 0 ? "+" : ""}
-                    {formatRupiah(c.amount)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                    <span className="text-sm text-foreground">{c.label}</span>
+                    <span
+                      className={
+                        c.amount >= 0
+                          ? "font-semibold tabular-nums text-status-success-fg"
+                          : "font-semibold tabular-nums text-status-danger-fg"
+                      }
+                    >
+                      {c.amount >= 0 ? "+" : ""}
+                      {formatRupiah(c.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyStateV3
+                icon={<IconWallet className="h-5 w-5" />}
+                title="Belum ada data arus kas"
+                desc="Ringkasan penerimaan & pengeluaran tampil setelah transaksi tercatat."
+              />
+            )}
           </CardContent>
         </Card>
       </TabPanel>

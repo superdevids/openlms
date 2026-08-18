@@ -18,6 +18,26 @@ x-logging: &default-logging
     max-file: "3"
 
 services:
+  # ============================================================
+  # Override keamanan go-live:
+  # - postgres/redis/api/web HANYA terikat 127.0.0.1 (host) — port publik
+  #   HANYA nginx :80. Binding loopback tetap mengizinkan migrasi/akses dari
+  #   host (localhost:5432, localhost:6379, localhost:3000/3001).
+  # - redis wajib auth: REDIS_PASSWORD di-set eksplisit (fail-fast) dan dipakai
+  #   api via REDIS_URL — sama dengan --requirepass container redis (base).
+  # Pola `!override` mengikuti docker-compose.staging.yml (Compose >= 2.24).
+  # ============================================================
+  postgres:
+    ports: !override
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    environment:
+      # Fail-fast di production (base punya default dev redis-dev-password).
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD wajib diisi di production}
+    ports: !override
+      - "127.0.0.1:6379:6379"
+
   api:
     build:
       context: .
@@ -34,13 +54,14 @@ services:
       PORT: "3001"
       # Host postgres/redis = nama service compose (bukan localhost)
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-opensis}?schema=public
-      REDIS_URL: redis://redis:6379
+      # Password redis = REDIS_PASSWORD (harus SAMA dengan --requirepass container redis)
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       TRUST_PROXY: "true"
       STORAGE_LOCAL_DIR: /app/storage
       # Origin default: web via Nginx :80 dan akses langsung :3000 (harus berisi origin pemakai nyata)
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:80,http://localhost:3000}
-    ports:
-      - "3001:3001"
+    ports: !override # Hanya host (loopback) — publik lewat Nginx :80
+      - "127.0.0.1:3001:3001"
     volumes:
       - opensis-storage:/app/storage
     depends_on:
@@ -87,8 +108,8 @@ services:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
-    ports:
-      - "3000:3000"
+    ports: !override # Hanya host (loopback) — publik lewat Nginx :80
+      - "127.0.0.1:3000:3000"
     depends_on:
       api:
         condition: service_healthy

@@ -88,27 +88,6 @@ export class AssetController {
     return this.assets.list(query);
   }
 
-  @Get(":id")
-  @RequirePermission("asset:read:school")
-  getAsset(@Param("id") id: string) {
-    return this.assets.findById(id);
-  }
-
-  @Post(":id")
-  @RequirePermission("asset:write:school")
-  updateAsset(
-    @Param("id") id: string,
-    @Body() dto: UpdateAssetDto,
-    @CurrentUser() user: AuthUser | undefined
-  ) {
-    const userId = this.actorId(user);
-    return this.assets.update(id, {
-      ...dto,
-      sumberDana: (dto.sumberDana ?? undefined) as "BOS" | "APBD" | "SWADANA" | null,
-      createdBy: userId
-    });
-  }
-
   // ---------- Depresiasi (dihitung saat laporan — prd04 §5.G.2) ----------
 
   @Get("reports/depreciation")
@@ -129,13 +108,16 @@ export class AssetController {
   @RequirePermission("asset:book:self", "asset:write:school")
   bookAsset(@Body() dto: BookAssetDto, @CurrentUser() user: AuthUser | undefined) {
     const userId = this.actorId(user);
-    return this.bookings.book({
-      assetId: dto.assetId,
-      bookedBy: userId,
-      startAt: new Date(dto.startAt),
-      endAt: new Date(dto.endAt),
-      purpose: dto.purpose
-    });
+    return this.bookings.book(
+      {
+        assetId: dto.assetId,
+        bookedBy: userId,
+        startAt: new Date(dto.startAt),
+        endAt: new Date(dto.endAt),
+        purpose: dto.purpose
+      },
+      user?.roles ?? []
+    );
   }
 
   @Get("bookings")
@@ -159,7 +141,7 @@ export class AssetController {
   @RequirePermission("asset:book:self", "asset:write:school")
   cancelBooking(@Param("id") id: string, @CurrentUser() user: AuthUser | undefined) {
     const userId = this.actorId(user);
-    return this.bookings.cancel(id, userId);
+    return this.bookings.cancel(id, userId, user?.roles ?? []);
   }
 
   @Post("bookings/:id/complete")
@@ -241,5 +223,30 @@ export class AssetController {
   ) {
     const userId = this.actorId(user);
     return this.audits.approveRetired(id, dto.approved, userId);
+  }
+
+  // ---------- Rute param dideklarasikan TERAKHIR agar literal
+  // ("bookings"/"maintenance"/"audits"/"reports/...") tidak tertelan oleh :id
+  // (Express match berurutan — pola rapor.controller). ----------
+
+  @Get(":id")
+  @RequirePermission("asset:read:school")
+  getAsset(@Param("id") id: string) {
+    return this.assets.findById(id);
+  }
+
+  @Post(":id")
+  @RequirePermission("asset:write:school")
+  updateAsset(
+    @Param("id") id: string,
+    @Body() dto: UpdateAssetDto,
+    @CurrentUser() user: AuthUser | undefined
+  ) {
+    const userId = this.actorId(user);
+    return this.assets.update(id, {
+      ...dto,
+      sumberDana: (dto.sumberDana ?? undefined) as "BOS" | "APBD" | "SWADANA" | null,
+      createdBy: userId
+    });
   }
 }

@@ -4,10 +4,7 @@ import { type HTMLAttributes, type JSX, type TdHTMLAttributes, type ThHTMLAttrib
 
 import { cn } from "../lib/utils";
 
-export function Table({
-  className,
-  ...props
-}: HTMLAttributes<HTMLTableElement>): JSX.Element {
+export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>): JSX.Element {
   return (
     <div className="w-full overflow-x-auto rounded-md border border-border">
       <table className={cn("w-full min-w-full text-left text-sm", className)} {...props} />

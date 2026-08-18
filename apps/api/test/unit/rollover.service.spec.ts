@@ -134,6 +134,8 @@ describe("RolloverService", () => {
       }
     ]);
     mockFn(db, "attendance", "count").mockResolvedValue(190);
+    // buildPlan memakai batch groupBy (bukan count per siswa) — kembalikan array.
+    mockFn(db, "attendance", "groupBy").mockResolvedValue([{ student_id: "stu-1", _count: 190 }]);
     mockFn(db, "auditLog", "create").mockResolvedValue({ id: "log-1" });
     mockFn(db, "academicYear", "update").mockResolvedValue(SOURCE_YEAR);
     mockFn(db, "class", "create").mockImplementation(
@@ -178,8 +180,8 @@ describe("RolloverService", () => {
       const result = await service.execute("run-1", "user-admin");
 
       expect(result.status).toBe("DONE");
-      expect(mockFn(db, "enrollment", "create")).toHaveBeenCalledTimes(1);
-      expect(mockFn(db, "alumni", "create")).not.toHaveBeenCalled();
+      expect(mockFn(db, "enrollment", "createMany")).toHaveBeenCalledTimes(1);
+      expect(mockFn(db, "alumni", "createMany")).not.toHaveBeenCalled();
       const summary = result.summary as { counts: Record<string, number> };
       expect(summary.counts.PROMOTED).toBe(1);
     });

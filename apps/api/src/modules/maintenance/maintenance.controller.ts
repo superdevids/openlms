@@ -36,6 +36,6 @@ export class MaintenanceController {
   @Roles(Role.SUPERADMIN)
   @RequirePermission("system:maintenance:write")
   update(@Body() dto: UpdateMaintenanceDto, @CurrentUser() user: AuthUser, @Req() req: Request) {
-    return this.maintenanceService.update(dto, user.id, req.ip);
+    return this.maintenanceService.update(dto, user.id, req.ip, user.roles);
   }
 }

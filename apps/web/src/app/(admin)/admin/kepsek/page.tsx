@@ -3,7 +3,7 @@
 import { useEffect, useState, type JSX } from "react";
 
 import { ChangeLogTable } from "@/components/audit/change-log-table";
-import { api } from "@/lib/api-client";
+import { api, DEMO_MODE } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
 import {
   Card,
@@ -19,7 +19,7 @@ import {
   IconWallet
 } from "@opensis/ui";
 
-import { formatPercent, formatRupiah } from "@/lib/format";
+import { formatRupiah } from "@/lib/format";
 import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
 import {
   PageHeader,
@@ -27,6 +27,7 @@ import {
   StatGrid,
   DataTable,
   StatusBadge,
+  EmptyStateV3,
   type DataTableColumn
 } from "@/components/ui";
 
@@ -93,24 +94,24 @@ export default function AdminKepsekPage(): JSX.Element {
       <StatGrid>
         <StatCard
           label="Siswa Aktif"
-          value="1,204"
+          value="-"
           tone="brand"
           icon={<IconAcademic className="h-5 w-5" />}
-          hint="48 rombel"
+          hint="menunggu data"
         />
         <StatCard
           label="Kehadiran Hari Ini"
-          value={formatPercent(95.8)}
+          value="-"
           tone="success"
           icon={<IconChart className="h-5 w-5" />}
-          hint="tren 6 bulan"
+          hint="menunggu data"
         />
         <StatCard
           label="Rata-rata Nilai"
-          value="78.4"
+          value="-"
           tone="info"
           icon={<IconAcademic className="h-5 w-5" />}
-          hint="per angkatan"
+          hint="menunggu data"
         />
         <StatCard
           label="Tunggakan SPP"
@@ -145,20 +146,28 @@ export default function AdminKepsekPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-center justify-between rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2">
-                <span className="font-medium text-status-warning-fg">
-                  Kelas XII IPS 2 — nilai turun 6%
-                </span>
-                <StatusBadge status="PENDING" label="perhatian" />
-              </li>
-              <li className="flex items-center justify-between rounded-md border border-status-danger-border bg-status-danger-bg px-3 py-2">
-                <span className="font-medium text-status-danger-fg">
-                  Alpa naik di XI IPA 3 (Budi, Sari)
-                </span>
-                <StatusBadge status="ALPA" label="alpa" />
-              </li>
-            </ul>
+            {DEMO_MODE ? (
+              <ul className="space-y-2">
+                <li className="flex items-center justify-between rounded-md border border-status-warning-border bg-status-warning-bg px-3 py-2">
+                  <span className="font-medium text-status-warning-fg">
+                    Kelas XII IPS 2 — nilai turun 6%
+                  </span>
+                  <StatusBadge status="PENDING" label="perhatian" />
+                </li>
+                <li className="flex items-center justify-between rounded-md border border-status-danger-border bg-status-danger-bg px-3 py-2">
+                  <span className="font-medium text-status-danger-fg">
+                    Alpa naik di XI IPA 3 (Budi, Sari)
+                  </span>
+                  <StatusBadge status="ALPA" label="alpa" />
+                </li>
+              </ul>
+            ) : (
+              <EmptyStateV3
+                icon={<IconChart className="h-5 w-5" />}
+                title="Menunggu data"
+                desc="Daftar kelas yang perlu perhatian akan tampil saat backend menyediakan data agregat nilai & kehadiran."
+              />
+            )}
           </CardContent>
         </Card>
         <Alert variant="info" className="mt-4 text-sm">
@@ -176,12 +185,20 @@ export default function AdminKepsekPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DataTable
-              columns={PAYROLL_COLUMNS}
-              rows={DEMO_PAYROLL}
-              keyField="id"
-              maxHeight="none"
-            />
+            {DEMO_MODE ? (
+              <DataTable
+                columns={PAYROLL_COLUMNS}
+                rows={DEMO_PAYROLL}
+                keyField="id"
+                maxHeight="none"
+              />
+            ) : (
+              <EmptyStateV3
+                icon={<IconWallet className="h-5 w-5" />}
+                title="Belum ada data payroll"
+                desc="Rekap payroll akan tampil setelah modul payroll diaktifkan dan berjalan."
+              />
+            )}
           </CardContent>
         </Card>
       </TabPanel>

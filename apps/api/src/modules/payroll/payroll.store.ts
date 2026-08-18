@@ -91,6 +91,20 @@ export interface PayrollStore {
     snapshot: PayslipRecord["snapshots"][number];
   }): Promise<PayslipRecord>;
 
+  /**
+   * Batch generate payslip (approveByKepsek). Menggantikan createPayslip per
+   * pegawai (N+1); pemanggil sudah memfilter pegawai yang belum punya payslip.
+   * Mengembalikan jumlah payslip yang dibuat.
+   */
+  createPayslips(
+    inputs: Array<{
+      runId: string;
+      staffId: string;
+      period: string;
+      snapshot: PayslipRecord["snapshots"][number];
+    }>
+  ): Promise<number>;
+
   listPayslips(staffId?: string): Promise<PayslipRecord[]>;
 
   getPayslip(id: string): Promise<PayslipRecord | null>;
@@ -523,6 +537,33 @@ export class InMemoryPayrollStore implements PayrollStore {
     };
     this.payslips.set(record.id, record);
     return record;
+  }
+
+  async createPayslips(
+    inputs: Array<{
+      runId: string;
+      staffId: string;
+      period: string;
+      snapshot: PayslipRecord["snapshots"][number];
+    }>
+  ): Promise<number> {
+    const now = nowIso();
+    let created = 0;
+    for (const input of inputs) {
+      const record: PayslipRecord = {
+        id: this.nextId("ps"),
+        runId: input.runId,
+        staffId: input.staffId,
+        period: input.period,
+        status: "ISSUED",
+        snapshots: [input.snapshot],
+        createdAt: now,
+        updatedAt: now
+      };
+      this.payslips.set(record.id, record);
+      created += 1;
+    }
+    return created;
   }
 
   async listPayslips(staffId?: string): Promise<PayslipRecord[]> {

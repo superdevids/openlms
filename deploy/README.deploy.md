@@ -16,7 +16,10 @@ opensis memakai **Docker Compose split mode**:
 `deploy/nginx.conf` adalah versi host (tanpa Docker) — jangan diubah satu sama lain.
 
 Storage file **lokal saja** (S3/MinIO tidak dipakai). DEV: `STORAGE_LOCAL_DIR`
-relatif dari host (mis. `./storage`). PROD: volume Docker `opensis-storage`
+relatif dari host (mis. `./storage`). Karena `npm run dev` memakai Turbo dengan
+working directory `apps/api`, default `./storage` berarti **`apps/api/storage`**
+(bukan `./storage` di root repo) — file upload runtime dev (ppdb-documents, dll.)
+muncul di `apps/api/storage/`. PROD: volume Docker `opensis-storage`
 di-mount ke `/app/storage` (`STORAGE_LOCAL_DIR=/app/storage`).
 
 Backup & restore DB + storage: lihat [BACKUP.md](BACKUP.md) (skrip
@@ -103,7 +106,9 @@ Prasyarat: Docker Engine + Docker Compose v2 + Node ≥ 20.
 
 1. **Environment** — `cp .env.example .env`, lalu sesuaikan untuk production:
    `JWT_*` acak, `POSTGRES_PASSWORD` kuat, `CORS_ORIGINS` origin nyata,
-   `COOKIE_SECURE=true` (HTTPS), dan opsional `NEXT_PUBLIC_*` (ter-bake saat build).
+   `COOKIE_SECURE=true` (HTTPS), **`REDIS_PASSWORD` wajib terisi** (production
+   memakai fail-fast: bila kosong, overlay prod menolak start — lihat
+   `docker-compose.prod.yml:37`), dan opsional `NEXT_PUBLIC_*` (ter-bake saat build).
 
 2. **Build & start semua service (overlay):**
 
@@ -115,6 +120,12 @@ Prasyarat: Docker Engine + Docker Compose v2 + Node ≥ 20.
    `nginx` setelah `web`/`api` sehat. Overlay menambahkan port `3001:3001`
    (api) dan `3000:3000` (web); port nginx `80:80` hanya didefinisikan di base
    (overlay TIDAK mengulang `ports` nginx — Compose men-append → duplikat).
+
+   > **Keamanan go-live (2026-08-16):** di overlay prod, postgres/redis/api/web
+   > terikat **HANYA di 127.0.0.1** host (`ports: !override 127.0.0.1:…`);
+   > port publik HANYA Nginx `:80`. Redis **wajib password** (`REDIS_PASSWORD`
+   > fail-fast; API memakai `REDIS_URL` berpassword). Akses dari host untuk
+   > migrasi/seed tetap bisa via `localhost:5432/6379/3000/3001`.
 
 3. **Migrasi & seed dari HOST:**
 
@@ -200,6 +211,11 @@ Prasyarat: Docker Engine + Docker Compose v2 + Node ≥ 20.
   headers, gzip, cache immutable `/_next/static`, proxy WebSocket
   `/socket.io/` + `/ws`. Versi dev menambah `/_nginx_health` (healthcheck).
 - Rate limit lapis kedua aktif di aplikasi (`RateLimitMiddleware`).
+- **Keamanan go-live**: Redis wajib auth (`REDIS_PASSWORD` — fail-fast di
+  production; jangan biarkan kosong/dev default), port service prod hanya
+  `127.0.0.1` (postgres/redis/api/web) — publik hanya Nginx `:80`, dan
+  `NEXT_PUBLIC_DEMO` wajib `0`/kosong di production (API menolak boot bila
+  `NEXT_PUBLIC_DEMO=1`).
 - DEV memakai `host.docker.internal` — jangan pernah dipakai di production;
   overlay prod mengalihkan ke upstream container.
 - Multi-instance: Socket.IO siap Redis adapter; cache in-memory (branding,

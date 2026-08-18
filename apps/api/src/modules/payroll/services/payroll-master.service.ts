@@ -1,8 +1,10 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { prisma } from "@opensis/database";
 import { PayrollStore } from "../payroll.store";
 import { JobPositionRecord, PayrollComponentRecord } from "../payroll.types";
 import { PAYROLL_STORE } from "../payroll.constants";
 import { money } from "../calculator/money";
+import { writeAudit, type AuditActorContext } from "../../lms/lms-audit";
 
 /**
  * Master kepegawaian & komponen gaji (prd04 §5.E.1).
@@ -110,5 +112,31 @@ export class SalaryStructureService {
 
   list(staffId?: string) {
     return this.store.listSalaryStructures(staffId);
+  }
+
+  /** Set kategori TER PPh21 bulanan per pegawai (PMK 168/2023: A/B/C). */
+  async setStaffTerCategory(
+    staffId: string,
+    category: "A" | "B" | "C",
+    actor: AuditActorContext
+  ): Promise<{ id: string; terCategory: string }> {
+    const existing = await prisma.staff.findUnique({ where: { id: staffId } });
+    if (!existing) {
+      throw new NotFoundException("Pegawai tidak ditemukan");
+    }
+    const updated = await prisma.staff.update({
+      where: { id: staffId },
+      data: { ter_category: category },
+      select: { id: true, ter_category: true }
+    });
+    await writeAudit({
+      ctx: actor,
+      action: "UPDATE",
+      entity: "staff",
+      entityId: staffId,
+      before: { ter_category: existing.ter_category },
+      after: { ter_category: category }
+    });
+    return { id: updated.id, terCategory: updated.ter_category };
   }
 }

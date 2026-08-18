@@ -16,14 +16,11 @@
   "dependencies": {
     "@opensis/types": "*",
     "@opensis/ui": "*",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "framer-motion": "^13.0.0",
     "next": "^16.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "socket.io-client": "^4.8.3",
-    "tailwind-merge": "^2.6.0"
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
@@ -33,6 +30,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
+    "@vitest/coverage-v8": "^3.2.7",
     "jsdom": "^26.0.0",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.0.0",

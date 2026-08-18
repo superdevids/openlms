@@ -110,7 +110,7 @@ export class RefundService {
       approvedByKeuangan: actorId
     });
     if (next === "PAID") {
-      await this.markPaid(updated);
+      return this.markPaid(updated);
     }
     return updated;
   }
@@ -135,8 +135,7 @@ export class RefundService {
       status: "PAID",
       approvedByKepsek: actorId
     });
-    await this.markPaid(updated);
-    return updated;
+    return this.markPaid(updated);
   }
 
   private async reject(
@@ -161,8 +160,8 @@ export class RefundService {
     return updated;
   }
 
-  private async markPaid(record: RefundRecord): Promise<void> {
-    await this.store.updateRefund(record.id, { status: "PAID", paidAt: new Date() });
+  private async markPaid(record: RefundRecord): Promise<RefundRecord> {
+    const paid = await this.store.updateRefund(record.id, { status: "PAID", paidAt: new Date() });
     await this.store.createCashFlowRecord({
       date: new Date(),
       direction: "OUT",
@@ -173,6 +172,7 @@ export class RefundService {
       createdBy: record.approvedByKeuangan ?? record.createdBy
     });
     this.logger.log(`Refund ${record.refundNo} dibayar Rp${record.amount}`);
+    return paid;
   }
 
   /** Nomor refund: REF-{tahun}-{urutan:5}. */

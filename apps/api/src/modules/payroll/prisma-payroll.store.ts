@@ -348,6 +348,29 @@ export class PrismaPayrollStore implements PayrollStore, OnModuleInit {
     return this.toPayslip(row);
   }
 
+  async createPayslips(
+    inputs: Array<{
+      runId: string;
+      staffId: string;
+      period: string;
+      snapshot: PayslipRecord["snapshots"][number];
+    }>
+  ): Promise<number> {
+    if (inputs.length === 0) {
+      return 0;
+    }
+    const result = await this.prisma.payslip.createMany({
+      data: inputs.map((i) => ({
+        run_id: i.runId,
+        staff_id: i.staffId,
+        period: i.period,
+        status: "ISSUED",
+        snapshots: this.toJsonValue([i.snapshot])
+      }))
+    });
+    return result.count;
+  }
+
   async listPayslips(staffId?: string): Promise<PayslipRecord[]> {
     const rows = await this.prisma.payslip.findMany({
       where: staffId ? { staff_id: staffId } : {},

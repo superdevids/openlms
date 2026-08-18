@@ -27,7 +27,7 @@ export default function PPDBLandingPage(): JSX.Element {
             PPDB {new Date().getFullYear()}/{new Date().getFullYear() + 1}
           </h1>
           <p className="mx-auto mt-2 max-w-xl text-base text-muted-foreground">
-            Penerimaan Peserta Didik Baru SMA Negeri Contoh — pendaftaran online, cek status secara
+            Penerimaan Peserta Didik Baru {APP_NAME} — pendaftaran online, cek status secara
             transparan.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">

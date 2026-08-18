@@ -5,7 +5,7 @@
  * user:write:school).
  */
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import type { Alumni } from "@prisma/client";
+import type { Alumni, Prisma } from "@prisma/client";
 import type { AlumniStatus } from "@opensis/types";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
@@ -14,6 +14,8 @@ export interface AlumniFilter {
   graduationYearId?: string;
   status?: AlumniStatus;
   search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface CreateAlumniInput {
@@ -27,26 +29,40 @@ export interface CreateAlumniInput {
 export class AlumniService {
   constructor(@Inject(DATABASE_CLIENT) private readonly db: DatabaseClient) {}
 
-  /** Direktori alumni — filter angkatan/status + pencarian nama/NISN. */
-  async list(filter: AlumniFilter = {}): Promise<Alumni[]> {
-    return this.db.alumni.findMany({
-      where: {
-        graduation_academic_year_id: filter.graduationYearId,
-        status: filter.status,
-        ...(filter.search
-          ? {
-              OR: [
-                { student: { full_name: { contains: filter.search, mode: "insensitive" } } },
-                { final_nisn: { contains: filter.search } }
-              ]
-            }
-          : {})
-      },
-      include: {
-        student: { select: { id: true, full_name: true, email: true, phone: true } }
-      },
-      orderBy: { graduation_date: "desc" }
-    });
+  /** Direktori alumni — filter angkatan/status + pencarian nama/NISN (paged). */
+  async list(filter: AlumniFilter = {}): Promise<{
+    items: Alumni[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = filter.page ?? 1;
+    const limit = filter.limit ?? 20;
+    const where: Prisma.AlumniWhereInput = {
+      graduation_academic_year_id: filter.graduationYearId,
+      status: filter.status,
+      ...(filter.search
+        ? {
+            OR: [
+              { student: { full_name: { contains: filter.search, mode: "insensitive" } } },
+              { final_nisn: { contains: filter.search } }
+            ]
+          }
+        : {})
+    };
+    const [items, total] = await Promise.all([
+      this.db.alumni.findMany({
+        where,
+        include: {
+          student: { select: { id: true, full_name: true, email: true, phone: true } }
+        },
+        orderBy: { graduation_date: "desc" },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      this.db.alumni.count({ where })
+    ]);
+    return { items, total, page, limit };
   }
 
   /** Buat alumni dari siswa dengan enrollment GRADUATED di tahun tersebut. */

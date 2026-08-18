@@ -33,9 +33,19 @@ export class AlumniController {
   list(
     @Query("graduationYearId") graduationYearId?: string,
     @Query("status") status?: AlumniStatus,
-    @Query("search") search?: string
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string
   ) {
-    return this.alumniService.list({ graduationYearId, status, search });
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+    return this.alumniService.list({
+      graduationYearId,
+      status,
+      search,
+      page: Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined,
+      limit: Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined
+    });
   }
 
   @Post()

@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type JSX,
+  type ReactNode
+} from "react";
 
 import { fetchAppFontSettings } from "@/lib/api-client";
 import {

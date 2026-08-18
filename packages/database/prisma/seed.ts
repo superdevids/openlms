@@ -19,6 +19,7 @@ import { FEATURE_FLAGS } from "./seed-data/feature-flags";
 import { DASHBOARD_CARDS_BY_ROLE, DASHBOARD_ROLES_TO_SEED } from "./seed-data/dashboard-config";
 import { LANDING_SECTIONS_SEED } from "./seed-data/landing-sections";
 import { ACHIEVEMENTS_SEED, EXTRACURRICULARS_SEED } from "./seed-data/public-content";
+import { RETENTION_POLICIES_SEED } from "./seed-data/retention-policies";
 
 const prisma = new PrismaClient();
 
@@ -132,8 +133,8 @@ async function main(): Promise<void> {
     update: {},
     create: {
       id: "branding_default",
-      app_name: "opensis",
-      tagline: "LMS & SIS Sekolah",
+      app_name: "Opensis",
+      tagline: "Platform Digital Terpadu Sekolah",
       primary_color: "#2563eb",
       secondary_color: "#1d4ed8",
       accent_color: "#0ea5e9",
@@ -216,6 +217,42 @@ async function main(): Promise<void> {
       joined_at: new Date()
     }
   });
+
+  // 4d2. User multi-role demo (item 18 — multi-role switcher): kepsek1 punya DUA
+  // role aktif (KEPSEK + GURU) agar switcher peran bisa diuji; keduanya ACTIVE.
+  const DEV_KEPSEK = {
+    username: "kepsek1",
+    email: "kepsek1@opensis.local",
+    fullName: "Kepala Sekolah Contoh"
+  };
+  const kepsek = await prisma.user.upsert({
+    where: { username: DEV_KEPSEK.username },
+    update: {
+      full_name: DEV_KEPSEK.fullName,
+      password_hash: await argon2.hash(DEV_ADMIN.devPassword),
+      must_change_password: false
+    },
+    create: {
+      username: DEV_KEPSEK.username,
+      email: DEV_KEPSEK.email,
+      password_hash: await argon2.hash(DEV_ADMIN.devPassword),
+      must_change_password: false,
+      full_name: DEV_KEPSEK.fullName
+    }
+  });
+  for (const role of ["KEPSEK", "GURU"] as const) {
+    await prisma.userRole.upsert({
+      where: { user_id_role: { user_id: kepsek.id, role } },
+      update: { status: "ACTIVE" },
+      create: {
+        user_id: kepsek.id,
+        role,
+        status: "ACTIVE",
+        invited_by: admin.id,
+        joined_at: new Date()
+      }
+    });
+  }
 
   let ekskulNewCount = 0;
   for (const e of EXTRACURRICULARS_SEED) {
@@ -565,6 +602,35 @@ async function main(): Promise<void> {
     }
   }
 
+  // 7c. DataRetentionPolicy — kebijakan retensi data (PDP/G12). Idempotent:
+  // findFirst by entity (tabel tanpa unique key) lalu update/create.
+  let retentionPolicyNewCount = 0;
+  for (const policy of RETENTION_POLICIES_SEED) {
+    const existing = await prisma.dataRetentionPolicy.findFirst({
+      where: { entity: policy.entity }
+    });
+    if (existing) {
+      await prisma.dataRetentionPolicy.update({
+        where: { id: existing.id },
+        data: {
+          retention_months: policy.retentionMonths,
+          action: policy.action,
+          enabled: true
+        }
+      });
+    } else {
+      await prisma.dataRetentionPolicy.create({
+        data: {
+          entity: policy.entity,
+          retention_months: policy.retentionMonths,
+          action: policy.action,
+          enabled: true
+        }
+      });
+      retentionPolicyNewCount += 1;
+    }
+  }
+
   const permissionTotal = await prisma.permission.count();
   const rolePermissionTotal = await prisma.rolePermission.count();
   const flagTotal = await prisma.featureFlag.count();
@@ -573,14 +639,16 @@ async function main(): Promise<void> {
   const dashboardConfigTotalDb = await prisma.roleDashboardConfig.count();
   const ekskulTotal = await prisma.extracurricular.count();
   const achievementTotal = await prisma.achievement.count();
+  const retentionPolicyTotal = await prisma.dataRetentionPolicy.count();
 
   console.log("Seed selesai:");
   console.log(`- SchoolProfile: ${school.name}`);
   console.log(`- AcademicYear aktif: ${yearNow.code}`);
   console.log(`- SUPERADMIN dev: ${DEV_ADMIN.username} (password: "${DEV_ADMIN.devPassword}")`);
   console.log(`- User siswa demo: ${DEV_SISWA.username} (role SISWA ACTIVE)`);
+  console.log(`- User multi-role demo: ${DEV_KEPSEK.username} (KEPSEK + GURU ACTIVE)`);
   console.log(`- FeatureFlag: ${flagTotal} flag`);
-  console.log(`- Branding: opensis (config_version 1)`);
+  console.log(`- Branding: Opensis (config_version 1)`);
   console.log(`- Prodi: ${prodiTotal} jurusan (TKJ, RPL, TKR, AKL, MM, TSM)`);
   console.log(`- Ekstrakurikuler: ${ekskulTotal} (baru: ${ekskulNewCount})`);
   console.log(`- Achievement: ${achievementTotal} prestasi (baru: ${achievementNewCount})`);
@@ -589,6 +657,9 @@ async function main(): Promise<void> {
   );
   console.log(`- Landing: ${landingTotal} section`);
   console.log(`- DashboardConfig: ${dashboardConfigTotalDb} kartu (baru: ${dashboardConfigTotal})`);
+  console.log(
+    `- DataRetentionPolicy: ${retentionPolicyTotal} kebijakan (baru: ${retentionPolicyNewCount})`
+  );
 }
 
 main()

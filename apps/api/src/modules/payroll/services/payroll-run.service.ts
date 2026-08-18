@@ -112,7 +112,7 @@ export class PayrollRunService {
     // Tarik staff aktif (master Staff) + kehadiran bulan berjalan.
     const staffList = await prisma.staff.findMany({
       where: { status: "ACTIVE" },
-      select: { id: true }
+      select: { id: true, ter_category: true }
     });
     const [year, month] = run.period.split("-").map(Number);
     const from = new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, 1));
@@ -196,9 +196,12 @@ export class PayrollRunService {
         });
       }
 
+      // TER per pegawai: kategori A/B/C dari Staff.ter_category (PMK 168/2023);
+      // fallback A bila nilai tak dikenal (data lama / nilai kosong).
+      const terCategory = (staff.ter_category ?? "A") as keyof typeof config.terMonthly;
       const calc = computePayroll(fixed, variable, {
         umr: config.umr,
-        terMonthly: config.terMonthly.A, // default kategori A
+        terMonthly: config.terMonthly[terCategory] ?? config.terMonthly.A,
         bpjsKesehatan: config.bpjsKesehatan,
         bpjsJht: config.bpjsJht,
         bpjsJp: config.bpjsJp
@@ -281,10 +284,19 @@ export class PayrollRunService {
       approvedByKepsek: actorId,
       paidAt: new Date()
     });
-    const paid = await this.transition(updated, "PAID", actorId);
-    // Generate payslip digital untuk semua pegawai.
-    for (const item of paid.items) {
-      await this.store.createPayslip({
+    // State machine: APPROVED_KEUANGAN -> REKAP_KEPSEK -> PAID (prd04 §5.E.2).
+    const rekap = await this.transition(updated, "REKAP_KEPSEK", actorId);
+    const paid = await this.transition(rekap, "PAID", actorId);
+    // Generate payslip digital untuk semua pegawai (batch, hindari N+1).
+    // Anti-duplikat: skip pegawai yang sudah punya payslip untuk run ini
+    // (approveByKepsek tidak boleh membuat slip ganda saat retry/idempoten).
+    const existingPayslips = await this.store.listPayslips();
+    const existingStaffIds = new Set(
+      existingPayslips.filter((p) => p.runId === paid.id).map((p) => p.staffId)
+    );
+    const payslipInputs = paid.items
+      .filter((item) => !existingStaffIds.has(item.staffId))
+      .map((item) => ({
         runId: paid.id,
         staffId: item.staffId,
         period: paid.period,
@@ -298,7 +310,9 @@ export class PayrollRunService {
           net: item.net,
           issuedAt: new Date()
         }
-      });
+      }));
+    if (payslipInputs.length > 0) {
+      await this.store.createPayslips(payslipInputs);
     }
     this.logger.log(`Payroll ${paid.period} PAID (${paid.staffCount} pegawai)`);
     await this.emitPayrollStatus(paid, ["KEUANGAN", "KEPSEK"]);

@@ -348,6 +348,10 @@ export class ExamAttemptService {
    * Auto-submit server-side (M-EXAM-T6).
    * - Batch `take 100` loop (R-31): hindari memuat seluruh attempt IN_PROGRESS
    *   sekaligus; filter `started_at < now` meniadakan attempt yang belum dibuka.
+   * - Finalisasi tiap attempt yang expired dalam SATU `$transaction` per batch
+   *   (sebelumnya 1 transaksi per attempt = overhead N×). Bila salah satu
+   *   attempt gagal (mis. race submit), seluruh batch di-rollback dan attempt
+   *   yang belum selesai diproses ulang pada cron berikutnya.
    * - Tiap attempt yang expired di-finalize lalu push `exam:force-submit`
    *   ke room `exam:{sessionId}` (R-29) agar klien segera submit UI-nya.
    */
@@ -369,9 +373,12 @@ export class ExamAttemptService {
       });
       if (attempts.length === 0) break;
       cursor += attempts.length;
-      for (const attempt of attempts) {
-        if (this.isExpired(attempt.started_at, attempt.exam_session.exam.duration_min)) {
-          await prisma.$transaction(async (tx) => {
+      const expired = attempts.filter((a) =>
+        this.isExpired(a.started_at, a.exam_session.exam.duration_min)
+      );
+      if (expired.length > 0) {
+        await prisma.$transaction(async (tx) => {
+          for (const attempt of expired) {
             const updated = await this.finalizeWithinTx(tx, attempt, AttemptStatus.AUTO_SUBMITTED);
             // R-12: force-submit (auto) dicatat ke AuditLog — aktor sistem.
             await writeAudit({
@@ -382,12 +389,14 @@ export class ExamAttemptService {
               before: { status: attempt.status },
               after: { status: AttemptStatus.AUTO_SUBMITTED, score_auto: updated.score_auto }
             });
-          });
+          }
+        });
+        for (const attempt of expired) {
           this.realtime.emitToExam(attempt.exam_session_id, EXAM_FORCE_SUBMIT_EVENT, {
             attemptId: attempt.id
           });
-          submitted += 1;
         }
+        submitted += expired.length;
       }
       if (attempts.length < AUTO_SUBMIT_BATCH) break;
     }

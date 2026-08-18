@@ -9,7 +9,14 @@ import { LandingImage } from "@/components/landing/landing-image";
 import { AchievementBadge } from "@/components/landing/prestasi-grid";
 import { brandingApiUrl, type BrandingView } from "@/lib/api-client";
 import { safeUrl } from "@/lib/safe-url";
-import { API_TIMEOUT_MS, APP_NAME, FALLBACK_BRANDING } from "@/lib/constants";
+import {
+  API_TIMEOUT_MS,
+  APP_NAME,
+  APP_URL,
+  appAssetUrl,
+  FALLBACK_BRANDING,
+  LANDING_SCHOOL_IMAGES
+} from "@/lib/constants";
 import {
   getAchievements,
   getContact,
@@ -156,7 +163,7 @@ function CardPlay({
           className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[var(--shadow-soft)] transition-transform duration-300 group-hover:scale-105"
           style={{ backgroundImage: chip }}
         >
-          <img src={icon} alt="" aria-hidden="true" className="h-6 w-6" />
+          <img src={icon} alt="" aria-hidden="true" width={24} height={24} className="h-6 w-6" />
         </span>
         <h3 className="mt-4 text-xl font-bold text-foreground">{title}</h3>
         <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
@@ -256,8 +263,37 @@ export default async function HomePage(): Promise<JSX.Element> {
     { value: news.length > 0 ? `${news.length}+` : "30+", label: "Berita Sekolah" }
   ];
 
+  // ===== JSON-LD (Organization/School) — SEO terstruktur (item 12) =====
+  // Escaping `</script>` dihindari via \u003c agar JSON aman disisipkan.
+  const jsonLdSchool = {
+    "@context": "https://schema.org",
+    "@type": "School",
+    name: schoolName,
+    ...(branding.appName && branding.appName !== schoolName
+      ? { alternateName: branding.appName }
+      : {}),
+    description: branding.tagline ?? "Platform Digital Terpadu Sekolah",
+    url: APP_URL,
+    ...(profile.logoUrl ? { logo: appAssetUrl(profile.logoUrl) } : {}),
+    image: [appAssetUrl(LANDING_SCHOOL_IMAGES.hero)],
+    ...(contact.address
+      ? {
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: contact.address,
+            addressCountry: "ID"
+          }
+        }
+      : {}),
+    ...(contact.phone ? { telephone: contact.phone } : {}),
+    ...(contact.email ? { email: contact.email } : {}),
+    ...(contact.hours ? { openingHours: contact.hours } : {})
+  };
+  const jsonLdString = JSON.stringify(jsonLdSchool).replace(/</g, "\\u003c");
+
   return (
-    <div className="min-h-screen bg-[var(--surface-soft)]">
+    <div className="landing-light min-h-screen bg-[var(--surface-soft)]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString }} />
       <LandingHeader branding={branding} />
 
       <main id="main">
@@ -312,8 +348,8 @@ export default async function HomePage(): Promise<JSX.Element> {
               </StaggerItem>
               <StaggerItem>
                 <p className="mt-4 max-w-xl text-base text-white/90 md:text-lg">
-                  {branding.tagline ?? "LMS & SIS Sekolah"} — belajar yang cerdas, hangat, dan
-                  menyenangkan untuk setiap peserta didik.
+                  {branding.tagline ?? "Platform Digital Terpadu Sekolah"} — belajar yang cerdas,
+                  hangat, dan menyenangkan untuk setiap peserta didik.
                 </p>
               </StaggerItem>
               <StaggerItem>
@@ -339,14 +375,16 @@ export default async function HomePage(): Promise<JSX.Element> {
               </StaggerItem>
             </StaggerContainer>
 
-            {/* Ilustrasi lokal (same-origin, aman CSP img-src 'self') */}
+            {/* Foto asli sekolah (item 16) — raster JPG; fallback aman bila belum digenerate */}
             <FadeInUp delay={0.15} className="relative">
-              <img
-                src="/landing/playful/play-hero-school.svg"
-                alt="Ilustrasi gedung sekolah dengan suasana ceria"
-                role="img"
-                className="mx-auto w-full max-w-md"
+              <LandingImage
+                src={LANDING_SCHOOL_IMAGES.hero}
+                alt="Gedung sekolah dengan halaman dan taman yang hijau"
+                width={800}
+                height={450}
                 loading="eager"
+                className="mx-auto w-full max-w-md rounded-[1.5rem] border border-white/20 object-cover shadow-[var(--shadow-lift)]"
+                fallbackText="Sekolah"
               />
               <img
                 src="/landing/playful/play-star.svg"
@@ -376,6 +414,70 @@ export default async function HomePage(): Promise<JSX.Element> {
                   {s.value}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">{s.label}</p>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+        </section>
+
+        {/* ================= Keunggulan (Mengapa memilih) ================= */}
+        <section id="keunggulan" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 md:py-20">
+          <SectionHeading
+            eyebrow="Keunggulan"
+            title={`Mengapa memilih ${schoolName}?`}
+            description="Lingkungan belajar yang memadukan mutu akademik, teknologi, dan penguatan karakter untuk setiap peserta didik."
+          />
+          <StaggerContainer className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                title: "Kurikulum Berbasis Industri",
+                desc: "Pembelajaran aktif dan relevan dengan kebutuhan dunia usaha dan dunia kerja (DUDI)."
+              },
+              {
+                title: "Teknologi Terpadu",
+                desc: "LMS & SIS dalam satu platform digital untuk belajar dan administrasi yang efisien."
+              },
+              {
+                title: "Guru Profesional",
+                desc: "Tenaga pendidik berkompeten yang mendampingi perkembangan akademik dan karakter."
+              },
+              {
+                title: "Fasilitas Lengkap",
+                desc: "Sarana belajar modern yang nyaman dan mendukung proses pembelajaran berkualitas."
+              },
+              {
+                title: "Penguatan Karakter",
+                desc: "Pembiasaan positif dan pembinaan budi pekerti dalam keseharian di sekolah."
+              },
+              {
+                title: "Prestasi & Karier",
+                desc: "Pembinaan bakat-minat dan jejaring magang untuk menyiapkan masa depan peserta didik."
+              }
+            ].map((f, i) => (
+              <StaggerItem key={f.title} className="h-full">
+                <Card className="group relative h-full overflow-hidden rounded-[1.5rem] bg-card shadow-[var(--shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-x-0 top-0 h-1.5"
+                    style={{ backgroundImage: STRIP_GRADIENTS[i % STRIP_GRADIENTS.length] }}
+                  />
+                  <CardContent className="flex h-full flex-col p-6">
+                    <span
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-[var(--shadow-soft)] transition-transform duration-300 group-hover:scale-105"
+                      style={{ backgroundImage: STRIP_GRADIENTS[i % STRIP_GRADIENTS.length] }}
+                    >
+                      <img
+                        src="/landing/playful/play-check.svg"
+                        alt=""
+                        aria-hidden="true"
+                        className="h-6 w-6"
+                      />
+                    </span>
+                    <h3 className="mt-4 text-xl font-bold text-foreground">{f.title}</h3>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {f.desc}
+                    </p>
+                  </CardContent>
+                </Card>
               </StaggerItem>
             ))}
           </StaggerContainer>
@@ -567,6 +669,8 @@ export default async function HomePage(): Promise<JSX.Element> {
                       <LandingImage
                         src={item.coverImagePath}
                         alt={item.title}
+                        width={480}
+                        height={270}
                         className="h-40 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <CardContent className="p-5">
@@ -793,6 +897,8 @@ export default async function HomePage(): Promise<JSX.Element> {
                       <LandingImage
                         src={g.src}
                         alt={g.title}
+                        width={640}
+                        height={480}
                         className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                       <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4">
@@ -896,12 +1002,13 @@ export default async function HomePage(): Promise<JSX.Element> {
                   </div>
                 </div>
                 <div className="hidden lg:block">
-                  <img
-                    src="/landing/playful/play-ppdb.svg"
-                    alt="Ilustrasi pendaftaran peserta didik baru"
-                    role="img"
-                    className="mx-auto w-full max-w-sm"
-                    loading="lazy"
+                  <LandingImage
+                    src={LANDING_SCHOOL_IMAGES.activity}
+                    alt="Siswa mengikuti kegiatan di halaman sekolah"
+                    width={640}
+                    height={480}
+                    className="mx-auto w-full max-w-sm rounded-[1.5rem] border border-white/20 object-cover shadow-[var(--shadow-soft)]"
+                    fallbackText="Kegiatan"
                   />
                 </div>
               </div>

@@ -12,7 +12,6 @@ import {
   CardTitle,
   Button,
   Input,
-  Label,
   Alert,
   Skeleton,
   toast,
@@ -20,7 +19,14 @@ import {
   IconCheck,
   IconClock
 } from "@opensis/ui";
-import { PageHeader, StatCard, StatGrid, StatusBadge, EmptyStateV3 } from "@/components/ui";
+import {
+  PageHeader,
+  StatCard,
+  StatGrid,
+  StatusBadge,
+  EmptyStateV3,
+  RequiredLabel
+} from "@/components/ui";
 
 interface RubricItem {
   id: string;
@@ -186,9 +192,9 @@ export default function PengujiDashboardPage(): JSX.Element {
                               </p>
                             </div>
                             <div className="w-24 shrink-0">
-                              <Label htmlFor={`score-${item.id}`} className="sr-only">
+                              <RequiredLabel htmlFor={`score-${item.id}`} className="sr-only">
                                 Skor {item.criterion}
-                              </Label>
+                              </RequiredLabel>
                               <Input
                                 id={`score-${item.id}`}
                                 type="number"

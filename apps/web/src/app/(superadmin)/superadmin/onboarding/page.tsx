@@ -23,7 +23,7 @@ import {
   IconUpload
 } from "@opensis/ui";
 
-import { PageHeader } from "@/components/ui";
+import { PageHeader, RequiredLabel } from "@/components/ui";
 
 /**
  * Onboarding aplikasi sekolah — wizard setup 5 langkah (07-ux §4.1, prd04 §9.1).
@@ -42,7 +42,7 @@ export default function SuperadminOnboardingPage(): JSX.Element {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
-  const [schoolName, setSchoolName] = useState("SMA Negeri Contoh");
+  const [schoolName, setSchoolName] = useState("");
   const [npsn, setNpsn] = useState("");
   const [jenjang, setJenjang] = useState("SMA");
   const [year, setYear] = useState("2026/2027");
@@ -147,7 +147,7 @@ export default function SuperadminOnboardingPage(): JSX.Element {
             {step === 0 ? (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="on-name">Nama Sekolah</Label>
+                  <RequiredLabel htmlFor="on-name">Nama Sekolah</RequiredLabel>
                   <Input
                     id="on-name"
                     value={schoolName}
@@ -157,7 +157,7 @@ export default function SuperadminOnboardingPage(): JSX.Element {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="on-npsn">NPSN (8 digit)</Label>
+                    <RequiredLabel htmlFor="on-npsn">NPSN (8 digit)</RequiredLabel>
                     <Input
                       id="on-npsn"
                       value={npsn}

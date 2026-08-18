@@ -81,4 +81,24 @@ describe("tax — PPh 21 skema TER (prd04 §5.E.3, nilai dari konfigurasi)", () 
   it("gross <= 0 -> 0", () => {
     expect(computePph21TerMonthly({ gross: "0", brackets: cfg.terMonthly.A }).toString()).toBe("0");
   });
+
+  it("gross sama, kategori B -> PPh berbeda dari kategori A (bracket asli PMK 168/2023)", () => {
+    const gross = "7000000";
+    const taxA = computePph21TerMonthly({ gross, brackets: cfg.terMonthly.A });
+    const taxB = computePph21TerMonthly({ gross, brackets: cfg.terMonthly.B });
+    const taxC = computePph21TerMonthly({ gross, brackets: cfg.terMonthly.C });
+    // A: 7jt x 1,25% = 87.500; B: 7jt x 0,75% = 52.500; C: 7jt x 0,5% = 35.000
+    expect(taxA.toString()).toBe("87500");
+    expect(taxB.toString()).toBe("52500");
+    expect(taxC.toString()).toBe("35000");
+    expect(taxA.equals(taxB)).toBe(false);
+    // B dan C TIDAK boleh salinan A (bug seed lama).
+    const firstA = cfg.terMonthly.A[0]!;
+    const firstB = cfg.terMonthly.B[0]!;
+    const firstC = cfg.terMonthly.C[0]!;
+    expect(firstA.maxGross?.toString()).not.toBe(firstB.maxGross?.toString());
+    expect(firstA.maxGross?.toString()).not.toBe(firstC.maxGross?.toString());
+    expect(firstB.maxGross?.toString()).toBe("6200000");
+    expect(firstC.maxGross?.toString()).toBe("6600000");
+  });
 });

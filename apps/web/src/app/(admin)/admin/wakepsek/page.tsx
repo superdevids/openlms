@@ -15,6 +15,7 @@ import {
 } from "@opensis/ui";
 
 import { formatNumber, formatPercent } from "@/lib/format";
+import { DEMO_MODE } from "@/lib/api-client";
 import {
   PageHeader,
   DataTable,
@@ -79,12 +80,20 @@ export default function AdminWakepsekPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <DataTable
-              columns={ACADEMIC_COLUMNS}
-              rows={DEMO_ACADEMIC}
-              keyField="id"
-              maxHeight="none"
-            />
+            {DEMO_MODE ? (
+              <DataTable
+                columns={ACADEMIC_COLUMNS}
+                rows={DEMO_ACADEMIC}
+                keyField="id"
+                maxHeight="none"
+              />
+            ) : (
+              <EmptyStateV3
+                icon={<IconExam className="h-5 w-5" />}
+                title="Belum ada data akademik"
+                desc="Rekap nilai per kelas/mapel akan tampil setelah data penilaian masuk."
+              />
+            )}
           </CardContent>
         </Card>
       </TabPanel>
@@ -116,33 +125,43 @@ export default function AdminWakepsekPage(): JSX.Element {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {DEMO_DISCIPLINE.length === 0 ? (
-              <EmptyStateV3
-                icon={<IconAlert />}
-                title="Tidak ada siswa alpa berulang"
-                desc="Semua siswa berada di bawah ambang alpa bulan ini."
-              />
+            {DEMO_MODE ? (
+              <>
+                {DEMO_DISCIPLINE.length === 0 ? (
+                  <EmptyStateV3
+                    icon={<IconAlert />}
+                    title="Tidak ada siswa alpa berulang"
+                    desc="Semua siswa berada di bawah ambang alpa bulan ini."
+                  />
+                ) : (
+                  <ul className="space-y-2">
+                    {DEMO_DISCIPLINE.map((d) => (
+                      <li
+                        key={d.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
+                      >
+                        <span className="font-medium text-foreground">
+                          {d.student} — {d.className}
+                        </span>
+                        <StatusBadge
+                          status="ALPA"
+                          label={`${formatNumber(d.alpa)}x alpa (ambang ${d.threshold}x/bulan)`}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Kehadiran bulan ini: {formatPercent(96.2)}
+                </p>
+              </>
             ) : (
-              <ul className="space-y-2">
-                {DEMO_DISCIPLINE.map((d) => (
-                  <li
-                    key={d.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2"
-                  >
-                    <span className="font-medium text-foreground">
-                      {d.student} — {d.className}
-                    </span>
-                    <StatusBadge
-                      status="ALPA"
-                      label={`${formatNumber(d.alpa)}x alpa (ambang ${d.threshold}x/bulan)`}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <EmptyStateV3
+                icon={<IconAlert className="h-5 w-5" />}
+                title="Belum ada data kedisiplinan"
+                desc="Highlight siswa alpa di atas ambang akan tampil setelah data absensi masuk."
+              />
             )}
-            <p className="mt-3 text-sm text-muted-foreground">
-              Kehadiran bulan ini: {formatPercent(96.2)}
-            </p>
           </CardContent>
         </Card>
       </TabPanel>

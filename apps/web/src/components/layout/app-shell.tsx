@@ -23,6 +23,7 @@ import {
   type NavItem,
   type RoleGroup
 } from "@/lib/roles";
+import { useActiveRole } from "@/lib/active-role";
 import { useFeatureFlags } from "@/lib/feature-flags-hook";
 import { DEMO_MODE } from "@/lib/api-client";
 import { APP_NAME } from "@/lib/constants";
@@ -34,6 +35,7 @@ import { useUnreadNotifications } from "@/lib/use-socket";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { CommandPalette, type CommandItem } from "@/components/ui";
 import { NotificationPanel } from "./notification-panel";
+import type { Role } from "@opensis/types";
 import {
   IconBell,
   IconHome,
@@ -111,6 +113,7 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const demo = useDemoRoleSwitch();
+  const { activeRole, switchable, setActiveRole } = useActiveRole(user);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -140,13 +143,17 @@ export function AppShell({
   }, [status, router]);
 
   // Defense-in-depth: hard redirect bila role user tidak cocok dengan grup route.
+  // Dengan multi-role (item 18), grup yang valid mengikuti role aktif (activeRole);
+  // user yang role aktifnya berbeda grup dipindah ke home role tersebut.
   useEffect(() => {
     if (status !== "ready" || !user) return;
-    const hasGroupAccess = user.roles.some((r) => roleGroupFor(r) === roleGroup);
+    const hasGroupAccess = activeRole
+      ? roleGroupFor(activeRole) === roleGroup
+      : user.roles.some((r) => roleGroupFor(r) === roleGroup);
     if (!hasGroupAccess) {
-      router.replace(roleHome(user.primaryRole ?? user.roles[0]));
+      router.replace(roleHome(activeRole ?? user.primaryRole ?? user.roles[0]));
     }
-  }, [status, user, roleGroup, router]);
+  }, [status, user, roleGroup, router, activeRole]);
 
   if (status === "loading") {
     return (
@@ -170,7 +177,9 @@ export function AppShell({
     );
   }
 
-  const hasGroupAccess = user.roles.some((r) => roleGroupFor(r) === roleGroup);
+  const hasGroupAccess = activeRole
+    ? roleGroupFor(activeRole) === roleGroup
+    : user.roles.some((r) => roleGroupFor(r) === roleGroup);
   if (!hasGroupAccess) {
     return (
       <div
@@ -182,8 +191,7 @@ export function AppShell({
     );
   }
 
-  const primaryRole = user.primaryRole ?? user.roles[0];
-  const items = visibleNav(roleGroup, flags, user.roles);
+  const items = visibleNav(roleGroup, flags, activeRole ? [activeRole] : user.roles);
   const isActive = (href: string): boolean => pathname === href || pathname.startsWith(`${href}/`);
   const pageTitle = items.find((i) => isActive(i.href))?.label ?? ROLE_GROUP_LABEL[roleGroup];
 
@@ -323,7 +331,7 @@ export function AppShell({
                     {user.fullName}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    {roleLabel(primaryRole ?? "SISWA")}
+                    {roleLabel(activeRole ?? "SISWA")}
                   </span>
                 </span>
                 <IconChevronUp
@@ -333,6 +341,13 @@ export function AppShell({
               </span>
             }
           >
+            {switchable.length > 1 && !demo.enabled
+              ? switchable.map((r) => (
+                  <DropdownMenuItem key={r} onSelect={() => setActiveRole(r)}>
+                    {roleLabel(r)}
+                  </DropdownMenuItem>
+                ))
+              : null}
             <Link href="/support" className="block w-full">
               <DropdownMenuItem>Bantuan & FAQ</DropdownMenuItem>
             </Link>
@@ -370,6 +385,18 @@ export function AppShell({
               </nav>
             </div>
             <div className="flex items-center gap-1.5">
+              {switchable.length > 1 && !demo.enabled ? (
+                <label className="mr-1 hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
+                  Ganti peran
+                  <Select
+                    aria-label="Ganti peran"
+                    value={activeRole ?? ""}
+                    options={switchable.map((r) => ({ value: r, label: roleLabel(r) }))}
+                    onChange={(e) => setActiveRole(e.target.value as Role)}
+                    className="h-8 w-40 text-sm"
+                  />
+                </label>
+              ) : null}
               {demo.enabled ? (
                 <label className="mr-1 hidden items-center gap-1 text-xs text-muted-foreground sm:flex">
                   Demo role
@@ -435,6 +462,13 @@ export function AppShell({
                   </span>
                 }
               >
+                {switchable.length > 1 && !demo.enabled
+                  ? switchable.map((r) => (
+                      <DropdownMenuItem key={r} onSelect={() => setActiveRole(r)}>
+                        {roleLabel(r)}
+                      </DropdownMenuItem>
+                    ))
+                  : null}
                 <Link href="/support" className="block w-full">
                   <DropdownMenuItem>Bantuan & FAQ</DropdownMenuItem>
                 </Link>

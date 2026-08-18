@@ -12,6 +12,7 @@ import { ImportService } from "./import.service";
 import type { ImportRunResult } from "./import.service";
 import { InvitationsService } from "../auth/invitations.service";
 import type { InvitationResult } from "../auth/invitations.service";
+import { resolveActorRole } from "../lms/lms-audit";
 
 export const ONBOARDING_STEPS = [
   "school-profile",
@@ -137,7 +138,11 @@ export class OnboardingService {
   }
 
   /** Langkah 2 — data dasar: semester, ambang alpa, toggle fitur. */
-  async updateStep2(dto: OnboardingStep2Dto, actorId: string): Promise<OnboardingStatus> {
+  async updateStep2(
+    dto: OnboardingStep2Dto,
+    actorId: string,
+    roles: string[] = []
+  ): Promise<OnboardingStatus> {
     const school = await this.ensureSchool();
     const settings = (school.settings ?? {}) as Record<string, unknown>;
     const attendance = (settings["attendance"] ?? {}) as Record<string, unknown>;
@@ -164,14 +169,19 @@ export class OnboardingService {
       where: { id: school.id },
       data: { settings: nextSettings as Prisma.InputJsonValue }
     });
-    await this.auditStep(school.id, actorId, "data-dasar", nextSettings);
+    await this.auditStep(school.id, actorId, "data-dasar", nextSettings, roles);
     await this.completeStep(school.id, "data-dasar");
     return this.getStatus();
   }
 
   /** Langkah 3 — jalankan impor (delegasi ImportService) + tandai selesai. */
-  async runStep3(dto: ImportRowsDto, actorId: string, ip?: string): Promise<ImportRunResult> {
-    const result = await this.importService.run(dto, actorId, ip);
+  async runStep3(
+    dto: ImportRowsDto,
+    actorId: string,
+    ip?: string,
+    roles: string[] = []
+  ): Promise<ImportRunResult> {
+    const result = await this.importService.run(dto, actorId, ip, roles);
     const school = await this.ensureSchool();
     await this.completeStep(school.id, "import-data");
     return result;
@@ -189,7 +199,7 @@ export class OnboardingService {
   }
 
   /** Langkah 5 — selesai. */
-  async completeStep5(actorId: string): Promise<OnboardingStatus> {
+  async completeStep5(actorId: string, roles: string[] = []): Promise<OnboardingStatus> {
     const school = await this.ensureSchool();
     const state = this.readState(school.settings);
     const completedSteps = [
@@ -204,7 +214,7 @@ export class OnboardingService {
         } as Prisma.InputJsonValue
       }
     });
-    await this.auditStep(school.id, actorId, "selesai", { completed: true });
+    await this.auditStep(school.id, actorId, "selesai", { completed: true }, roles);
     return this.getStatus();
   }
 
@@ -265,12 +275,14 @@ export class OnboardingService {
     schoolId: string,
     actorId: string,
     step: string,
-    after: unknown
+    after: unknown,
+    roles: string[] = []
   ): Promise<void> {
     try {
       await this.prisma.auditLog.create({
         data: {
           actor_id: actorId,
+          actor_role: resolveActorRole(roles) ?? undefined,
           action: AuditAction.UPDATE,
           entity: "onboarding",
           entity_id: schoolId,

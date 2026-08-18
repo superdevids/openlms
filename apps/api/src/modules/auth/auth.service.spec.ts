@@ -119,7 +119,7 @@ describe("AuthService.login", () => {
     update.update.mockResolvedValue(user);
 
     const result = await service.login(
-      { emailOrUsername: "admin", password: "rahasia123" },
+      { username: "admin", password: "rahasia123" },
       { requestId: "req_test" }
     );
 
@@ -140,17 +140,18 @@ describe("AuthService.login", () => {
     );
   });
 
-  it("login dengan email (case-insensitive)", async () => {
+  it("login lookup hanya memakai username (bukan email)", async () => {
     const user = await makeUser();
     const findFirst = prismaMock.user as { findFirst: jest.Mock };
     findFirst.findFirst.mockImplementation(async ({ where }) => {
-      expect(where.OR[0].email.mode).toBe("insensitive");
+      expect(where).toEqual({ is_active: true, username: "admin" });
+      expect(where.OR).toBeUndefined();
       return user;
     });
     (prismaMock.user as { update: jest.Mock }).update.mockResolvedValue(user);
 
     const result = await service.login(
-      { emailOrUsername: "Admin@opensis.local", password: "rahasia123" },
+      { username: "admin", password: "rahasia123" },
       { requestId: "req_test" }
     );
     expect(result.user.id).toBe("u1");
@@ -163,7 +164,7 @@ describe("AuthService.login", () => {
     update.update.mockResolvedValue(user);
 
     await expect(
-      service.login({ emailOrUsername: "admin", password: "salah" }, { requestId: "req_test" })
+      service.login({ username: "admin", password: "salah" }, { requestId: "req_test" })
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(update.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ failed_login_attempts: 1 }) })
@@ -176,7 +177,7 @@ describe("AuthService.login", () => {
     (prismaMock.user as { update: jest.Mock }).update.mockResolvedValue(user);
 
     await expect(
-      service.login({ emailOrUsername: "admin", password: "salah" }, { requestId: "req_test" })
+      service.login({ username: "admin", password: "salah" }, { requestId: "req_test" })
     ).rejects.toMatchObject({
       status: HttpStatus.TOO_MANY_REQUESTS
     });
@@ -187,14 +188,14 @@ describe("AuthService.login", () => {
     (prismaMock.user as { findFirst: jest.Mock }).findFirst.mockResolvedValue(user);
 
     await expect(
-      service.login({ emailOrUsername: "admin", password: "rahasia123" }, { requestId: "req_test" })
+      service.login({ username: "admin", password: "rahasia123" }, { requestId: "req_test" })
     ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
   });
 
   it("user tidak ditemukan → 401 tanpa bocor informasi", async () => {
     (prismaMock.user as { findFirst: jest.Mock }).findFirst.mockResolvedValue(null);
     await expect(
-      service.login({ emailOrUsername: "ghost", password: "x" }, { requestId: "req_test" })
+      service.login({ username: "ghost", password: "x" }, { requestId: "req_test" })
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
@@ -203,10 +204,7 @@ describe("AuthService.login", () => {
     const auditCreate = prismaMock.auditLog as { create: jest.Mock };
 
     await expect(
-      service.login(
-        { emailOrUsername: "ghost", password: "x" },
-        { requestId: "req_test", ip: "1.2.3.4" }
-      )
+      service.login({ username: "ghost", password: "x" }, { requestId: "req_test", ip: "1.2.3.4" })
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
     expect(auditCreate.create).toHaveBeenCalledWith(
@@ -233,7 +231,7 @@ describe("AuthService.login", () => {
       .mockImplementation(() => undefined);
 
     const result = await service.login(
-      { emailOrUsername: "admin", password: "rahasia123" },
+      { username: "admin", password: "rahasia123" },
       { requestId: "req_test" }
     );
 

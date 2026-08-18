@@ -41,10 +41,14 @@ describe("AlumniService", () => {
     expect(alumni.final_nisn).toBe("0061234567");
   });
 
-  it("direktori memfilter tahun kelulusan dan status", async () => {
+  it("direktori memfilter tahun kelulusan dan status (paged)", async () => {
     mockFn(db, "alumni", "findMany").mockResolvedValue([{ id: "alumni-1" }]);
+    mockFn(db, "alumni", "count").mockResolvedValue(1);
     const rows = await service.list({ graduationYearId: "year-2026", status: "ACTIVE" });
-    expect(rows).toHaveLength(1);
+    expect(rows.items).toHaveLength(1);
+    expect(rows.total).toBe(1);
+    expect(rows.page).toBe(1);
+    expect(rows.limit).toBe(20);
     const where = mockFn(db, "alumni", "findMany").mock.calls[0][0].where;
     expect(where.graduation_academic_year_id).toBe("year-2026");
     expect(where.status).toBe("ACTIVE");

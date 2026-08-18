@@ -1,5 +1,13 @@
 # Registrasi Modul — Komunikasi (pengumuman & surat)
 
+> ## STATUS: IMPLEMENTED — catatan historis (2026-08-16)
+>
+> Dokumen ini adalah **catatan historis** saat modul masih berbentuk registrasi
+> awal. Implementasi aktual: RBAC global aktif — seluruh route memakai
+> `@RequirePermission` (`announcement:*`, `letter:request:self`,
+> `letter:approve:school`, `letter:read:school`). Klaim "TODO RBAC" di bawah
+> sudah usang. Tanda tangan digital tetap DITUNDA (`sign()` → 403 FEATURE_DISABLED).
+
 **Status:** Sudah terdaftar di `app.module.ts` (imports: `CommunicationModule`).
 
 ## Registrasi
@@ -20,4 +28,7 @@ import { CommunicationModule } from "./modules/communication/communication.modul
 ## Catatan
 
 - TODO RBAC: tulis pengumuman OPERATOR/WAKEPSEK/KEPSEK; approval surat KEPSEK/WAKEPSEK; pemohon hanya surat miliknya (SENDIRI).
+  > **Pembaruan 2026-08-16:** RBAC global aktif — seluruh route memakai
+  > `@RequirePermission` (`announcement:*`, `letter:request:self`,
+  > `letter:approve:school`, `letter:read:school` — `communication.controller.ts:40-130`).
 - Unit test: `test/unit/communication.service.spec.ts`.

@@ -4,12 +4,12 @@ import { useState, type FormEvent, type JSX } from "react";
 
 import { api, ApiError, DEMO_MODE, errorMessage } from "@/lib/api-client";
 import { useApi } from "@/lib/use-api";
-import { DataView, Card, CardContent, Button, Input, Label, IconQr, toast } from "@opensis/ui";
+import { DataView, Card, CardContent, Button, Input, IconQr, toast } from "@opensis/ui";
 
 import { formatTime } from "@/lib/format";
 import { newIdempotencyKey } from "@/lib/idempotency";
 
-import { PageHeader, StatCard, StatGrid, EmptyStateV3 } from "@/components/ui";
+import { PageHeader, StatCard, StatGrid, EmptyStateV3, RequiredLabel } from "@/components/ui";
 
 interface AttendanceRekapSummary {
   total: number;
@@ -99,7 +99,7 @@ export default function SiswaAbsensiPage(): JSX.Element {
           <form onSubmit={(e) => void scan(e)} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="att-session">Kode Sesi (dari guru)</Label>
+                <RequiredLabel htmlFor="att-session">Kode Sesi (dari guru)</RequiredLabel>
                 <Input
                   id="att-session"
                   value={sessionId}
@@ -109,7 +109,7 @@ export default function SiswaAbsensiPage(): JSX.Element {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="att-token">Kode QR / Manual</Label>
+                <RequiredLabel htmlFor="att-token">Kode QR / Manual</RequiredLabel>
                 <Input
                   id="att-token"
                   value={token}

@@ -16,6 +16,7 @@ import { FINANCE_STORE } from "../finance.constants";
 import { NotificationService } from "../../notifications/notifications.service";
 import { RealtimeGateway } from "../../realtime/realtime.gateway";
 import { INVOICE_PAID_EVENT } from "../../notifications/notification-events";
+import { resolveActorRole, writeAudit } from "../../lms/lms-audit";
 
 /**
  * PaymentService — pembayaran parsial/cicilan + alokasi (prd04 §5.F.2).
@@ -33,6 +34,10 @@ export interface RecordPaymentInput {
   proofUrl?: string;
   note?: string;
   createdBy: string;
+  /** Role aktor untuk actor_role AuditLog (deterministik via resolveActorRole). */
+  actorRoles?: string[];
+  /** Idempotency-Key klien — replay mengembalikan Payment yang sama. */
+  idempotencyKey?: string;
 }
 
 @Injectable()
@@ -49,6 +54,15 @@ export class PaymentService {
     if (amount.lte(ZERO)) {
       throw new BadRequestException("amount harus lebih besar dari 0");
     }
+    // Idempotensi (replay): key yang sama mengembalikan Payment pertama.
+    if (input.idempotencyKey) {
+      const existing = await prisma.payment.findFirst({
+        where: { idempotency_key: input.idempotencyKey }
+      });
+      if (existing) {
+        return existing;
+      }
+    }
     const invoice = await prisma.invoice.findUnique({
       where: { id: input.invoiceId },
       include: { payments: true }
@@ -60,21 +74,51 @@ export class PaymentService {
       throw new BadRequestException(`Tagihan berstatus ${invoice.status} tidak bisa dibayar`);
     }
 
-    return prisma.payment.create({
-      data: {
-        invoice_id: input.invoiceId,
-        amount,
-        method: input.method,
-        proof_url: input.proofUrl ?? null,
-        note: input.note ?? null,
-        status: "PENDING"
+    let payment: Payment;
+    try {
+      payment = await prisma.payment.create({
+        data: {
+          invoice_id: input.invoiceId,
+          amount,
+          method: input.method,
+          proof_url: input.proofUrl ?? null,
+          note: input.note ?? null,
+          status: "PENDING",
+          idempotency_key: input.idempotencyKey ?? null
+        }
+      });
+    } catch (err) {
+      // Race (dua request dengan key sama): yang kalah P2002 → kembalikan
+      // Payment yang sudah dibuat pemenang (replay).
+      if (input.idempotencyKey && this.isUniqueViolation(err)) {
+        const existing = await prisma.payment.findFirst({
+          where: { idempotency_key: input.idempotencyKey }
+        });
+        if (existing) {
+          return existing;
+        }
+      }
+      throw err;
+    }
+    await writeAudit({
+      ctx: { userId: input.createdBy, roles: input.actorRoles ?? [] },
+      action: "CREATE",
+      entity: "payment",
+      entityId: payment.id,
+      after: {
+        invoice_id: payment.invoice_id,
+        amount: payment.amount.toFixed(2),
+        method: payment.method,
+        status: payment.status
       }
     });
+    return payment;
   }
 
   /**
    * Alokasi satu pembayaran ke BANYAK invoice (bayar muka gabungan / cicilan).
    * Pembuatan Payment + update status invoice dalam satu transaksi.
+   * Idempoten: key sama → replay { payment, allocations } dari kolom allocations.
    */
   async recordAllocated(input: {
     invoiceIds: string[];
@@ -83,10 +127,22 @@ export class PaymentService {
     proofUrl?: string;
     note?: string;
     createdBy: string;
+    /** Role aktor untuk actor_role AuditLog (deterministik via resolveActorRole). */
+    actorRoles?: string[];
+    idempotencyKey?: string;
   }): Promise<{ payment: Payment; allocations: Array<{ invoiceId: string; allocated: Decimal }> }> {
     const amount = money(input.amount);
     if (amount.lte(ZERO)) {
       throw new BadRequestException("amount harus lebih besar dari 0");
+    }
+    // Idempotensi (replay): key yang sama mengembalikan alokasi asli.
+    if (input.idempotencyKey) {
+      const existing = await prisma.payment.findFirst({
+        where: { idempotency_key: input.idempotencyKey }
+      });
+      if (existing) {
+        return { payment: existing, allocations: this.allocationsFromRow(existing) };
+      }
     }
     const primary = input.invoiceIds[0];
     if (!primary) {
@@ -117,30 +173,66 @@ export class PaymentService {
       targets.push({ invoiceId, outstanding: totals.outstanding });
     }
 
-    const result = allocatePayment(amount, targets);
+    const allocation = allocatePayment(amount, targets);
 
-    return prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.create({
-        data: {
-          invoice_id: primaryInvoiceId,
-          amount,
-          method: input.method,
-          proof_url: input.proofUrl ?? null,
-          note: input.note ?? null,
-          status: "PENDING"
-        }
+    let result: { payment: Payment; allocations: Array<{ invoiceId: string; allocated: Decimal }> };
+    try {
+      result = await prisma.$transaction(async (tx) => {
+        const payment = await tx.payment.create({
+          data: {
+            invoice_id: primaryInvoiceId,
+            amount,
+            method: input.method,
+            proof_url: input.proofUrl ?? null,
+            note: input.note ?? null,
+            status: "PENDING",
+            idempotency_key: input.idempotencyKey ?? null,
+            allocations: allocation.allocations.map((a) => ({
+              invoiceId: a.invoiceId,
+              allocated: a.allocated.toFixed(2)
+            }))
+          }
+        });
+        // Simpan catatan alokasi di note (alokasi penuh disimpan saat verifikasi).
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            note: input.note
+              ? `${input.note} | alokasi: ${allocation.allocations.map((a) => `${a.invoiceId}=${a.allocated}`).join(",")}`
+              : `alokasi: ${allocation.allocations.map((a) => `${a.invoiceId}=${a.allocated}`).join(",")}`
+          }
+        });
+        return { payment, allocations: allocation.allocations };
       });
-      // Simpan catatan alokasi di note (alokasi penuh disimpan saat verifikasi).
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: {
-          note: input.note
-            ? `${input.note} | alokasi: ${result.allocations.map((a) => `${a.invoiceId}=${a.allocated}`).join(",")}`
-            : `alokasi: ${result.allocations.map((a) => `${a.invoiceId}=${a.allocated}`).join(",")}`
+    } catch (err) {
+      // Race (dua request dengan key sama): yang kalah P2002 → replay alokasi pemenang.
+      if (input.idempotencyKey && this.isUniqueViolation(err)) {
+        const existing = await prisma.payment.findFirst({
+          where: { idempotency_key: input.idempotencyKey }
+        });
+        if (existing) {
+          return { payment: existing, allocations: this.allocationsFromRow(existing) };
         }
-      });
-      return { payment, allocations: result.allocations };
+      }
+      throw err;
+    }
+    await writeAudit({
+      ctx: { userId: input.createdBy, roles: input.actorRoles ?? [] },
+      action: "CREATE",
+      entity: "payment",
+      entityId: result.payment.id,
+      after: {
+        invoice_ids: input.invoiceIds,
+        amount: result.payment.amount.toFixed(2),
+        method: result.payment.method,
+        status: result.payment.status,
+        allocations: result.allocations.map((a) => ({
+          invoiceId: a.invoiceId,
+          allocated: a.allocated.toFixed(2)
+        }))
+      }
     });
+    return result;
   }
 
   /** Verifikasi pembayaran oleh KEUANGAN (payment:verify:school). */
@@ -148,7 +240,8 @@ export class PaymentService {
     paymentId: string,
     approved: boolean,
     verifiedBy: string,
-    note?: string
+    note?: string,
+    actorRoles: string[] = []
   ): Promise<Payment> {
     const payment = await prisma.payment.findUnique({
       where: { id: paymentId },
@@ -186,16 +279,22 @@ export class PaymentService {
       await tx.auditLog.create({
         data: {
           actor_id: verifiedBy,
+          actor_role: resolveActorRole(actorRoles) ?? null,
           action: approved ? "UPDATE" : "DELETE",
-          entity: "Payment",
+          entity: "payment",
           entity_id: paymentId,
           before: { status: "PENDING" },
           after: { status: nextStatus, note: note ?? null }
         }
       });
-      // Recompute status invoice DI DALAM transaksi yang sama agar konsisten
-      // dengan status payment terbaru (tidak ada jendela status tidak sinkron).
-      await this.recomputeInvoiceStatus(p.invoice_id, tx);
+      // Recompute status SEMUA invoice yang tersentuh alokasi DI DALAM transaksi
+      // yang sama agar konsisten dengan status payment terbaru (tidak ada jendela
+      // status tidak sinkron): invoice primer + setiap invoice_id di kolom
+      // allocations (payment alokasi lintas tagihan — recordAllocated).
+      const allocationInvoiceIds = this.allocationsFromRow(p).map((a) => a.invoiceId);
+      for (const invoiceId of new Set([p.invoice_id, ...allocationInvoiceIds])) {
+        await this.recomputeInvoiceStatus(invoiceId, tx);
+      }
       return p;
     });
 
@@ -282,6 +381,9 @@ export class PaymentService {
       where: { status: { in: ["PENDING", "PARTIAL"] }, due_date: { lt: now } },
       include: { payments: true }
     });
+    // Hitung ulang status di memori, lalu update SEKALI (updateMany) —
+    // menggantikan invoice.update per baris (N+1).
+    const toOverdueIds: string[] = [];
     for (const inv of overdue) {
       const totals = computeInvoiceTotals({
         amount: inv.amount,
@@ -291,8 +393,14 @@ export class PaymentService {
         now
       });
       if (totals.status === "OVERDUE") {
-        await prisma.invoice.update({ where: { id: inv.id }, data: { status: "OVERDUE" } });
+        toOverdueIds.push(inv.id);
       }
+    }
+    if (toOverdueIds.length > 0) {
+      await prisma.invoice.updateMany({
+        where: { id: { in: toOverdueIds } },
+        data: { status: "OVERDUE" }
+      });
     }
     return overdue.length;
   }
@@ -303,6 +411,23 @@ export class PaymentService {
       where: { invoice_id: invoiceId },
       orderBy: { created_at: "asc" }
     });
+  }
+
+  /** Deteksi pelanggaran unique constraint Prisma (P2002). */
+  private isUniqueViolation(err: unknown): boolean {
+    return (err as { code?: string } | undefined)?.code === "P2002";
+  }
+
+  /** Baca alokasi tersimpan (kolom Json allocations) menjadi kontrak domain. */
+  private allocationsFromRow(row: {
+    allocations: Prisma.JsonValue | null;
+  }): Array<{ invoiceId: string; allocated: Decimal }> {
+    if (!Array.isArray(row.allocations)) {
+      return [];
+    }
+    return (row.allocations as Array<{ invoiceId: string; allocated: string | number | Decimal }>)
+      .filter((a) => a && typeof a === "object" && "invoiceId" in a)
+      .map((a) => ({ invoiceId: a.invoiceId, allocated: money(a.allocated) }));
   }
 }
 

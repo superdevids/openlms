@@ -26,6 +26,8 @@ import {
   Database,
   Download,
   EllipsisVertical,
+  Eye,
+  EyeOff,
   FileCheck,
   FileText,
   Flag,
@@ -215,4 +217,12 @@ export function IconSun(props: IconProps): JSX.Element {
 
 export function IconMoon(props: IconProps): JSX.Element {
   return <Moon {...props} />;
+}
+
+export function IconEye(props: IconProps): JSX.Element {
+  return <Eye {...props} />;
+}
+
+export function IconEyeOff(props: IconProps): JSX.Element {
+  return <EyeOff {...props} />;
 }

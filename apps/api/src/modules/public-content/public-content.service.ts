@@ -193,10 +193,12 @@ export class PublicContentService {
 
   async getAchievements(): Promise<AchievementPageItem[]> {
     return this.cached("achievements", async () => {
+      // M-06: endpoint PUBLIK tidak menampilkan PII siswa. Model Achievement
+      // tidak punya flag publikasi/consent — konservatif: nama siswa diganti
+      // anonim "Siswa" dan certificate_url dihapus dari payload publik.
       const rows = await this.db.achievement.findMany({
         orderBy: { date: "desc" },
         include: {
-          student: { select: { full_name: true } },
           extracurricular: { select: { name: true } }
         }
       });
@@ -205,9 +207,9 @@ export class PublicContentService {
         title: r.title,
         level: r.level,
         date: r.date,
-        studentName: r.student?.full_name ?? null,
+        studentName: "Siswa",
         extracurricularName: r.extracurricular?.name ?? null,
-        certificateUrl: r.certificate_url
+        certificateUrl: null
       }));
     });
   }

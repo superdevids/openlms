@@ -153,7 +153,7 @@ describe("PublicContentService", () => {
   });
 
   describe("getAchievements", () => {
-    it("mengurutkan tanggal desc dan memetakan studentName", async () => {
+    it("mengurutkan tanggal desc; PII siswa (nama + sertifikat) TIDAK diekspos publik (M-06)", async () => {
       const { prisma, achievement } = createMockPrisma();
       achievement.findMany.mockResolvedValue([
         {
@@ -174,10 +174,13 @@ describe("PublicContentService", () => {
         id: "ach_1",
         title: "Juara 1 LKS",
         level: "PROVINSI",
-        studentName: "Siswa Demo",
+        studentName: "Siswa",
         extracurricularName: "Robotik",
-        certificateUrl: "/files/ach-1.pdf"
+        certificateUrl: null
       });
+      // Nama asli siswa tidak boleh ikut di-query (PII tidak dimuat ke memori).
+      expect(items[0]?.studentName).not.toBe("Siswa Demo");
+      expect(items[0]?.certificateUrl).toBeNull();
       expect(achievement.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { date: "desc" } })
       );

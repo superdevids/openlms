@@ -145,6 +145,15 @@ export class LateFeeService {
     let checked = 0;
     let created = 0;
     let skipped = 0;
+    const toCreate: Array<{
+      invoiceNo: string;
+      originalInvoiceId: string;
+      period: string;
+      amount: Decimal;
+      dueDate: Date;
+      note: string;
+      createdBy: string;
+    }> = [];
 
     for (const invoice of overdueInvoices) {
       const rule = rules.find((r) => r.invoiceType === invoice.type);
@@ -188,9 +197,8 @@ export class LateFeeService {
 
       checked++;
       dendaSeq += 1;
-      const dendaNo = `${DENDA_NO_PREFIX}-${now.getFullYear()}-${String(dendaSeq).padStart(5, "0")}`;
-      await this.store.createDendaInvoice({
-        invoiceNo: dendaNo,
+      toCreate.push({
+        invoiceNo: `${DENDA_NO_PREFIX}-${now.getFullYear()}-${String(dendaSeq).padStart(5, "0")}`,
         originalInvoiceId: invoice.id,
         period,
         amount: fee.amount,
@@ -200,7 +208,11 @@ export class LateFeeService {
       });
       // Guard duplikat dalam run yang sama (dua invoice dengan sumber sama).
       existingDendaKeys.add(invoice.id);
-      created++;
+    }
+
+    // Batch create denda (createMany + skipDuplicates per original_invoice+period).
+    if (toCreate.length > 0) {
+      created = await this.store.createDendaInvoices(toCreate);
     }
 
     this.logger.log(`Denda ${period}: ${created} dibuat, ${skipped} dilewati`);

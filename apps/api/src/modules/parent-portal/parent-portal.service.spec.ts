@@ -283,6 +283,24 @@ describe("ParentPortalService (SEC-001 scope SENDIRI)", () => {
       );
     });
 
+    it("404 bila siswa tidak ditemukan", async () => {
+      prismaMock.parentGuardian.findFirst.mockResolvedValue({
+        id: "pg_1",
+        user_id: "user_wali_1"
+      });
+      prismaMock.parentStudentLink.findFirst.mockResolvedValue({
+        id: "link_1",
+        parent_id: "pg_1",
+        student_id: "stu_1",
+        status: "APPROVED"
+      });
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.getStudentOverview("pg_1", "stu_1", waliActor)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
     it("mengembalikan ringkasan untuk anak yang terhubung (hanya APPROVED)", async () => {
       prismaMock.parentGuardian.findFirst.mockResolvedValue({
         id: "pg_1",

@@ -23,7 +23,7 @@ import { formatDuration } from "@/lib/format";
 
 import { DEMO_ATTENDANCE_SUMMARY } from "@/lib/demo";
 import { getSocket, ATTENDANCE_CHECKED_IN_EVENT } from "@/lib/use-socket";
-import { PageHeader, StatusBadge } from "@/components/ui";
+import { PageHeader, StatusBadge, RequiredLabel } from "@/components/ui";
 
 /**
  * Absensi QR guru — generate sesi → token QR sekali pakai (expire ±7 mnt),
@@ -153,7 +153,7 @@ export default function GuruAbsensiPage(): JSX.Element {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="att-class">Kelas / Mata Pelajaran</Label>
+            <RequiredLabel htmlFor="att-class">Kelas / Mata Pelajaran</RequiredLabel>
             <Input
               id="att-class"
               value={className}

@@ -25,8 +25,9 @@ import {
   type IconProps
 } from "@opensis/ui";
 import { FadeInUp, StaggerContainer, StaggerItem } from "@/components/landing/motion";
+import { LandingImage } from "@/components/landing/landing-image";
 import { getPrograms, type ProgramPageItem } from "@/lib/landing-pages";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, LANDING_SCHOOL_IMAGES } from "@/lib/constants";
 
 /**
  * Program Keahlian — GET /public/programs (publik, per-halaman).
@@ -186,12 +187,14 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
           </FadeInUp>
           <FadeInUp delay={0.15}>
             <div className="relative">
-              <img
-                src="/landing/playful/play-program.svg"
-                alt="Ilustrasi program keahlian: pemrograman, otomotif, dan keterampilan industri"
-                role="img"
-                className="mx-auto w-full max-w-md"
+              <LandingImage
+                src={LANDING_SCHOOL_IMAGES.classroom}
+                alt="Suasana kelas praktik program keahlian sekolah"
+                width={640}
+                height={480}
                 loading="eager"
+                className="mx-auto w-full max-w-md rounded-[1.5rem] object-cover shadow-[var(--shadow-lift)]"
+                fallbackText="Program"
               />
               <img
                 src="/landing/playful/play-star.svg"
@@ -465,12 +468,13 @@ export default async function ProgramKeahlianPage(): Promise<JSX.Element> {
                 </div>
               </div>
               <div className="hidden lg:block">
-                <img
-                  src="/landing/playful/play-ppdb.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="mx-auto w-full max-w-sm"
-                  loading="lazy"
+                <LandingImage
+                  src={LANDING_SCHOOL_IMAGES.activity}
+                  alt="Kegiatan siswa sekolah"
+                  width={640}
+                  height={480}
+                  className="mx-auto w-full max-w-sm rounded-[1.5rem] border border-white/20 object-cover shadow-[var(--shadow-soft)]"
+                  fallbackText="Kegiatan"
                 />
               </div>
             </div>

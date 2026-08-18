@@ -5,7 +5,8 @@ import type { JSX } from "react";
 import { Button } from "@opensis/ui";
 import { FadeInUp } from "@/components/landing/motion";
 import { GaleriGrid } from "@/components/landing/galeri-grid";
-import { APP_NAME } from "@/lib/constants";
+import { LandingImage } from "@/components/landing/landing-image";
+import { APP_NAME, LANDING_SCHOOL_IMAGES } from "@/lib/constants";
 import { getGallery } from "@/lib/landing-pages";
 
 /**
@@ -71,7 +72,7 @@ export default async function GaleriPage(): Promise<JSX.Element> {
               <Link href="/kontak">
                 <Button
                   size="lg"
-                  className="rounded-full text-white shadow-[0_8px_30px_rgba(67,56,202,0.1)] hover:shadow-[0_20px_45px_rgba(67,56,202,0.16)]"
+                  className="rounded-full text-white shadow-[var(--shadow-soft)] transition-all duration-300 hover:shadow-[var(--shadow-lift)]"
                   style={{ backgroundImage: "var(--gradient-hero)" }}
                 >
                   Hubungi Kami
@@ -85,11 +86,14 @@ export default async function GaleriPage(): Promise<JSX.Element> {
             </div>
           </FadeInUp>
           <FadeInUp delay={0.15} className="relative">
-            <img
-              src="/landing/playful/play-gallery.svg"
-              alt="Ilustrasi galeri foto sekolah"
-              role="img"
-              className="w-full max-w-md"
+            <LandingImage
+              src={LANDING_SCHOOL_IMAGES.library}
+              alt="Perpustakaan dan dokumentasi kegiatan sekolah"
+              width={640}
+              height={480}
+              loading="eager"
+              className="mx-auto w-full max-w-md rounded-[1.5rem] object-cover shadow-[var(--shadow-lift)]"
+              fallbackText="Galeri"
             />
           </FadeInUp>
         </div>
@@ -159,7 +163,7 @@ export default async function GaleriPage(): Promise<JSX.Element> {
                 <Link href="/kontak">
                   <Button
                     size="lg"
-                    className="rounded-full bg-white text-brand-primary shadow-[0_8px_30px_rgba(67,56,202,0.1)] hover:bg-white/90 hover:shadow-[0_20px_45px_rgba(67,56,202,0.16)]"
+                    className="rounded-full bg-white text-brand-primary shadow-[var(--shadow-soft)] transition-all duration-300 hover:bg-white/90 hover:shadow-[var(--shadow-lift)]"
                   >
                     Hubungi Kami
                   </Button>

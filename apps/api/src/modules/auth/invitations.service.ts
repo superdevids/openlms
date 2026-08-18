@@ -36,13 +36,13 @@ export class InvitationsService {
 
   async send(dto: InvitationDto, actorId: string): Promise<InvitationResult> {
     const email = dto.email?.trim() || undefined;
-    const username = dto.username?.trim() || undefined;
-    if (!email && !username) {
-      throw new BadRequestException("Email atau username wajib diisi.");
+    const username = dto.username.trim();
+    if (!username) {
+      throw new BadRequestException("Username wajib diisi.");
     }
 
     let user = await this.prisma.user.findFirst({
-      where: email ? { email: { equals: email, mode: "insensitive" } } : { username: username }
+      where: { username: username }
     });
 
     let existingUser = false;
@@ -52,7 +52,7 @@ export class InvitationsService {
       user = await this.prisma.user.create({
         data: {
           email: email ?? null,
-          username: username ?? null,
+          username: username,
           password_hash: await hashPassword(temporaryPassword),
           must_change_password: true,
           full_name: dto.fullName

@@ -19,6 +19,50 @@ export interface NavItem {
   group?: string;
 }
 
+/**
+ * Prioritas role untuk memilih "role utama" — mirror lms-audit.ts:37-52 (R-13),
+ * deterministik: role tertinggi sesuai urutan, fallback roles[0].
+ */
+export const ROLE_PRIORITY: Role[] = [
+  "SUPERADMIN",
+  "KEPSEK",
+  "AUDITOR",
+  "WAKEPSEK",
+  "KAPRODI",
+  "OPERATOR",
+  "KEUANGAN",
+  "BK",
+  "GURU",
+  "SISWA",
+  "WALI_MURID",
+  "CALON_SISWA",
+  "PEMBIMBING_INDUSTRI",
+  "PENGUJI_EKSTERNAL"
+];
+
+/** Role pertama sesuai ROLE_PRIORITY; fallback roles[0]. */
+export function primaryRoleOf(roles: Role[]): Role | undefined {
+  for (const role of ROLE_PRIORITY) {
+    if (roles.includes(role)) return role;
+  }
+  return roles[0];
+}
+
+/** Role yang bisa diganti lewat switcher (item 18) — SUPERADMIN & SISWA dikecualikan. */
+export function switchableRoles(roles: Role[]): Role[] {
+  return roles.filter((r) => r !== "SUPERADMIN" && r !== "SISWA");
+}
+
+/** Validasi stored role aktif: harus termasuk switchable; fallback primaryRoleOf. */
+export function resolveActiveRole(
+  user: { roles: Role[] },
+  stored: Role | null | undefined
+): Role | undefined {
+  const switchable = switchableRoles(user.roles);
+  if (stored && switchable.includes(stored)) return stored;
+  return primaryRoleOf(user.roles);
+}
+
 export function roleGroupFor(role: Role | undefined): RoleGroup | null {
   switch (role) {
     case "SISWA":
@@ -131,6 +175,13 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       group: "Pembelajaran"
     },
     {
+      label: "Rapor",
+      href: "/siswa/rapor",
+      icon: "file",
+      roles: ROLES.siswa,
+      group: "Pembelajaran"
+    },
+    {
       label: "Absensi",
       href: "/siswa/absensi",
       icon: "qrcode",
@@ -184,6 +235,13 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       label: "Penilaian",
       href: "/guru/penilaian",
       icon: "grade",
+      roles: ROLES.guru,
+      group: "Mengajar"
+    },
+    {
+      label: "Rapor",
+      href: "/guru/rapor",
+      icon: "file",
       roles: ROLES.guru,
       group: "Mengajar"
     },
@@ -245,6 +303,20 @@ export const NAV_ITEMS: Record<RoleGroup, NavItem[]> = {
       label: "Kepsek",
       href: "/admin/kepsek",
       icon: "briefcase",
+      roles: ROLES.admin,
+      group: "Operasional"
+    },
+    {
+      label: "Rapor",
+      href: "/admin/rapor",
+      icon: "file",
+      roles: ROLES.admin,
+      group: "Operasional"
+    },
+    {
+      label: "Dapodik",
+      href: "/admin/dapodik",
+      icon: "database",
       roles: ROLES.admin,
       group: "Operasional"
     },

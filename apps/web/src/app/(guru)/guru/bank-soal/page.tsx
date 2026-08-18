@@ -7,7 +7,7 @@ import { useApi } from "@/lib/use-api";
 import { DataView, Button, Label, Select, Textarea, Dialog, toast } from "@opensis/ui";
 
 import { DEMO_QUESTIONS } from "@/lib/demo";
-import { PageHeader, DataTable, StatusBadge } from "@/components/ui";
+import { PageHeader, DataTable, StatusBadge, RequiredLabel } from "@/components/ui";
 
 interface Question {
   id: string;
@@ -164,7 +164,7 @@ export default function GuruBankSoalPage(): JSX.Element {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="q-text">Pertanyaan</Label>
+            <RequiredLabel htmlFor="q-text">Pertanyaan</RequiredLabel>
             <Textarea
               id="q-text"
               rows={4}

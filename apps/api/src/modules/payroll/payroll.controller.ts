@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   UnauthorizedException,
@@ -23,6 +24,7 @@ import {
   CreateRunDto,
   CreateSalaryStructureDto,
   PayrollQueryDto,
+  SetStaffTerCategoryDto,
   UpdateJobPositionDto,
   UpsertComponentDto
 } from "./dto/payroll.dto";
@@ -143,6 +145,21 @@ export class PayrollController {
   @RequirePermission("payroll:read:school")
   listSalaryStructures(@Query("staffId") staffId?: string) {
     return this.salaryStructures.list(staffId);
+  }
+
+  /** Kategori TER PPh21 bulanan per pegawai (PMK 168/2023: A/B/C). */
+  @Patch("staff/:staffId/ter-category")
+  @RequirePermission("payroll:write:school")
+  setStaffTerCategory(
+    @Param("staffId") staffId: string,
+    @Body() dto: SetStaffTerCategoryDto,
+    @CurrentUser() user: AuthUser | undefined
+  ) {
+    return this.salaryStructures.setStaffTerCategory(
+      staffId,
+      dto.category,
+      this.payslipActor(user)
+    );
   }
 
   // ---------- PayrollRun ----------

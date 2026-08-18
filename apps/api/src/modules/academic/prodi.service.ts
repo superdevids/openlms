@@ -1,6 +1,7 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { AuditAction, Prisma } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
+import { resolveActorRole } from "../lms/lms-audit";
 import { CreateProdiDto, ListProdiQuery, UpdateProdiDto } from "./dto/prodi.dto";
 
 export interface ProdiView {
@@ -68,7 +69,12 @@ export class ProdiService {
     return toView(row);
   }
 
-  async create(dto: CreateProdiDto, actorId: string, ip?: string): Promise<ProdiView> {
+  async create(
+    dto: CreateProdiDto,
+    actorId: string,
+    ip?: string,
+    roles: string[] = []
+  ): Promise<ProdiView> {
     const existing = await this.db.prodi.findUnique({ where: { code: dto.code } });
     if (existing) {
       throw new ConflictException(`Kode prodi ${dto.code} sudah dipakai.`);
@@ -84,6 +90,7 @@ export class ProdiService {
     await this.db.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.CREATE,
         entity: "prodi",
         entity_id: row.id,
@@ -94,7 +101,13 @@ export class ProdiService {
     return toView(row);
   }
 
-  async update(id: string, dto: UpdateProdiDto, actorId: string, ip?: string): Promise<ProdiView> {
+  async update(
+    id: string,
+    dto: UpdateProdiDto,
+    actorId: string,
+    ip?: string,
+    roles: string[] = []
+  ): Promise<ProdiView> {
     const existing = await this.db.prodi.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException("Prodi tidak ditemukan.");
@@ -111,6 +124,7 @@ export class ProdiService {
     await this.db.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.UPDATE,
         entity: "prodi",
         entity_id: row.id,
@@ -131,7 +145,12 @@ export class ProdiService {
   }
 
   /** Nonaktifkan prodi (soft delete). */
-  async deactivate(id: string, actorId: string, ip?: string): Promise<ProdiView> {
+  async deactivate(
+    id: string,
+    actorId: string,
+    ip?: string,
+    roles: string[] = []
+  ): Promise<ProdiView> {
     const existing = await this.db.prodi.findUnique({ where: { id } });
     if (!existing) {
       throw new NotFoundException("Prodi tidak ditemukan.");
@@ -144,6 +163,7 @@ export class ProdiService {
     await this.db.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.UPDATE,
         entity: "prodi",
         entity_id: row.id,

@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { PrismaClient } from "@opensis/database";
 import { readCacheTtlMs } from "../../common/cache.util";
 import { FeatureFlagGuard } from "../../common/feature-flag.guard";
+import { resolveActorRole } from "../lms/lms-audit";
 import { UpdateFeatureFlagDto } from "./dto/update-feature-flag.dto";
 
 export interface FeatureFlagView {
@@ -80,7 +81,8 @@ export class FeatureFlagsService {
     key: string,
     dto: UpdateFeatureFlagDto,
     actorId: string,
-    ip?: string
+    ip?: string,
+    roles: string[] = []
   ): Promise<FeatureFlagView> {
     const flag = await this.prisma.featureFlag.findUnique({ where: { key } });
     if (!flag) {
@@ -118,6 +120,7 @@ export class FeatureFlagsService {
     await this.prisma.auditLog.create({
       data: {
         actor_id: actorId,
+        actor_role: resolveActorRole(roles) ?? undefined,
         action: AuditAction.UPDATE,
         entity: "feature_flag",
         entity_id: key,

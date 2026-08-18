@@ -61,8 +61,13 @@ export class PpdbController {
 
   @Get("selection")
   @RequirePermission("ppdb:verify:school", "ppdb:select:school")
-  listSelection() {
-    return this.ppdbService.listSelection();
+  listSelection(@Query("page") page?: string, @Query("limit") limit?: string) {
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+    return this.ppdbService.listSelection({
+      page: Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined,
+      limit: Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined
+    });
   }
 
   @Patch(":applicantId/verify")

@@ -25,7 +25,7 @@ export default async function LandingLayout({
   const branding = await getBranding();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="landing-light flex min-h-screen flex-col bg-background">
       <LandingHeader branding={branding} />
 
       <main id="main" className="flex-1">

@@ -1,12 +1,21 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type JSX,
+  type ReactNode
+} from "react";
 
 import { STORAGE_KEYS, safeGet, safeSet } from "@/lib/storage";
 
 /**
  * ThemeProvider — dark mode class-based (audit R-01).
- * - theme: pilihan user ("light" | "dark" | "system"), default "system".
+ * - theme: pilihan user ("light" | "dark" | "system"), default "light".
  * - Persist ke localStorage via storage.ts (key opensis_theme).
  * - Terapkan documentElement.classList.toggle("dark", ...) + style.colorScheme.
  * - Saat "system": listen matchMedia("(prefers-color-scheme: dark)").
@@ -45,11 +54,12 @@ function readStoredTheme(): Theme | null {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }): JSX.Element {
-  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme() ?? "system");
+  const [theme, setThemeState] = useState<Theme>(() => readStoredTheme() ?? "light");
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
     const stored = readStoredTheme();
     if (stored === "light" || stored === "dark") return stored;
-    return systemResolved();
+    // Default light (item 8) — hanya ikuti OS saat user eksplisit memilih "system".
+    return "light";
   });
 
   // Ikuti perubahan preferensi OS hanya saat theme = "system".

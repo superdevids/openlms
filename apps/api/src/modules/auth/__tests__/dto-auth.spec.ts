@@ -6,10 +6,15 @@ import { LoginDto } from "../dto/login.dto";
 import { ResetPasswordDto } from "../dto/reset-password.dto";
 import { expectDtoInvalid, expectDtoValid } from "../../../../test/helpers/dto-validation";
 
-const VALID_LOGIN = { emailOrUsername: "admin@sekolah.sch.id", password: "rahasia123" };
+const VALID_LOGIN = { username: "12345", password: "rahasia123" };
 const VALID_CHANGE_PW = { currentPassword: "lama1234", newPassword: "baru12345" };
 const VALID_RESET_PW = { userId: "usr_1", newPassword: "sementara1" };
-const VALID_INVITATION = { email: "guru@sekolah.sch.id", fullName: "Budi Santoso", role: "GURU" };
+const VALID_INVITATION = {
+  email: "guru@sekolah.sch.id",
+  username: "budi.guru",
+  fullName: "Budi Santoso",
+  role: "GURU"
+};
 const VALID_ACCEPT = { token: "inv_tok_abc" };
 
 describe("DTO Auth", () => {
@@ -19,14 +24,14 @@ describe("DTO Auth", () => {
     });
 
     it.each([
-      [{ ...VALID_LOGIN, emailOrUsername: undefined }, "emailOrUsername", "isNotEmpty"],
-      [{ ...VALID_LOGIN, emailOrUsername: "" }, "emailOrUsername", "isNotEmpty"],
-      [{ ...VALID_LOGIN, emailOrUsername: 123 }, "emailOrUsername", "isString"],
+      [{ ...VALID_LOGIN, username: undefined }, "username", "isNotEmpty"],
+      [{ ...VALID_LOGIN, username: "" }, "username", "isNotEmpty"],
+      [{ ...VALID_LOGIN, username: 123 }, "username", "isString"],
       [{ ...VALID_LOGIN, password: undefined }, "password", "isNotEmpty"],
       [{ ...VALID_LOGIN, password: "" }, "password", "isNotEmpty"],
       [{ ...VALID_LOGIN, password: null }, "password", "isString"],
       [{ ...VALID_LOGIN, password: ["x"] }, "password", "isString"],
-      [{}, "emailOrUsername", "isNotEmpty"]
+      [{}, "username", "isNotEmpty"]
     ])("menolak input %#: %j", async (data, prop, constraint) => {
       await expectDtoInvalid(LoginDto, data, { property: prop, constraint });
     });
@@ -76,7 +81,7 @@ describe("DTO Auth", () => {
 
     it("role setiap nilai ROLE_VALUES diterima", async () => {
       for (const role of ROLE_VALUES) {
-        await expectDtoValid(InvitationDto, { fullName: "Orang", role });
+        await expectDtoValid(InvitationDto, { username: "budi.guru", fullName: "Orang", role });
       }
     });
 
@@ -86,6 +91,19 @@ describe("DTO Auth", () => {
         fullName: "Budi",
         role: "GURU"
       });
+    });
+
+    it("username wajib diisi (email saja tidak cukup)", async () => {
+      await expectDtoInvalid(
+        InvitationDto,
+        { email: "guru@sekolah.sch.id", fullName: "Budi", role: "GURU" },
+        { property: "username", constraint: "isNotEmpty" }
+      );
+      await expectDtoInvalid(
+        InvitationDto,
+        { username: "", fullName: "Budi", role: "GURU" },
+        { property: "username", constraint: "isNotEmpty" }
+      );
     });
 
     it("username dengan karakter tidak aman ditolak", async () => {

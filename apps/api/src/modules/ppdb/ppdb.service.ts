@@ -19,7 +19,7 @@ import {
   Injectable,
   NotFoundException
 } from "@nestjs/common";
-import type { PpdbApplicant } from "@prisma/client";
+import type { PpdbApplicant, Prisma } from "@prisma/client";
 import { DATABASE_CLIENT, DatabaseClient } from "../database/database.constants";
 import { writeAudit, type AuditActorContext } from "../lms/lms-audit";
 import { AcademicYearGuard } from "../academic/academic-year.guard";
@@ -215,12 +215,26 @@ export class PpdbService {
     return updated;
   }
 
-  /** Pengumuman: daftar pendaftar lolos seleksi. */
-  async listSelection(): Promise<PpdbApplicant[]> {
-    return this.db.ppdbApplicant.findMany({
-      where: { status: { in: ["SELECTED", "WAITLIST"] } },
-      orderBy: { selection_score: "desc" }
-    });
+  /** Pengumuman: daftar pendaftar lolos seleksi (paged). */
+  async listSelection(query: { page?: number; limit?: number } = {}): Promise<{
+    items: PpdbApplicant[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const where: Prisma.PpdbApplicantWhereInput = { status: { in: ["SELECTED", "WAITLIST"] } };
+    const [items, total] = await Promise.all([
+      this.db.ppdbApplicant.findMany({
+        where,
+        orderBy: { selection_score: "desc" },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      this.db.ppdbApplicant.count({ where })
+    ]);
+    return { items, total, page, limit };
   }
 
   /** Enroll calon terpilih ke tahun ajaran baru: UserRole SISWA + Enrollment. */
